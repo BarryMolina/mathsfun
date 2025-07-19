@@ -68,6 +68,19 @@ def get_difficulty_range() -> Tuple[int, int]:
     
     return low, high
 
+def get_num_problems() -> int:
+    """Get number of problems from user (0 = unlimited)"""
+    while True:
+        try:
+            user_input = get_user_input("Number of problems (0 for unlimited)", "0")
+            num = int(user_input)
+            if num < 0:
+                print("❌ Please enter 0 for unlimited or a positive number")
+                continue
+            return num
+        except ValueError:
+            print("❌ Please enter a valid number")
+
 
 def generate_single_digit_numbers() -> Tuple[int, int]:
     """Generate two single-digit numbers (0-9)"""
@@ -147,11 +160,13 @@ def generate_problem_by_difficulty(difficulty: int) -> Tuple[str, int]:
 class ProblemGenerator:
     """Generates problems on-demand with random difficulty selection"""
     
-    def __init__(self, low_difficulty: int, high_difficulty: int):
+    def __init__(self, low_difficulty: int, high_difficulty: int, num_problems: int = 0):
         self.low_difficulty = low_difficulty
         self.high_difficulty = high_difficulty
         self.difficulty_range = list(range(low_difficulty, high_difficulty + 1))
+        self.num_problems = num_problems  # 0 means unlimited
         self.problems_generated = 0
+        self.is_unlimited = (num_problems == 0)
     
     def get_next_problem(self) -> Tuple[str, int]:
         """Generate a random problem within the difficulty range"""
@@ -162,21 +177,41 @@ class ProblemGenerator:
         
         return problem, answer
     
+    def has_more_problems(self) -> bool:
+        """Check if there are more problems available"""
+        if self.is_unlimited:
+            return True
+        return self.problems_generated < self.num_problems
+    
     def get_total_generated(self) -> int:
         """Get the total number of problems generated so far"""
         return self.problems_generated
+    
+    def get_progress_display(self) -> str:
+        """Get a string showing current progress"""
+        if self.is_unlimited:
+            return f"#{self.problems_generated + 1}"
+        else:
+            return f"{self.problems_generated + 1}/{self.num_problems}"
 
-def prompt_start_session():
+def prompt_start_session(generator: ProblemGenerator):
     """Prompt user to start the quiz session"""
-    print(f"\n✅ Ready to start!")
+    if generator.is_unlimited:
+        print(f"\n✅ Ready to start unlimited session!")
+        print("Solve problems until you're ready to stop.")
+    else:
+        print(f"\n✅ Ready to start! {generator.num_problems} problems prepared.")
     print("Press Enter when you're ready to start the timer and begin...")
     input()
 
 def run_quiz(generator: ProblemGenerator) -> Tuple[int, int, float]:
-    """Run the interactive math quiz with continuous problem generation"""
-    prompt_start_session()
+    """Run the interactive math quiz with problem generation"""
+    prompt_start_session(generator)
     
-    print(f"\n🎯 Timer started! Solve problems until you're ready to stop.")
+    if generator.is_unlimited:
+        print(f"\n🎯 Timer started! Solve problems until you're ready to stop.")
+    else:
+        print(f"\n🎯 Timer started! You have {generator.num_problems} problems to solve.")
     print("Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)")
     print("=" * 60)
     
@@ -184,11 +219,11 @@ def run_quiz(generator: ProblemGenerator) -> Tuple[int, int, float]:
     correct_count = 0
     total_attempted = 0
     
-    while True:
+    while generator.has_more_problems():
         # Generate problem on-demand
         problem, correct_answer = generator.get_next_problem()
-        problem_number = generator.get_total_generated()
-        print(f"\n📝 Problem #{problem_number}: {problem}")
+        progress = generator.get_progress_display()
+        print(f"\n📝 Problem {progress}: {problem}")
         
         while True:
             user_input = input("Your answer: ").strip().lower()
@@ -219,6 +254,11 @@ def run_quiz(generator: ProblemGenerator) -> Tuple[int, int, float]:
                     
             except ValueError:
                 print("❌ Please enter a number, 'next', 'stop', or 'exit'")
+    
+    # If we reach here, all problems in limited mode are completed
+    end_time = time.time()
+    duration = end_time - start_time
+    return correct_count, total_attempted, duration
 
 def format_duration(duration: float) -> str:
     """Format duration in seconds to a readable string"""
@@ -234,15 +274,27 @@ def format_duration(duration: float) -> str:
         seconds = duration % 60
         return f"{hours}h {minutes}m {seconds:.1f}s"
 
-def show_results(correct: int, total: int, duration: float, total_problems: int):
+def show_results(correct: int, total: int, duration: float, generator: ProblemGenerator):
     """Display quiz results with timing"""
     print("\n" + "="*60)
-    print("🎉 Session Complete! 🎉")
-    print(f"📊 Problems presented: {total_problems}")
+    
+    if generator.is_unlimited:
+        print("🎉 Session Complete! 🎉")
+        completion_text = "Session ended by user"
+    else:
+        if generator.get_total_generated() >= generator.num_problems:
+            print("🎉 Quiz Complete! 🎉")
+            completion_text = "All problems completed"
+        else:
+            print("🎉 Session Complete! 🎉")
+            completion_text = "Session ended by user"
+    
+    print(f"📊 Problems presented: {generator.get_total_generated()}")
     print(f"✅ Correct answers: {correct}")
     print(f"📝 Total attempted: {total}")
-    print(f"⏭️  Skipped: {total_problems - total}")
+    print(f"⏭️  Skipped: {generator.get_total_generated() - total}")
     print(f"⏱️  Time taken: {format_duration(duration)}")
+    print(f"ℹ️  {completion_text}")
     
     if total > 0:
         accuracy = (correct / total) * 100
@@ -272,19 +324,23 @@ def addition_mode():
         
         # Get user preferences
         low, high = get_difficulty_range()
+        num_problems = get_num_problems()
         
         print(f"\n📋 Settings:")
         print(f"   Difficulty: {low} to {high}")
-        print(f"   Mode: Continuous (stop when ready)")
+        if num_problems == 0:
+            print(f"   Mode: Unlimited (stop when ready)")
+        else:
+            print(f"   Problems: {num_problems}")
         
         # Create problem generator
-        generator = ProblemGenerator(low, high)
+        generator = ProblemGenerator(low, high, num_problems)
         
         # Run the quiz
         correct, total, duration = run_quiz(generator)
         
         # Show results
-        show_results(correct, total, duration, generator.get_total_generated())
+        show_results(correct, total, duration, generator)
         
     except Exception as e:
         print(f"❌ Error: {e}")
