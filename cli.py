@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
-import os
-import re
+import random
 import time
 from typing import List, Tuple, Optional
-from dotenv import load_dotenv
-from chatter import chatter
-from jinja_helper import process_template
-
-load_dotenv()
 
 DIFFICULTY_DESCRIPTIONS = {
     1: "Two single-digit numbers",
@@ -89,72 +83,116 @@ def get_num_problems() -> int:
         except ValueError:
             print("❌ Please enter a valid number")
 
+def generate_single_digit_numbers() -> Tuple[int, int]:
+    """Generate two single-digit numbers (0-9)"""
+    return random.randint(0, 9), random.randint(0, 9)
+
+def generate_two_digit_no_carrying() -> Tuple[int, int]:
+    """Generate two two-digit numbers with no carrying required"""
+    # Ensure ones digits sum <= 9 and tens digits sum <= 9
+    while True:
+        num1 = random.randint(10, 99)
+        num2 = random.randint(10, 99)
+        
+        ones1, tens1 = num1 % 10, num1 // 10
+        ones2, tens2 = num2 % 10, num2 // 10
+        
+        if ones1 + ones2 <= 9 and tens1 + tens2 <= 9:
+            return num1, num2
+
+def generate_two_digit_with_carrying() -> Tuple[int, int]:
+    """Generate two two-digit numbers with carrying required"""
+    # Ensure ones digits sum > 9
+    while True:
+        num1 = random.randint(10, 99)
+        num2 = random.randint(10, 99)
+        
+        ones1, ones2 = num1 % 10, num2 % 10
+        
+        if ones1 + ones2 > 9:
+            return num1, num2
+
+def generate_three_digit_no_carrying() -> Tuple[int, int]:
+    """Generate two three-digit numbers with no carrying required"""
+    # Ensure all digit pairs sum <= 9
+    while True:
+        num1 = random.randint(100, 999)
+        num2 = random.randint(100, 999)
+        
+        ones1, tens1, hundreds1 = num1 % 10, (num1 // 10) % 10, num1 // 100
+        ones2, tens2, hundreds2 = num2 % 10, (num2 // 10) % 10, num2 // 100
+        
+        if (ones1 + ones2 <= 9 and 
+            tens1 + tens2 <= 9 and 
+            hundreds1 + hundreds2 <= 9):
+            return num1, num2
+
+def generate_three_digit_with_carrying() -> Tuple[int, int]:
+    """Generate two three-digit numbers with carrying required"""
+    # Ensure at least ones digits sum > 9
+    while True:
+        num1 = random.randint(100, 999)
+        num2 = random.randint(100, 999)
+        
+        ones1, ones2 = num1 % 10, num2 % 10
+        
+        if ones1 + ones2 > 9:
+            return num1, num2
+
+def generate_problem_by_difficulty(difficulty: int) -> Tuple[str, int]:
+    """Generate a single math problem based on difficulty level"""
+    if difficulty == 1:
+        num1, num2 = generate_single_digit_numbers()
+    elif difficulty == 2:
+        num1, num2 = generate_two_digit_no_carrying()
+    elif difficulty == 3:
+        num1, num2 = generate_two_digit_with_carrying()
+    elif difficulty == 4:
+        num1, num2 = generate_three_digit_no_carrying()
+    elif difficulty == 5:
+        num1, num2 = generate_three_digit_with_carrying()
+    else:
+        raise ValueError(f"Invalid difficulty level: {difficulty}")
+    
+    problem = f"{num1} + {num2}"
+    answer = num1 + num2
+    return problem, answer
+
+def distribute_problems(low_difficulty: int, high_difficulty: int, num_problems: int) -> List[int]:
+    """Distribute problems evenly across difficulty levels"""
+    difficulty_range = list(range(low_difficulty, high_difficulty + 1))
+    num_levels = len(difficulty_range)
+    
+    # Base problems per level
+    base_problems = num_problems // num_levels
+    extra_problems = num_problems % num_levels
+    
+    distribution = []
+    for i, difficulty in enumerate(difficulty_range):
+        # Add extra problems to first few levels if needed
+        problems_for_level = base_problems + (1 if i < extra_problems else 0)
+        distribution.extend([difficulty] * problems_for_level)
+    
+    # Shuffle to randomize order
+    random.shuffle(distribution)
+    return distribution
+
 def generate_problems(low_difficulty: int, high_difficulty: int, num_problems: int) -> Tuple[List[str], List[int]]:
-    """Generate math problems using AI and parse the response"""
-    print("\n🤖 Generating your math problems...")
+    """Generate math problems using random number generation"""
+    print("\n🎲 Generating your math problems...")
     
-    api_key = os.getenv("OPENAI_KEY")
-    if not api_key:
-        raise ValueError("No API key found. Please set your OPENAI_KEY in the .env file.")
+    # Get distribution of difficulties
+    difficulty_distribution = distribute_problems(low_difficulty, high_difficulty, num_problems)
     
-    chat_fn = chatter(api_key)
-    
-    data = {
-        "LOW_DIFFICULTY": low_difficulty,
-        "HIGH_DIFFICULTY": high_difficulty,
-        "NUM_PROBLEMS": num_problems,
-    }
-    
-    prompt = process_template("prompts/addition.jinja", data)
-    response = chat_fn(prompt)
-    
-    # Parse problems and answers from response
-    problems = parse_problems(response)
-    answers = parse_answers(response)
-    
-    if len(problems) != len(answers):
-        raise ValueError("Mismatch between number of problems and answers")
-    
-    return problems, answers
-
-def parse_problems(response: str) -> List[str]:
-    """Extract problems from AI response"""
-    problems_match = re.search(r'<problems>(.*?)</problems>', response, re.DOTALL)
-    if not problems_match:
-        raise ValueError("Could not find problems in response")
-    
-    problems_text = problems_match.group(1).strip()
     problems = []
-    
-    for line in problems_text.split('\n'):
-        line = line.strip()
-        if line and '. ' in line:
-            # Extract just the math expression (e.g., "4 + 5")
-            problem = line.split('. ', 1)[1].strip()
-            problems.append(problem)
-    
-    return problems
-
-def parse_answers(response: str) -> List[int]:
-    """Extract answers from AI response"""
-    answers_match = re.search(r'<answers>(.*?)</answers>', response, re.DOTALL)
-    if not answers_match:
-        raise ValueError("Could not find answers in response")
-    
-    answers_text = answers_match.group(1).strip()
     answers = []
     
-    for line in answers_text.split('\n'):
-        line = line.strip()
-        if line and '. ' in line:
-            # Extract the number after the period
-            answer_str = line.split('. ', 1)[1].strip()
-            try:
-                answers.append(int(answer_str))
-            except ValueError:
-                raise ValueError(f"Invalid answer format: {answer_str}")
+    for difficulty in difficulty_distribution:
+        problem, answer = generate_problem_by_difficulty(difficulty)
+        problems.append(problem)
+        answers.append(answer)
     
-    return answers
+    return problems, answers
 
 def prompt_start_session(num_problems: int):
     """Prompt user to start the quiz session"""
