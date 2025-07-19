@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import re
+import time
 from typing import List, Tuple, Optional
 from dotenv import load_dotenv
 from chatter import chatter
@@ -155,12 +156,21 @@ def parse_answers(response: str) -> List[int]:
     
     return answers
 
-def run_quiz(problems: List[str], answers: List[int]) -> Tuple[int, int]:
-    """Run the interactive math quiz"""
-    print(f"\n🎯 Let's start! You have {len(problems)} problems to solve.")
+def prompt_start_session(num_problems: int):
+    """Prompt user to start the quiz session"""
+    print(f"\n✅ {num_problems} problems ready!")
+    print("Press Enter when you're ready to start the timer and begin...")
+    input()
+
+def run_quiz(problems: List[str], answers: List[int]) -> Tuple[int, int, float]:
+    """Run the interactive math quiz with timing"""
+    prompt_start_session(len(problems))
+    
+    print(f"\n🎯 Timer started! You have {len(problems)} problems to solve.")
     print("Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)")
     print("=" * 50)
     
+    start_time = time.time()
     correct_count = 0
     total_attempted = 0
     
@@ -171,9 +181,13 @@ def run_quiz(problems: List[str], answers: List[int]) -> Tuple[int, int]:
             user_input = input("Your answer: ").strip().lower()
             
             if user_input == 'exit':
-                return correct_count, total_attempted
+                end_time = time.time()
+                duration = end_time - start_time
+                return correct_count, total_attempted, duration
             elif user_input == 'stop':
-                return correct_count, total_attempted
+                end_time = time.time()
+                duration = end_time - start_time
+                return correct_count, total_attempted, duration
             elif user_input == 'next':
                 print(f"⏭️  Skipped! The answer was {correct_answer}")
                 break
@@ -193,18 +207,39 @@ def run_quiz(problems: List[str], answers: List[int]) -> Tuple[int, int]:
             except ValueError:
                 print("❌ Please enter a number, 'next', 'stop', or 'exit'")
     
-    return correct_count, total_attempted
+    end_time = time.time()
+    duration = end_time - start_time
+    return correct_count, total_attempted, duration
 
-def show_results(correct: int, total: int):
-    """Display quiz results"""
+def format_duration(duration: float) -> str:
+    """Format duration in seconds to a readable string"""
+    if duration < 60:
+        return f"{duration:.1f} seconds"
+    elif duration < 3600:
+        minutes = int(duration // 60)
+        seconds = duration % 60
+        return f"{minutes}m {seconds:.1f}s"
+    else:
+        hours = int(duration // 3600)
+        minutes = int((duration % 3600) // 60)
+        seconds = duration % 60
+        return f"{hours}h {minutes}m {seconds:.1f}s"
+
+def show_results(correct: int, total: int, duration: float):
+    """Display quiz results with timing"""
     print("\n" + "="*50)
     print("🎉 Quiz Complete! 🎉")
     print(f"✅ Correct answers: {correct}")
     print(f"📊 Total attempted: {total}")
+    print(f"⏱️  Time taken: {format_duration(duration)}")
     
     if total > 0:
         accuracy = (correct / total) * 100
         print(f"🎯 Accuracy: {accuracy:.1f}%")
+        
+        # Calculate average time per problem
+        avg_time = duration / total
+        print(f"📈 Average time per problem: {format_duration(avg_time)}")
         
         if accuracy >= 90:
             print("🌟 Outstanding! You're a math superstar!")
@@ -236,10 +271,10 @@ def addition_mode():
         problems, answers = generate_problems(low, high, num_problems)
         
         # Run the quiz
-        correct, total = run_quiz(problems, answers)
+        correct, total, duration = run_quiz(problems, answers)
         
         # Show results
-        show_results(correct, total)
+        show_results(correct, total, duration)
         
     except Exception as e:
         print(f"❌ Error: {e}")
