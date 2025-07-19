@@ -4,56 +4,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Python-based math problem generator that uses AI to create educational addition problems. The application generates math problems of varying difficulty levels using prompt templates and AI chat completion.
+MathsFun is a Python CLI application for interactive math practice, focusing on addition problems with configurable difficulty levels. The application uses a clean, object-oriented design with a single-file architecture.
 
-## Architecture
+## Running the Application
+
+```bash
+# Run the main application
+python3 cli.py
+
+# Install dependencies (if needed)
+pip install -r requirements.txt
+```
+
+## Code Architecture
 
 ### Core Components
 
-- **main.py**: Entry point that orchestrates the math problem generation workflow
-- **chatter.py**: AI client wrapper that handles communication with language models (supports OpenAI, X.AI/Grok)
-- **jinja_helper.py**: Template processing utility for rendering prompt templates with dynamic data
-- **prompts/**: Directory containing Jinja2 templates for AI prompts
-- **responses/**: Directory containing example AI responses
+- **Main Application Flow**: `main()` function handles the primary menu loop and user navigation
+- **Problem Generation**: `ProblemGenerator` class manages on-demand problem creation with configurable difficulty ranges
+- **Difficulty System**: Five difficulty levels from single-digit addition to three-digit numbers with carrying
+- **Interactive Quiz Engine**: `run_quiz()` function manages the timed quiz session with real-time feedback
 
-### Template System
+### Key Classes and Functions
 
-The application uses a two-layer template system:
-1. **Prompt Templates** (`prompts/`): Jinja2 templates that generate structured prompts for the AI
-2. **Response Templates** (`responses/`): Example AI responses that demonstrate expected output format
+- `ProblemGenerator`: Central class for generating math problems on-demand with difficulty range support
+- `generate_problem_by_difficulty()`: Core problem generation logic based on difficulty level
+- `run_quiz()`: Main quiz loop with timer, scoring, and user interaction
+- `show_results()`: Comprehensive results display with accuracy metrics and performance feedback
 
-The current implementation focuses on addition problems with 5 difficulty levels (single-digit to three-digit with carrying).
+### Difficulty Levels
 
-### AI Integration
+The application supports 5 difficulty levels with specific mathematical constraints:
+1. Single-digit numbers (0-9)
+2. Two-digit numbers without carrying
+3. Two-digit numbers with carrying required
+4. Three-digit numbers without carrying
+5. Three-digit numbers with carrying required
 
-The `chatter` module provides a flexible AI client that supports multiple providers:
-- Default: X.AI/Grok (grok-3-mini model)
-- Alternative: OpenAI (GPT-3.5-turbo, GPT-4-turbo-preview)
+### Features
 
-## Environment Setup
+- Unlimited or fixed-count problem sessions
+- Real-time problem generation based on difficulty range
+- Comprehensive timing and accuracy tracking
+- Interactive commands during quiz (next, stop, exit)
+- Performance feedback with motivational messages
 
-- Requires `OPENAI_KEY` environment variable in `.env` file
-- Uses python-dotenv for environment variable loading
+## Development Notes
 
-## Common Development Tasks
-
-### Running the Application
-```bash
-python main.py
-```
-
-### Key Dependencies
-- openai: AI API client
-- jinja2: Template rendering
-- python-dotenv: Environment variable management
-
-### Template Development
-- Prompt templates are in `prompts/` directory using Jinja2 syntax
-- Variables are passed from main.py data dictionary
-- Response format is structured with XML-like tags for parsing
-
-## AI Model Configuration
-
-The application defaults to X.AI's Grok model but can be configured to use OpenAI models by modifying the `chatter()` function call in main.py:
-- For OpenAI: `chatter(api_key, model=GPT3_TURBO, url=OPENAI_URL)`
-- For Grok (default): `chatter(api_key, model=GROK_3_MINI, url=XAI_URL)`
+- The application is contained in a single file (`cli.py`) for simplicity
+- Uses only Python standard library (no external dependencies beyond what's in requirements.txt)
+- Object-oriented design with clear separation between problem generation and quiz management
+- Extensive input validation and error handling throughout
+- Unicode emojis used for enhanced user experience
