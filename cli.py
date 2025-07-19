@@ -158,41 +158,51 @@ def generate_problem_by_difficulty(difficulty: int) -> Tuple[str, int]:
     answer = num1 + num2
     return problem, answer
 
-def distribute_problems(low_difficulty: int, high_difficulty: int, num_problems: int) -> List[int]:
-    """Distribute problems evenly across difficulty levels"""
-    difficulty_range = list(range(low_difficulty, high_difficulty + 1))
-    num_levels = len(difficulty_range)
+class ProblemGenerator:
+    """Generates problems on-demand with even difficulty distribution"""
     
-    # Base problems per level
-    base_problems = num_problems // num_levels
-    extra_problems = num_problems % num_levels
+    def __init__(self, low_difficulty: int, high_difficulty: int, num_problems: int):
+        self.low_difficulty = low_difficulty
+        self.high_difficulty = high_difficulty
+        self.num_problems = num_problems
+        self.current_problem = 0
+        
+        # Pre-calculate difficulty distribution
+        self.difficulty_distribution = self._create_distribution()
     
-    distribution = []
-    for i, difficulty in enumerate(difficulty_range):
-        # Add extra problems to first few levels if needed
-        problems_for_level = base_problems + (1 if i < extra_problems else 0)
-        distribution.extend([difficulty] * problems_for_level)
+    def _create_distribution(self) -> List[int]:
+        """Create an even distribution of difficulty levels"""
+        difficulty_range = list(range(self.low_difficulty, self.high_difficulty + 1))
+        num_levels = len(difficulty_range)
+        
+        # Base problems per level
+        base_problems = self.num_problems // num_levels
+        extra_problems = self.num_problems % num_levels
+        
+        distribution = []
+        for i, difficulty in enumerate(difficulty_range):
+            # Add extra problems to first few levels if needed
+            problems_for_level = base_problems + (1 if i < extra_problems else 0)
+            distribution.extend([difficulty] * problems_for_level)
+        
+        # Shuffle to randomize order
+        random.shuffle(distribution)
+        return distribution
     
-    # Shuffle to randomize order
-    random.shuffle(distribution)
-    return distribution
-
-def generate_problems(low_difficulty: int, high_difficulty: int, num_problems: int) -> Tuple[List[str], List[int]]:
-    """Generate math problems using random number generation"""
-    print("\n🎲 Generating your math problems...")
-    
-    # Get distribution of difficulties
-    difficulty_distribution = distribute_problems(low_difficulty, high_difficulty, num_problems)
-    
-    problems = []
-    answers = []
-    
-    for difficulty in difficulty_distribution:
+    def get_next_problem(self) -> Tuple[str, int]:
+        """Generate the next problem in the sequence"""
+        if self.current_problem >= self.num_problems:
+            raise IndexError("No more problems available")
+        
+        difficulty = self.difficulty_distribution[self.current_problem]
         problem, answer = generate_problem_by_difficulty(difficulty)
-        problems.append(problem)
-        answers.append(answer)
+        self.current_problem += 1
+        
+        return problem, answer
     
-    return problems, answers
+    def has_more_problems(self) -> bool:
+        """Check if there are more problems to generate"""
+        return self.current_problem < self.num_problems
 
 def prompt_start_session(num_problems: int):
     """Prompt user to start the quiz session"""
@@ -200,20 +210,23 @@ def prompt_start_session(num_problems: int):
     print("Press Enter when you're ready to start the timer and begin...")
     input()
 
-def run_quiz(problems: List[str], answers: List[int]) -> Tuple[int, int, float]:
-    """Run the interactive math quiz with timing"""
-    prompt_start_session(len(problems))
+def run_quiz(generator: ProblemGenerator) -> Tuple[int, int, float]:
+    """Run the interactive math quiz with on-demand problem generation"""
+    prompt_start_session(generator.num_problems)
     
-    print(f"\n🎯 Timer started! You have {len(problems)} problems to solve.")
+    print(f"\n🎯 Timer started! You have {generator.num_problems} problems to solve.")
     print("Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)")
     print("=" * 50)
     
     start_time = time.time()
     correct_count = 0
     total_attempted = 0
+    problem_number = 1
     
-    for i, (problem, correct_answer) in enumerate(zip(problems, answers), 1):
-        print(f"\n📝 Problem {i}/{len(problems)}: {problem}")
+    while generator.has_more_problems():
+        # Generate problem on-demand
+        problem, correct_answer = generator.get_next_problem()
+        print(f"\n📝 Problem {problem_number}/{generator.num_problems}: {problem}")
         
         while True:
             user_input = input("Your answer: ").strip().lower()
@@ -244,6 +257,8 @@ def run_quiz(problems: List[str], answers: List[int]) -> Tuple[int, int, float]:
                     
             except ValueError:
                 print("❌ Please enter a number, 'next', 'stop', or 'exit'")
+        
+        problem_number += 1
     
     end_time = time.time()
     duration = end_time - start_time
@@ -305,11 +320,11 @@ def addition_mode():
         print(f"   Difficulty: {low} to {high}")
         print(f"   Problems: {num_problems}")
         
-        # Generate problems
-        problems, answers = generate_problems(low, high, num_problems)
+        # Create problem generator
+        generator = ProblemGenerator(low, high, num_problems)
         
         # Run the quiz
-        correct, total, duration = run_quiz(problems, answers)
+        correct, total, duration = run_quiz(generator)
         
         # Show results
         show_results(correct, total, duration)
