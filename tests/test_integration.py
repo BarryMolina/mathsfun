@@ -89,6 +89,9 @@ class TestQuizFlowIntegration:
             ('3 + 4', 7)
         ])
         
+        # Mock has_more_problems to control the loop
+        mocker.patch.object(generator, 'has_more_problems', side_effect=[True, True, False])
+        
         correct, total, duration = run_addition_quiz(generator)
         
         assert correct == 2
@@ -130,6 +133,9 @@ class TestQuizFlowIntegration:
             ('2 + 3', 5),   # User will skip this
             ('5 + 7', 12)   # User will get this correct
         ])
+        
+        # Mock has_more_problems to control the loop
+        mocker.patch.object(generator, 'has_more_problems', side_effect=[True, True, False])
         
         correct, total, duration = run_addition_quiz(generator)
         

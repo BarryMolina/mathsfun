@@ -178,7 +178,7 @@ class TestUIInAddition:
         from addition import get_difficulty_range
         
         # Mock user entering 2 for low, 4 for high
-        mock_input = mocker.patch('ui.get_user_input', side_effect=['2', '4'])
+        mock_input = mocker.patch('builtins.input', side_effect=['2', '4'])
         
         low, high = get_difficulty_range()
         
@@ -191,7 +191,7 @@ class TestUIInAddition:
         from addition import get_difficulty_range
         
         # Mock user entering invalid, then valid input
-        mock_input = mocker.patch('ui.get_user_input', side_effect=['0', '1', '6', '3'])
+        mock_input = mocker.patch('builtins.input', side_effect=['0', '1', '6', '3'])
         
         low, high = get_difficulty_range()
         
@@ -207,7 +207,7 @@ class TestUIInAddition:
         """Test get_num_problems with valid input."""
         from addition import get_num_problems
         
-        mock_input = mocker.patch('ui.get_user_input', return_value='10')
+        mock_input = mocker.patch('builtins.input', return_value='10')
         
         result = get_num_problems()
         
@@ -218,7 +218,7 @@ class TestUIInAddition:
         """Test get_num_problems with unlimited (0) input."""
         from addition import get_num_problems
         
-        mock_input = mocker.patch('ui.get_user_input', return_value='0')
+        mock_input = mocker.patch('builtins.input', return_value='0')
         
         result = get_num_problems()
         
@@ -229,7 +229,7 @@ class TestUIInAddition:
         """Test get_num_problems with invalid input followed by valid input."""
         from addition import get_num_problems
         
-        mock_input = mocker.patch('ui.get_user_input', side_effect=['-5', 'abc', '5'])
+        mock_input = mocker.patch('builtins.input', side_effect=['-5', 'abc', '5'])
         
         result = get_num_problems()
         
