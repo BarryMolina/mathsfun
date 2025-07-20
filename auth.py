@@ -196,11 +196,9 @@ def authenticate_user():
         
         def set_item(self, key: str, value: str) -> None:
             self.storage[key] = value
-            print(f"Storage set: {key} = {value[:20]}..." if len(value) > 20 else f"Storage set: {key} = {value}")
             # Also store in server for backup access
             if 'code_verifier' in key.lower():
                 server.code_verifier = value
-                print(f"Code verifier captured: {value}")
         
         def remove_item(self, key: str) -> None:
             self.storage.pop(key, None)
@@ -252,22 +250,16 @@ def authenticate_user():
             and server.auth_result.get("code")
         ):
             try:
-                # Debug: Show what's in storage
-                print(f"Storage contents: {list(storage.storage.keys())}")
-                print(f"Server code_verifier: {server.code_verifier}")
-                
                 # Get the code verifier from storage (prioritize Supabase's stored one)
                 code_verifier = storage.get_item('supabase.auth.token-code-verifier')
                 
-                if code_verifier:
-                    print(f"Using Supabase's code verifier: {code_verifier}")
-                elif server.code_verifier:
+                if not code_verifier and server.code_verifier:
                     code_verifier = server.code_verifier
-                    print(f"Fallback to server code verifier: {code_verifier}")
-                else:
+
+                if not code_verifier:
                     return {
                         "success": False,
-                        "error": f"Could not find code verifier for PKCE exchange. Storage keys: {list(storage.storage.keys())}",
+                        "error": "Could not find code verifier for PKCE exchange",
                     }
 
                 # Exchange the authorization code for a session
