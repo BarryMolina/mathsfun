@@ -126,8 +126,8 @@ def test_validation_loop(mocker, capsys):
 
 ## Coverage Goals
 
-- **Target**: 85%+ overall coverage
-- **Unit Tests**: 95%+ coverage for pure logic
+- **Target**: 100% overall coverage
+- **Unit Tests**: 100% coverage for pure logic
 - **Integration Tests**: Focus on user flows and error paths
 - **UI Tests**: Cover all input/output scenarios
 
