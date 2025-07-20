@@ -30,21 +30,49 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Handle GET request from OAuth redirect"""
+        print(f"Received callback request: {self.path}")
+
         # Type assertion to access our custom server attribute
         server: OAuthServer = self.server  # type: ignore
-        server.auth_result = {}
+
+        # Ignore favicon and other non-OAuth requests
+        if self.path == "/favicon.ico" or self.path.startswith("/favicon"):
+            print("Ignoring favicon request")
+            self.send_response(404)
+            self.end_headers()
+            return
+
+        # Don't overwrite existing successful results
+        if server.auth_result and server.auth_result.get("success"):
+            print("Already have successful auth result, ignoring additional requests")
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(
+                b"<html><body><p>Authentication already completed.</p></body></html>"
+            )
+            return
 
         # Parse the URL and query parameters
         parsed_url = urlparse(self.path)
         query_params = parse_qs(parsed_url.query)
+        print(f"Query parameters: {query_params}")
+
+        # Initialize auth_result as empty dict
+        result = {}
 
         # Check for OAuth callback parameters
         if "code" in query_params:
+            print("✅ Found authorization code in callback")
             # Success - we got an authorization code
-            server.auth_result["success"] = True
-            server.auth_result["code"] = query_params["code"][0]
+            result["success"] = True
+            result["code"] = query_params["code"][0]
             if "state" in query_params:
-                server.auth_result["state"] = query_params["state"][0]
+                result["state"] = query_params["state"][0]
+
+            # Set the result atomically
+            server.auth_result = result
+            print(f"Server auth_result set to: {server.auth_result}")
 
             # Send success response to browser
             self.send_response(200)
@@ -63,12 +91,17 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             )
 
         elif "error" in query_params:
+            print("❌ Found error in callback")
             # Error during OAuth flow
-            server.auth_result["success"] = False
-            server.auth_result["error"] = query_params["error"][0]
-            server.auth_result["error_description"] = query_params.get(
+            result["success"] = False
+            result["error"] = query_params["error"][0]
+            result["error_description"] = query_params.get(
                 "error_description", ["Unknown error"]
             )[0]
+
+            # Set the result atomically
+            server.auth_result = result
+            print(f"Server auth_result set to: {server.auth_result}")
 
             # Send error response to browser
             self.send_response(400)
@@ -79,15 +112,26 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
                 <html>
                 <body>
                     <h1>Authentication Failed</h1>
-                    <p>Error: {server.auth_result['error']}</p>
-                    <p>Description: {server.auth_result['error_description']}</p>
+                    <p>Error: {result['error']}</p>
+                    <p>Description: {result['error_description']}</p>
                     <p>You can close this browser window and return to your CLI application.</p>
                 </body>
                 </html>
             """.encode()
             )
         else:
-            # Unknown callback
+            print("⚠️  Unknown callback - no code or error found")
+            # Unknown callback - but still set a result to unblock waiting
+            result["success"] = False
+            result["error"] = "unknown_callback"
+            result["error_description"] = (
+                "No authorization code or error found in callback"
+            )
+
+            # Set the result atomically
+            server.auth_result = result
+            print(f"Server auth_result set to: {server.auth_result}")
+
             self.send_response(400)
             self.send_header("Content-type", "text/html")
             self.end_headers()
@@ -111,10 +155,23 @@ def start_oauth_server(port=8080):
     """Start local HTTP server for OAuth callback"""
     server = OAuthServer(("localhost", port), OAuthCallbackHandler)
 
+    # Use an event to signal when server is ready
+    server_ready = threading.Event()
+
+    def server_runner():
+        server_ready.set()  # Signal that server is ready
+        server.serve_forever()
+
     # Start server in a separate thread
-    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread = threading.Thread(target=server_runner)
     server_thread.daemon = True
     server_thread.start()
+
+    # Wait for server to be ready before returning
+    server_ready.wait(timeout=5)  # Wait up to 5 seconds
+
+    # Small additional delay to ensure socket is bound
+    time.sleep(0.1)
 
     return server
 
@@ -126,6 +183,10 @@ def perform_oauth_flow():
     print("Starting local server for OAuth callback...")
     server = start_oauth_server(8080)
     redirect_uri = "http://localhost:8080"
+
+    # Test server is ready
+    print(f"Server started, listening on {redirect_uri}")
+    print(f"Server auth_result initialized as: {server.auth_result}")
 
     try:
         # Create Supabase client
@@ -154,11 +215,23 @@ def perform_oauth_flow():
         timeout = 300  # 5 minutes
         start_time = time.time()
 
+        print("Starting callback wait loop...")
+        check_count = 0
+
         while server.auth_result is None:
-            if time.time() - start_time > timeout:
+            check_count += 1
+            elapsed = time.time() - start_time
+
+            if check_count % 10 == 0:  # Log every 5 seconds
+                print(f"Still waiting for callback... ({elapsed:.1f}s elapsed)")
+
+            if elapsed > timeout:
                 print("Timeout: No response received within 5 minutes")
                 return None
             time.sleep(0.5)
+
+        print(f"✅ Callback received after {time.time() - start_time:.1f}s")
+        print(f"Final auth_result: {server.auth_result}")
 
         # Process the result
         if server.auth_result["success"]:
