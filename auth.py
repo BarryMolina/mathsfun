@@ -3,9 +3,6 @@ import os
 import webbrowser
 import threading
 import time
-import secrets
-import base64
-import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
 from supabase import create_client, Client, ClientOptions
@@ -17,24 +14,12 @@ url = os.getenv("SUPABASE_URL") or ""
 key = os.getenv("SUPABASE_KEY") or ""
 
 
-def generate_code_verifier() -> str:
-    """Generate a PKCE code verifier"""
-    return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8').rstrip('=')
-
-
-def generate_code_challenge(code_verifier: str) -> str:
-    """Generate a PKCE code challenge from a code verifier"""
-    digest = hashlib.sha256(code_verifier.encode('utf-8')).digest()
-    return base64.urlsafe_b64encode(digest).decode('utf-8').rstrip('=')
-
-
 class OAuthServer(HTTPServer):
     """Custom HTTP server that stores OAuth callback results"""
 
     def __init__(self, server_address, RequestHandlerClass):
         super().__init__(server_address, RequestHandlerClass)
         self.auth_result: Optional[Dict[str, Any]] = None
-        self.code_verifier: Optional[str] = None
 
 
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
@@ -65,8 +50,6 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         # Parse the URL and query parameters
         parsed_url = urlparse(self.path)
         query_params = parse_qs(parsed_url.query)
-        print("query_params")
-        print(query_params)
 
         # Initialize auth_result as empty dict
         result = {}
@@ -196,9 +179,6 @@ def authenticate_user():
         
         def set_item(self, key: str, value: str) -> None:
             self.storage[key] = value
-            # Also store in server for backup access
-            if 'code_verifier' in key.lower():
-                server.code_verifier = value
         
         def remove_item(self, key: str) -> None:
             self.storage.pop(key, None)
@@ -250,11 +230,8 @@ def authenticate_user():
             and server.auth_result.get("code")
         ):
             try:
-                # Get the code verifier from storage (prioritize Supabase's stored one)
+                # Get the code verifier from storage
                 code_verifier = storage.get_item('supabase.auth.token-code-verifier')
-                
-                if not code_verifier and server.code_verifier:
-                    code_verifier = server.code_verifier
 
                 if not code_verifier:
                     return {
