@@ -3,6 +3,9 @@ import os
 import webbrowser
 import threading
 import time
+import secrets
+import base64
+import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
 from supabase import create_client, Client, ClientOptions
@@ -14,12 +17,24 @@ url = os.getenv("SUPABASE_URL") or ""
 key = os.getenv("SUPABASE_KEY") or ""
 
 
+def generate_code_verifier() -> str:
+    """Generate a PKCE code verifier"""
+    return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8').rstrip('=')
+
+
+def generate_code_challenge(code_verifier: str) -> str:
+    """Generate a PKCE code challenge from a code verifier"""
+    digest = hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    return base64.urlsafe_b64encode(digest).decode('utf-8').rstrip('=')
+
+
 class OAuthServer(HTTPServer):
     """Custom HTTP server that stores OAuth callback results"""
 
     def __init__(self, server_address, RequestHandlerClass):
         super().__init__(server_address, RequestHandlerClass)
         self.auth_result: Optional[Dict[str, Any]] = None
+        self.code_verifier: Optional[str] = None
 
 
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
@@ -171,20 +186,54 @@ def authenticate_user():
     server = start_oauth_server(8080)
     redirect_uri = "http://localhost:8080"
 
+    # Custom storage to handle PKCE code verifier
+    class PKCEStorage:
+        def __init__(self):
+            self.storage: Dict[str, str] = {}
+        
+        def get_item(self, key: str) -> Optional[str]:
+            return self.storage.get(key)
+        
+        def set_item(self, key: str, value: str) -> None:
+            self.storage[key] = value
+            print(f"Storage set: {key} = {value[:20]}..." if len(value) > 20 else f"Storage set: {key} = {value}")
+            # Also store in server for backup access
+            if 'code_verifier' in key.lower():
+                server.code_verifier = value
+                print(f"Code verifier captured: {value}")
+        
+        def remove_item(self, key: str) -> None:
+            self.storage.pop(key, None)
+
     try:
+        # Create storage instance
+        storage = PKCEStorage()
+
         supabase: Client = create_client(
             url,
             key,
-            options=ClientOptions(flow_type="pkce"),
+            options=ClientOptions(
+                flow_type="pkce",
+                storage=storage  # type: ignore
+            ),
         )
 
         res = supabase.auth.sign_in_with_oauth(
-            {"provider": "google", "options": {"redirect_to": redirect_uri}}
+            {
+                "provider": "google", 
+                "options": {
+                    "redirect_to": redirect_uri
+                }
+            }
         )
 
         if not res.url:
             return {"success": False, "error": "Failed to get OAuth URL from Supabase"}
 
+        print("✅ Opening browser for Google authentication...")
+        print("\nPlease complete the authentication in your browser.")
+        print("This window will close automatically after authentication.")
+        
         webbrowser.open(res.url)
 
         timeout = 300  # 5 minutes
@@ -197,50 +246,54 @@ def authenticate_user():
             time.sleep(0.5)
 
         # If we got an authorization code, exchange it for a session
-        print("server.auth_result")
-        print(server.auth_result)
         if (
             server.auth_result
             and server.auth_result.get("success")
             and server.auth_result.get("code")
         ):
-            print("server.auth_result.get('code')")
-            print(server.auth_result.get("code"))
             try:
-                print("supabase.auth.exchange_code_for_session")
-
-                print(server.auth_result["code"])
+                # Debug: Show what's in storage
+                print(f"Storage contents: {list(storage.storage.keys())}")
+                print(f"Server code_verifier: {server.code_verifier}")
+                
+                # Get the code verifier from storage (prioritize Supabase's stored one)
+                code_verifier = storage.get_item('supabase.auth.token-code-verifier')
+                
+                if code_verifier:
+                    print(f"Using Supabase's code verifier: {code_verifier}")
+                elif server.code_verifier:
+                    code_verifier = server.code_verifier
+                    print(f"Fallback to server code verifier: {code_verifier}")
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Could not find code verifier for PKCE exchange. Storage keys: {list(storage.storage.keys())}",
+                    }
 
                 # Exchange the authorization code for a session
                 session_response = supabase.auth.exchange_code_for_session(
                     {
                         "auth_code": server.auth_result["code"],
-                        "code_verifier": server.auth_result["code_verifier"],
-                        "redirect_to": redirect_uri,
+                        "code_verifier": code_verifier,
+                        "redirect_to": redirect_uri
                     }
                 )
-                print("session_response")
-                print(session_response)
 
                 if session_response.session:
                     # Get user information
                     user = session_response.user
-                    print("user")
-                    print(user)
-
                     session = session_response.session
-                    print("session")
-                    print(session)
 
-                    # Extract user data
+                    # Extract user data safely
                     user_data = {
-                        "id": user.id,
-                        "email": user.email,
-                        "name": user.user_metadata.get("full_name")
-                        or user.user_metadata.get("name", "Unknown"),
-                        "avatar_url": user.user_metadata.get("avatar_url"),
-                        "provider": user.app_metadata.get("provider", "google"),
-                        "last_sign_in": user.last_sign_in_at,
+                        "id": user.id if user else None,
+                        "email": user.email if user else None,
+                        "name": (user.user_metadata.get("full_name") if user and user.user_metadata
+                                else user.user_metadata.get("name", "Unknown") if user and user.user_metadata
+                                else "Unknown"),
+                        "avatar_url": user.user_metadata.get("avatar_url") if user and user.user_metadata else None,
+                        "provider": user.app_metadata.get("provider", "google") if user and user.app_metadata else "google",
+                        "last_sign_in": user.last_sign_in_at if user else None,
                     }
 
                     # Extract provider tokens if available
@@ -274,7 +327,7 @@ def authenticate_user():
                     "error": f"Failed to exchange code for session: {str(e)}",
                 }
         else:
-            return server.auth_result
+            return server.auth_result or {"success": False, "error": "No auth result received"}
 
     except Exception as e:
         return {"success": False, "error": str(e)}
