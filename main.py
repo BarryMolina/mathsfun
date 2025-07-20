@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-from ui import print_welcome, print_main_menu, print_authentication_menu, print_authentication_status
+from ui import (
+    print_welcome,
+    print_main_menu,
+    print_authentication_menu,
+    print_authentication_status,
+)
 from addition import addition_mode
 from addition_tables import addition_tables_mode
 from auth import authenticate_user, validate_environment
@@ -22,15 +27,24 @@ def authentication_flow():
             print_authentication_status("Opening browser for Google authentication...")
             print("Please complete the authentication in your browser.")
             print("This window will close automatically after authentication.")
-            
+
             result = authenticate_user()
-            
+
             if result and result.get("success"):
-                print_authentication_status("Authentication successful! Welcome to MathsFun!")
+                print_authentication_status(
+                    "Authentication successful! Welcome to MathsFun!"
+                )
+                print(result)
                 return True
             else:
-                error_msg = result.get("error", "Unknown error") if result else "Authentication failed"
-                print_authentication_status(f"Authentication failed: {error_msg}", False)
+                error_msg = (
+                    result.get("error", "Unknown error")
+                    if result
+                    else "Authentication failed"
+                )
+                print_authentication_status(
+                    f"Authentication failed: {error_msg}", False
+                )
         else:
             print("❌ Invalid option. Please try again.\n")
 
@@ -38,7 +52,7 @@ def authentication_flow():
 def main():
     """Main application loop"""
     print_welcome()
-    
+
     if not authentication_flow():
         print("\n👋 Thanks for visiting MathsFun!")
         return
