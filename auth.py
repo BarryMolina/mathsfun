@@ -5,7 +5,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 from typing import Optional, Dict, Any
 
 dotenv.load_dotenv()
@@ -50,6 +50,8 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         # Parse the URL and query parameters
         parsed_url = urlparse(self.path)
         query_params = parse_qs(parsed_url.query)
+        print("query_params")
+        print(query_params)
 
         # Initialize auth_result as empty dict
         result = {}
@@ -170,7 +172,11 @@ def authenticate_user():
     redirect_uri = "http://localhost:8080"
 
     try:
-        supabase: Client = create_client(url, key)
+        supabase: Client = create_client(
+            url,
+            key,
+            options=ClientOptions(flow_type="pkce"),
+        )
 
         res = supabase.auth.sign_in_with_oauth(
             {"provider": "google", "options": {"redirect_to": redirect_uri}}
@@ -191,34 +197,60 @@ def authenticate_user():
             time.sleep(0.5)
 
         # If we got an authorization code, exchange it for a session
-        if server.auth_result and server.auth_result.get("success") and server.auth_result.get("code"):
+        print("server.auth_result")
+        print(server.auth_result)
+        if (
+            server.auth_result
+            and server.auth_result.get("success")
+            and server.auth_result.get("code")
+        ):
+            print("server.auth_result.get('code')")
+            print(server.auth_result.get("code"))
             try:
+                print("supabase.auth.exchange_code_for_session")
+
+                print(server.auth_result["code"])
+
                 # Exchange the authorization code for a session
-                session_response = supabase.auth.exchange_code_for_session(server.auth_result["code"])
-                
+                session_response = supabase.auth.exchange_code_for_session(
+                    {
+                        "auth_code": server.auth_result["code"],
+                        "code_verifier": server.auth_result["code_verifier"],
+                        "redirect_to": redirect_uri,
+                    }
+                )
+                print("session_response")
+                print(session_response)
+
                 if session_response.session:
                     # Get user information
                     user = session_response.user
+                    print("user")
+                    print(user)
+
                     session = session_response.session
-                    
+                    print("session")
+                    print(session)
+
                     # Extract user data
                     user_data = {
                         "id": user.id,
                         "email": user.email,
-                        "name": user.user_metadata.get("full_name") or user.user_metadata.get("name", "Unknown"),
+                        "name": user.user_metadata.get("full_name")
+                        or user.user_metadata.get("name", "Unknown"),
                         "avatar_url": user.user_metadata.get("avatar_url"),
                         "provider": user.app_metadata.get("provider", "google"),
                         "last_sign_in": user.last_sign_in_at,
                     }
-                    
+
                     # Extract provider tokens if available
                     provider_token = None
                     provider_refresh_token = None
-                    if hasattr(session, 'provider_token'):
+                    if hasattr(session, "provider_token"):
                         provider_token = session.provider_token
-                    if hasattr(session, 'provider_refresh_token'):
+                    if hasattr(session, "provider_refresh_token"):
                         provider_refresh_token = session.provider_refresh_token
-                    
+
                     return {
                         "success": True,
                         "user": user_data,
@@ -228,13 +260,19 @@ def authenticate_user():
                             "expires_at": session.expires_at,
                             "provider_token": provider_token,
                             "provider_refresh_token": provider_refresh_token,
-                        }
+                        },
                     }
                 else:
-                    return {"success": False, "error": "Failed to create session from code"}
-                    
+                    return {
+                        "success": False,
+                        "error": "Failed to create session from code",
+                    }
+
             except Exception as e:
-                return {"success": False, "error": f"Failed to exchange code for session: {str(e)}"}
+                return {
+                    "success": False,
+                    "error": f"Failed to exchange code for session: {str(e)}",
+                }
         else:
             return server.auth_result
 
