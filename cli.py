@@ -265,9 +265,7 @@ def run_quiz(generator: ProblemGenerator) -> Tuple[int, int, float]:
                     correct_count += 1
                     break
                 else:
-                    print(
-                        f"❌ Not quite right. Try again! (The answer was {correct_answer})"
-                    )
+                    print(f"❌ Not quite right. Try again!")
                     print("You can type 'next' to move on to the next problem.")
 
             except ValueError:
