@@ -6,16 +6,27 @@ from ui import get_user_input
 from session import show_results, prompt_start_session
 
 
-def get_table_number() -> int:
-    """Get the table number (1-100) from user"""
+def get_table_range() -> Tuple[int, int]:
+    """Get the table range (low and high numbers, 1-100) from user"""
     while True:
         try:
-            user_input = get_user_input("Enter number for addition table (1-100)", "10")
-            num = int(user_input)
-            if num < 1 or num > 100:
+            low_input = get_user_input("Enter low number for addition table (1-100)", "1")
+            low = int(low_input)
+            if low < 1 or low > 100:
                 print("❌ Please enter a number between 1 and 100")
                 continue
-            return num
+            
+            high_input = get_user_input("Enter high number for addition table (1-100)", "10")
+            high = int(high_input)
+            if high < 1 or high > 100:
+                print("❌ Please enter a number between 1 and 100")
+                continue
+            
+            if low > high:
+                print("❌ Low number must be less than or equal to high number")
+                continue
+                
+            return low, high
         except ValueError:
             print("❌ Please enter a valid number")
 
@@ -40,11 +51,11 @@ def get_order_preference() -> bool:
             print("❌ Please enter a valid number")
 
 
-def generate_addition_table_problems(n: int) -> List[Tuple[str, int]]:
-    """Generate all problems for addition table up to n"""
+def generate_addition_table_problems(low: int, high: int) -> List[Tuple[str, int]]:
+    """Generate all problems for addition table from low to high"""
     problems = []
-    for i in range(1, n + 1):
-        for j in range(1, n + 1):
+    for i in range(low, high + 1):
+        for j in range(low, high + 1):
             problem = f"{i} + {j}"
             answer = i + j
             problems.append((problem, answer))
@@ -54,10 +65,11 @@ def generate_addition_table_problems(n: int) -> List[Tuple[str, int]]:
 class AdditionTableGenerator:
     """Manages addition table problems for quiz session"""
     
-    def __init__(self, n: int, randomize: bool):
-        self.n = n
+    def __init__(self, low: int, high: int, randomize: bool):
+        self.low = low
+        self.high = high
         self.randomize = randomize
-        self.problems = generate_addition_table_problems(n)
+        self.problems = generate_addition_table_problems(low, high)
         if randomize:
             random.shuffle(self.problems)
         self.current_index = 0
@@ -90,7 +102,8 @@ class AdditionTableGenerator:
 def run_addition_table_quiz(generator: AdditionTableGenerator) -> Tuple[int, int, float]:
     """Run the addition table quiz"""
     order_text = "random order" if generator.randomize else "sequential order"
-    print(f"\n🎯 Addition Table for {generator.n} ({order_text})")
+    range_text = f"{generator.low} to {generator.high}" if generator.low != generator.high else str(generator.low)
+    print(f"\n🎯 Addition Table for {range_text} ({order_text})")
     print(f"📝 {generator.total_problems} problems to solve")
     print("Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)")
     print("=" * 60)
@@ -146,15 +159,18 @@ def addition_tables_mode():
     try:
         print("\n📊 Addition Tables Mode Selected!")
         
-        table_number = get_table_number()
+        low, high = get_table_range()
         randomize = get_order_preference()
         
-        print(f"\n📋 Settings:")
-        print(f"   Table: Addition up to {table_number}")
-        print(f"   Order: {'Random' if randomize else 'Sequential'}")
-        print(f"   Total problems: {table_number * table_number}")
+        range_text = f"{low} to {high}" if low != high else str(low)
+        total_problems = (high - low + 1) * (high - low + 1)
         
-        generator = AdditionTableGenerator(table_number, randomize)
+        print(f"\n📋 Settings:")
+        print(f"   Range: Addition table for {range_text}")
+        print(f"   Order: {'Random' if randomize else 'Sequential'}")
+        print(f"   Total problems: {total_problems}")
+        
+        generator = AdditionTableGenerator(low, high, randomize)
         
         correct, total, duration = run_addition_table_quiz(generator)
         
