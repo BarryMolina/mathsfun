@@ -163,11 +163,12 @@ def start_oauth_server(port=8080):
     return server
 
 
-class SupabaseClient:
+class SupabaseManager:
     """Manages Supabase authentication and client access"""
 
     def __init__(self):
-        self._client: Optional[Client] = None
+        self._client: Client = create_client(url, key)
+        self._authenticated = False
         self._lock = threading.Lock()
         self._session_data: Optional[Dict[str, Any]] = None
 
@@ -191,9 +192,10 @@ class SupabaseClient:
                 self.storage.pop(key, None)
 
         try:
-            # Create storage instance
+            # Create storage instance and configure existing client for PKCE
             storage = PKCEStorage()
 
+            # Reconfigure the existing client for PKCE flow
             supabase: Client = create_client(
                 url,
                 key,
@@ -301,9 +303,10 @@ class SupabaseClient:
                             "provider_refresh_token": provider_refresh_token,
                         }
 
-                        # Store client and session data
+                        # Store session data and mark as authenticated
                         with self._lock:
-                            self._client = supabase
+                            self._client = supabase  # Update with authenticated client
+                            self._authenticated = True
                             self._session_data = session_data
 
                         return {
@@ -333,21 +336,23 @@ class SupabaseClient:
         finally:
             server.shutdown()
 
-    def get_client(self) -> Optional[Client]:
-        """Get the authenticated Supabase client"""
+    def get_client(self) -> Client:
+        """Get the Supabase client (always available)"""
         with self._lock:
             return self._client
 
     def is_authenticated(self) -> bool:
-        """Check if there is an authenticated Supabase client available"""
+        """Check if the client is authenticated"""
         with self._lock:
-            return self._client is not None
+            return self._authenticated
 
-    def logout(self) -> None:
-        """Clear the stored authenticated client and session data"""
+    def sign_out(self) -> None:
+        """Sign out and clear authentication state"""
         with self._lock:
-            self._client = None
+            self._authenticated = False
             self._session_data = None
+            # Recreate client to clear session
+            self._client = create_client(url, key)
 
     def get_session_data(self) -> Optional[Dict[str, Any]]:
         """Get current session data for persistence"""
@@ -355,33 +360,30 @@ class SupabaseClient:
             return self._session_data
 
     def restore_session(self, session_data: Dict[str, Any]) -> bool:
-        """Restore authenticated client from stored session data"""
+        """Restore authentication state from stored session data"""
         try:
             if not session_data.get("access_token") or not session_data.get(
                 "refresh_token"
             ):
                 return False
 
-            # Create client
-            supabase: Client = create_client(url, key)
-
-            # Try to set session using the auth API
+            # Try to set session using the auth API on existing client
             try:
-                supabase.auth.set_session(
+                self._client.auth.set_session(
                     access_token=session_data["access_token"],
                     refresh_token=session_data["refresh_token"],
                 )
             except Exception:
                 # If set_session doesn't work, try refresh
-                refresh_result = supabase.auth.refresh_session(
+                refresh_result = self._client.auth.refresh_session(
                     session_data["refresh_token"]
                 )
                 if not refresh_result.session:
                     return False
 
-            # Store client and session data
+            # Store session data and mark as authenticated
             with self._lock:
-                self._client = supabase
+                self._authenticated = True
                 self._session_data = session_data
 
             return True
@@ -398,4 +400,4 @@ def validate_environment():
 
 
 # Singleton instance for app-wide access
-supabase = SupabaseClient()
+supabase_client = SupabaseManager()
