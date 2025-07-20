@@ -164,7 +164,7 @@ def start_oauth_server(port=8080):
 
 
 def authenticate_user():
-    """Authenticate user with Google OAuth and return authentication result"""
+    """Authenticate user with Google OAuth and return authentication result with user data"""
 
     server = start_oauth_server(8080)
     redirect_uri = "http://localhost:8080"
@@ -190,7 +190,53 @@ def authenticate_user():
                 return {"success": False, "error": "Authentication timeout"}
             time.sleep(0.5)
 
-        return server.auth_result
+        # If we got an authorization code, exchange it for a session
+        if server.auth_result and server.auth_result.get("success") and server.auth_result.get("code"):
+            try:
+                # Exchange the authorization code for a session
+                session_response = supabase.auth.exchange_code_for_session(server.auth_result["code"])
+                
+                if session_response.session:
+                    # Get user information
+                    user = session_response.user
+                    session = session_response.session
+                    
+                    # Extract user data
+                    user_data = {
+                        "id": user.id,
+                        "email": user.email,
+                        "name": user.user_metadata.get("full_name") or user.user_metadata.get("name", "Unknown"),
+                        "avatar_url": user.user_metadata.get("avatar_url"),
+                        "provider": user.app_metadata.get("provider", "google"),
+                        "last_sign_in": user.last_sign_in_at,
+                    }
+                    
+                    # Extract provider tokens if available
+                    provider_token = None
+                    provider_refresh_token = None
+                    if hasattr(session, 'provider_token'):
+                        provider_token = session.provider_token
+                    if hasattr(session, 'provider_refresh_token'):
+                        provider_refresh_token = session.provider_refresh_token
+                    
+                    return {
+                        "success": True,
+                        "user": user_data,
+                        "session": {
+                            "access_token": session.access_token,
+                            "refresh_token": session.refresh_token,
+                            "expires_at": session.expires_at,
+                            "provider_token": provider_token,
+                            "provider_refresh_token": provider_refresh_token,
+                        }
+                    }
+                else:
+                    return {"success": False, "error": "Failed to create session from code"}
+                    
+            except Exception as e:
+                return {"success": False, "error": f"Failed to exchange code for session: {str(e)}"}
+        else:
+            return server.auth_result
 
     except Exception as e:
         return {"success": False, "error": str(e)}

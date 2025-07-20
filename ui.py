@@ -34,6 +34,18 @@ def print_authentication_status(message: str, success: bool = True):
     print(f"\n{emoji} {message}\n")
 
 
+def print_user_welcome(user_data: dict):
+    """Display personalized welcome message with user data"""
+    name = user_data.get("name", "User")
+    email = user_data.get("email", "")
+    
+    print(f"\n🎉 Welcome back, {name}!")
+    print(f"📧 Signed in as: {email}")
+    if user_data.get("avatar_url"):
+        print(f"🖼️  Profile picture: {user_data['avatar_url']}")
+    print("-" * 50)
+
+
 def get_user_input(prompt: str, default: Optional[str] = None) -> str:
     """Get user input with optional default value"""
     if default:
