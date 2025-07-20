@@ -8,7 +8,7 @@ from ui import (
 )
 from addition import addition_mode
 from addition_tables import addition_tables_mode
-from auth import authenticate_user, validate_environment
+from supabase_client import supabase_client, validate_environment
 
 
 def authentication_flow():
@@ -25,20 +25,16 @@ def authentication_flow():
         if choice == "exit":
             return False, None
         elif choice == "1":
-            print_authentication_status("Opening browser for Google authentication...")
-            print("Please complete the authentication in your browser.")
-            print("This window will close automatically after authentication.")
-
-            result = authenticate_user()
+            result = supabase_client.authenticate()
 
             if result and result.get("success"):
                 user_data = result.get("user")
                 session_data = result.get("session")
-                
+
                 print_authentication_status("Authentication successful!")
                 if user_data:
                     print_user_welcome(user_data)
-                
+
                 return True, {"user": user_data, "session": session_data}
             else:
                 error_msg = (
@@ -64,7 +60,6 @@ def main():
 
     # Store user and session data for use throughout the application
     user_data = auth_data.get("user") if auth_data else None
-    session_data = auth_data.get("session") if auth_data else None
 
     while True:
         print_main_menu()
