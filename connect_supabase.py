@@ -12,4 +12,12 @@ from supabase import create_client, Client
 
 supabase: Client = create_client(url, key)
 
-print(supabase.table("users").select("*").execute())
+res = supabase.auth.sign_in_with_oauth(
+    {
+        "provider": "google",
+    }
+)
+
+print(res)
+
+# print(supabase.table("users").select("*").execute())
