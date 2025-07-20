@@ -96,3 +96,7 @@ The application supports 5 difficulty levels with specific mathematical constrai
 ## Code Style and Best Practices
 
 - Always use descriptive filenames. Avoid generic names for shared modules like "common" or "utils"
+
+## Development Guidelines
+
+- Always run tests using "pytest". the run_tests.py file is for the user only!
