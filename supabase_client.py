@@ -165,13 +165,13 @@ def start_oauth_server(port=8080):
 
 class SupabaseClient:
     """Manages Supabase authentication and client access"""
-    
+
     def __init__(self):
         self._client: Optional[Client] = None
         self._lock = threading.Lock()
         self._session_data: Optional[Dict[str, Any]] = None
 
-    def authenticate(self) -> Dict[str, Any]:
+    def sign_in_with_google(self) -> Dict[str, Any]:
         """Authenticate user with Google OAuth and store client"""
         server = start_oauth_server(8080)
         redirect_uri = "http://localhost:8080"
@@ -180,13 +180,13 @@ class SupabaseClient:
         class PKCEStorage:
             def __init__(self):
                 self.storage: Dict[str, str] = {}
-            
+
             def get_item(self, key: str) -> Optional[str]:
                 return self.storage.get(key)
-            
+
             def set_item(self, key: str, value: str) -> None:
                 self.storage[key] = value
-            
+
             def remove_item(self, key: str) -> None:
                 self.storage.pop(key, None)
 
@@ -198,27 +198,24 @@ class SupabaseClient:
                 url,
                 key,
                 options=ClientOptions(
-                    flow_type="pkce",
-                    storage=storage  # type: ignore
+                    flow_type="pkce", storage=storage  # type: ignore
                 ),
             )
 
             res = supabase.auth.sign_in_with_oauth(
-                {
-                    "provider": "google", 
-                    "options": {
-                        "redirect_to": redirect_uri
-                    }
-                }
+                {"provider": "google", "options": {"redirect_to": redirect_uri}}
             )
 
             if not res.url:
-                return {"success": False, "error": "Failed to get OAuth URL from Supabase"}
+                return {
+                    "success": False,
+                    "error": "Failed to get OAuth URL from Supabase",
+                }
 
             print("✅ Opening browser for Google authentication...")
             print("\\nPlease complete the authentication in your browser.")
             print("This window will close automatically after authentication.")
-            
+
             webbrowser.open(res.url)
 
             timeout = 300  # 5 minutes
@@ -238,7 +235,9 @@ class SupabaseClient:
             ):
                 try:
                     # Get the code verifier from storage
-                    code_verifier = storage.get_item('supabase.auth.token-code-verifier')
+                    code_verifier = storage.get_item(
+                        "supabase.auth.token-code-verifier"
+                    )
 
                     if not code_verifier:
                         return {
@@ -251,7 +250,7 @@ class SupabaseClient:
                         {
                             "auth_code": server.auth_result["code"],
                             "code_verifier": code_verifier,
-                            "redirect_to": redirect_uri
+                            "redirect_to": redirect_uri,
                         }
                     )
 
@@ -264,11 +263,25 @@ class SupabaseClient:
                         user_data = {
                             "id": user.id if user else None,
                             "email": user.email if user else None,
-                            "name": (user.user_metadata.get("full_name") if user and user.user_metadata
-                                    else user.user_metadata.get("name", "Unknown") if user and user.user_metadata
-                                    else "Unknown"),
-                            "avatar_url": user.user_metadata.get("avatar_url") if user and user.user_metadata else None,
-                            "provider": user.app_metadata.get("provider", "google") if user and user.app_metadata else "google",
+                            "name": (
+                                user.user_metadata.get("full_name")
+                                if user and user.user_metadata
+                                else (
+                                    user.user_metadata.get("name", "Unknown")
+                                    if user and user.user_metadata
+                                    else "Unknown"
+                                )
+                            ),
+                            "avatar_url": (
+                                user.user_metadata.get("avatar_url")
+                                if user and user.user_metadata
+                                else None
+                            ),
+                            "provider": (
+                                user.app_metadata.get("provider", "google")
+                                if user and user.app_metadata
+                                else "google"
+                            ),
                             "last_sign_in": user.last_sign_in_at if user else None,
                         }
 
@@ -310,7 +323,10 @@ class SupabaseClient:
                         "error": f"Failed to exchange code for session: {str(e)}",
                     }
             else:
-                return server.auth_result or {"success": False, "error": "No auth result received"}
+                return server.auth_result or {
+                    "success": False,
+                    "error": "No auth result received",
+                }
 
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -341,31 +357,35 @@ class SupabaseClient:
     def restore_session(self, session_data: Dict[str, Any]) -> bool:
         """Restore authenticated client from stored session data"""
         try:
-            if not session_data.get("access_token") or not session_data.get("refresh_token"):
+            if not session_data.get("access_token") or not session_data.get(
+                "refresh_token"
+            ):
                 return False
-                
+
             # Create client
             supabase: Client = create_client(url, key)
-            
+
             # Try to set session using the auth API
             try:
                 supabase.auth.set_session(
                     access_token=session_data["access_token"],
-                    refresh_token=session_data["refresh_token"]
+                    refresh_token=session_data["refresh_token"],
                 )
             except Exception:
                 # If set_session doesn't work, try refresh
-                refresh_result = supabase.auth.refresh_session(session_data["refresh_token"])
+                refresh_result = supabase.auth.refresh_session(
+                    session_data["refresh_token"]
+                )
                 if not refresh_result.session:
                     return False
-            
+
             # Store client and session data
             with self._lock:
                 self._client = supabase
                 self._session_data = session_data
-                
+
             return True
-            
+
         except Exception:
             return False
 
@@ -378,4 +398,4 @@ def validate_environment():
 
 
 # Singleton instance for app-wide access
-supabase_client = SupabaseClient()
+supabase = SupabaseClient()

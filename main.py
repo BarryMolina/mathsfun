@@ -8,7 +8,7 @@ from ui import (
 )
 from addition import addition_mode
 from addition_tables import addition_tables_mode
-from supabase_client import supabase_client, validate_environment
+from supabase_client import supabase, validate_environment
 
 
 def authentication_flow():
@@ -25,7 +25,7 @@ def authentication_flow():
         if choice == "exit":
             return False, None
         elif choice == "1":
-            result = supabase_client.authenticate()
+            result = supabase.sign_in_with_google()
 
             if result and result.get("success"):
                 user_data = result.get("user")
