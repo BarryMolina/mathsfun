@@ -248,3 +248,104 @@ class TestPropertyBased:
             parts = problem.split(" + ")
             num1, num2 = int(parts[0]), int(parts[1])
             assert answer == num1 + num2
+
+
+class TestGetDifficultyRangeInputValidation:
+    """Test input validation in get_difficulty_range function."""
+    
+    def test_invalid_low_difficulty_input(self, mocker, capsys):
+        """Test invalid input for low difficulty followed by valid input."""
+        from addition import get_difficulty_range
+        
+        # Mock input to provide invalid input first, then valid
+        mock_input = mocker.patch('builtins.input', side_effect=['abc', '2', '4'])
+        
+        low, high = get_difficulty_range()
+        
+        assert low == 2
+        assert high == 4
+        assert mock_input.call_count == 3
+        
+        # Check that error message was printed
+        captured = capsys.readouterr()
+        assert "❌ Please enter a valid number" in captured.out
+    
+    def test_high_less_than_low_difficulty(self, mocker, capsys):
+        """Test when high difficulty is less than low difficulty."""
+        from addition import get_difficulty_range
+        
+        # Mock input: valid low, then high < low, then valid high
+        mock_input = mocker.patch('builtins.input', side_effect=['3', '1', '5'])
+        
+        low, high = get_difficulty_range()
+        
+        assert low == 3
+        assert high == 5
+        assert mock_input.call_count == 3
+        
+        # Check that error message was printed
+        captured = capsys.readouterr()
+        assert "❌ High difficulty must be >= low difficulty" in captured.out
+    
+    def test_invalid_high_difficulty_input(self, mocker, capsys):
+        """Test invalid input for high difficulty followed by valid input."""
+        from addition import get_difficulty_range
+        
+        # Mock input: valid low, invalid high, then valid high
+        mock_input = mocker.patch('builtins.input', side_effect=['2', 'xyz', '4'])
+        
+        low, high = get_difficulty_range()
+        
+        assert low == 2
+        assert high == 4
+        assert mock_input.call_count == 3
+        
+        # Check that error message was printed
+        captured = capsys.readouterr()
+        assert "❌ Please enter a valid number" in captured.out
+
+
+class TestRunAdditionQuizEdgeCases:
+    """Test edge cases in run_addition_quiz function."""
+    
+    def test_unlimited_mode_start_message(self, mocker, capsys):
+        """Test that unlimited mode shows correct start message."""
+        from addition import run_addition_quiz, ProblemGenerator
+        
+        # Create unlimited generator
+        generator = ProblemGenerator(1, 2, 0)  # 0 means unlimited
+        
+        # Mock dependencies
+        mock_prompt = mocker.patch('addition.prompt_start_session')
+        mock_input = mocker.patch('builtins.input', return_value='exit')
+        mocker.patch.object(generator, 'get_next_problem', return_value=('1 + 1', 2))
+        
+        run_addition_quiz(generator)
+        
+        captured = capsys.readouterr()
+        assert "🎯 Timer started! Solve problems until you're ready to stop." in captured.out
+    
+    def test_quiz_invalid_input_handling(self, mocker, capsys):
+        """Test handling of invalid input during quiz."""
+        from addition import run_addition_quiz, ProblemGenerator
+        
+        generator = ProblemGenerator(1, 1, 2)
+        
+        # Mock dependencies
+        mock_prompt = mocker.patch('addition.prompt_start_session')
+        # Provide invalid input, then valid answer, then second valid answer
+        mock_input = mocker.patch('builtins.input', side_effect=['invalid', '2', '4'])
+        mocker.patch.object(generator, 'get_next_problem', side_effect=[
+            ('1 + 1', 2),
+            ('2 + 2', 4)
+        ])
+        mocker.patch.object(generator, 'has_more_problems', side_effect=[True, True, False])
+        
+        correct, total, duration = run_addition_quiz(generator)
+        
+        assert correct == 2
+        assert total == 2
+        
+        # Check that error message was printed
+        captured = capsys.readouterr()
+        assert "❌ Please enter a number, 'next', 'stop', or 'exit'" in captured.out
