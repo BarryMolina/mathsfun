@@ -99,9 +99,10 @@ class TestMain:
         mock_print_welcome = mocker.patch('main.print_welcome')
         mock_print_main_menu = mocker.patch('main.print_main_menu')
         mock_addition_mode = mocker.patch('main.addition_mode')
+        mock_addition_tables_mode = mocker.patch('main.addition_tables_mode')
         
         # Mock input sequence: invalid options, then valid selection, then exit
-        mock_input = mocker.patch('builtins.input', side_effect=['2', 'abc', '1', 'exit'])
+        mock_input = mocker.patch('builtins.input', side_effect=['invalid', 'abc', '1', 'exit'])
         
         main()
         
