@@ -92,3 +92,7 @@ The application supports 5 difficulty levels with specific mathematical constrai
 - Extensive input validation and error handling throughout
 - Unicode emojis used for enhanced user experience
 - Comprehensive test coverage including UI, logic, and integration tests
+
+## Code Style and Best Practices
+
+- Always use descriptive filenames. Avoid generic names for shared modules like "common" or "utils"

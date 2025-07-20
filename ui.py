@@ -14,6 +14,7 @@ def print_main_menu():
     """Display the main menu options"""
     print("📚 Main Menu:")
     print("1. Addition")
+    print("2. Addition Tables")
     print("\nType 'exit' to quit the application")
     print("-" * 30)
 

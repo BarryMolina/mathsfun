@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from ui import print_welcome, print_main_menu
 from addition import addition_mode
+from addition_tables import addition_tables_mode
 
 
 def main():
@@ -16,6 +17,8 @@ def main():
             break
         elif choice == "1":
             addition_mode()
+        elif choice == "2":
+            addition_tables_mode()
         else:
             print("❌ Invalid option. Please try again.\n")
 
