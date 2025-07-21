@@ -5,6 +5,9 @@ import pytest
 from unittest.mock import Mock
 from addition import ProblemGenerator
 
+# Import fixtures from fixtures module
+from tests.fixtures.user_fixtures import *
+
 
 @pytest.fixture
 def mock_generator():
