@@ -100,3 +100,7 @@ The application supports 5 difficulty levels with specific mathematical constrai
 ## Development Guidelines
 
 - Always run tests using "pytest". the run_tests.py file is for the user only!
+
+## Code Quality and Maintenance
+
+- After writing or editing a python file, run the `mypy` command for static type checking

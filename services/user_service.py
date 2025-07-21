@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime
 from repositories.user_repository import UserRepository
 from models.user import User
-from supabase_manager import supabase_manager, SupabaseManager
+from supabase_manager import SupabaseManager
 
 
 class UserService:
@@ -84,14 +84,15 @@ class UserService:
             if force_refresh:
                 # Fresh API call for accurate auth verification
                 response = client.auth.get_user()
+                if not response or not response.user:
+                    return None
+                user_id = response.user.id
             else:
                 # Use cached session for performance
-                response = client.auth.get_session()
-
-            if not response or not response.user:
-                return None
-
-            user_id = response.user.id
+                session = client.auth.get_session()
+                if not session or not session.user:
+                    return None
+                user_id = session.user.id
 
             # Return cached profile if same user and no force refresh
             if (
@@ -113,7 +114,14 @@ class UserService:
                 return user_profile
             else:
                 # If no profile exists, create one from auth data
-                auth_user = response.user
+                if force_refresh:
+                    if not response:
+                        return None
+                    auth_user = response.user
+                else:
+                    if not session:
+                        return None
+                    auth_user = session.user
                 display_name = (
                     auth_user.user_metadata.get("full_name")
                     if auth_user.user_metadata
@@ -129,6 +137,8 @@ class UserService:
                 )
 
                 # Use get_or_create_user_profile to handle creation
+                if not auth_user.email:
+                    return None
                 created_user = self.get_or_create_user_profile(
                     user_id, auth_user.email, display_name
                 )
