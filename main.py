@@ -11,6 +11,43 @@ from addition_tables import addition_tables_mode
 from supabase_client import supabase_client, validate_environment
 
 
+def get_current_user():
+    """Get current user data from Supabase client"""
+    try:
+        if not supabase_client.is_authenticated():
+            return None
+            
+        client = supabase_client.get_client()
+        response = client.auth.get_user()
+        
+        if response and response.user:
+            user = response.user
+            
+            # Extract user data in consistent format
+            user_data = {
+                "id": user.id,
+                "email": user.email,
+                "name": (
+                    user.user_metadata.get("full_name") if user.user_metadata
+                    else user.user_metadata.get("name", "Unknown") if user.user_metadata
+                    else "Unknown"
+                ),
+                "avatar_url": user.user_metadata.get("avatar_url") if user.user_metadata else None,
+                "provider": (
+                    user.app_metadata.get("provider", "google") if user.app_metadata
+                    else "google"
+                ),
+                "last_sign_in": user.last_sign_in_at,
+            }
+            return user_data
+        else:
+            return None
+            
+    except Exception as e:
+        print(f"Error fetching user data: {e}")
+        return None
+
+
 def authentication_flow():
     """Handle user authentication"""
     valid, message = validate_environment()
@@ -28,14 +65,14 @@ def authentication_flow():
             result = supabase_client.sign_in_with_google()
 
             if result and result.get("success"):
-                user_data = result.get("user")
-                session_data = result.get("session")
-
                 print_authentication_status("Authentication successful!")
+                
+                # Fetch fresh user data from Supabase client
+                user_data = get_current_user()
                 if user_data:
                     print_user_welcome(user_data)
 
-                return True, {"user": user_data, "session": session_data}
+                return True, user_data
             else:
                 error_msg = (
                     result.get("error", "Unknown error")
@@ -53,20 +90,31 @@ def main():
     """Main application loop"""
     print_welcome()
 
-    auth_success, auth_data = authentication_flow()
+    auth_success, user_data = authentication_flow()
     if not auth_success:
         print("\n👋 Thanks for visiting MathsFun!")
         return
 
-    # Store user and session data for use throughout the application
-    user_data = auth_data.get("user") if auth_data else None
+    # Refresh user data from Supabase client for main loop
+    if not user_data:
+        user_data = get_current_user()
+        if not user_data:
+            print("❌ Unable to fetch user data. Please try again.")
+            return
 
     while True:
+        # Check if still authenticated before showing menu
+        if not supabase_client.is_authenticated():
+            print("❌ Authentication session expired. Please sign in again.")
+            break
+            
         print_main_menu()
         choice = input("Select an option: ").strip().lower()
 
         if choice == "exit":
-            name = user_data.get("name", "User") if user_data else "User"
+            # Get fresh user data for goodbye message
+            current_user = get_current_user()
+            name = current_user.get("name", "User") if current_user else "User"
             print(f"\n👋 Thanks for using MathsFun, {name}! Keep practicing!")
             break
         elif choice == "1":
