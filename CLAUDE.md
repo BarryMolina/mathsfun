@@ -9,14 +9,19 @@ MathsFun is a Python CLI application for interactive math practice, focusing on 
 ## Running the Application
 
 ```bash
-# Run the main application
-python3 main.py
+# Setup virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate  # On macOS/Linux
+# venv\Scripts\activate   # On Windows
 
 # Install dependencies
 pip install -r requirements.txt
 
 # Setup environment (requires Supabase credentials)
 # Create .env file with SUPABASE_URL and SUPABASE_KEY
+
+# Run the main application
+python3 main.py
 ```
 
 ## Testing
@@ -26,12 +31,15 @@ pip install -r requirements.txt
 pytest
 
 # Run tests with coverage (configured in pytest.ini)
-pytest --cov=. --cov-report=html
+pytest --cov=src --cov-report=html
 
 # Run specific test categories
 pytest -m unit              # Unit tests only
 pytest -m integration       # Integration tests only
 pytest -m repository        # Repository layer tests
+pytest -m ui                 # UI tests only
+pytest -m security          # Security tests only
+pytest -m slow              # Slow tests only
 
 # Run specific test files
 pytest tests/test_ui.py -v
