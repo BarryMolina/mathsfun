@@ -91,49 +91,59 @@ def main():
     """Main application loop"""
     print_welcome()
 
-    auth_success, user_data = authentication_flow()
-    if not auth_success:
-        print("\n👋 Thanks for visiting MathsFun!")
-        return
-
-    # Refresh user data from Supabase client for main loop
-    if not user_data:
-        user_data = get_current_user()
-        if not user_data:
-            print("❌ Unable to fetch user data. Please try again.")
+    while True:  # Outer loop for authentication flow
+        auth_success, user_data = authentication_flow()
+        if not auth_success:
+            print("\n👋 Thanks for visiting MathsFun!")
             return
 
-    # Initialize the container with Supabase client
-    container = Container(supabase_client.get_client())
-    
-    # Create or update user profile
-    container.user_svc.get_or_create_user_profile(
-        user_data["id"], 
-        user_data["email"], 
-        user_data["name"]
-    )
+        # Refresh user data from Supabase client for main loop
+        if not user_data:
+            user_data = get_current_user()
+            if not user_data:
+                print("❌ Unable to fetch user data. Please try again.")
+                continue  # Return to authentication
 
-    while True:
-        # Check if still authenticated before showing menu
-        if not supabase_client.is_authenticated():
-            print("❌ Authentication session expired. Please sign in again.")
-            break
-            
-        print_main_menu()
-        choice = input("Select an option: ").strip().lower()
+        # Initialize the container with Supabase client
+        container = Container(supabase_client.get_client())
+        
+        # Create or update user profile
+        container.user_svc.get_or_create_user_profile(
+            user_data["id"], 
+            user_data["email"], 
+            user_data["name"]
+        )
 
-        if choice == "exit":
-            # Get fresh user data for goodbye message
-            current_user = get_current_user()
-            name = current_user.get("name", "User") if current_user else "User"
-            print(f"\n👋 Thanks for using MathsFun, {name}! Keep practicing!")
-            break
-        elif choice == "1":
-            addition_mode(container, user_data["id"])
-        elif choice == "2":
-            addition_tables_mode()
-        else:
-            print("❌ Invalid option. Please try again.\n")
+        # Inner loop for main menu
+        while True:
+            # Check if still authenticated before showing menu
+            if not supabase_client.is_authenticated():
+                print("❌ Authentication session expired. Please sign in again.")
+                break  # Return to authentication flow
+                
+            print_main_menu()
+            choice = input("Select an option: ").strip().lower()
+
+            if choice == "exit":
+                # Get fresh user data for goodbye message
+                current_user = get_current_user()
+                name = current_user.get("name", "User") if current_user else "User"
+                print(f"\n👋 Thanks for using MathsFun, {name}! Keep practicing!")
+                return  # Exit application completely
+            elif choice == "1":
+                addition_mode(container, user_data["id"])
+            elif choice == "2":
+                addition_tables_mode()
+            elif choice == "3":
+                # Sign out
+                current_user = get_current_user()
+                name = current_user.get("name", "User") if current_user else "User"
+                supabase_client.sign_out()
+                print(f"\n👋 {name} has been signed out successfully!")
+                print("Returning to authentication...\n")
+                break  # Return to authentication flow
+            else:
+                print("❌ Invalid option. Please try again.\n")
 
 
 if __name__ == "__main__":
