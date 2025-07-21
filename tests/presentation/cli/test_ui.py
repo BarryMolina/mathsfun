@@ -158,7 +158,7 @@ class TestUIInAddition:
     
     def test_display_difficulty_options(self, capsys):
         """Test the display_difficulty_options function from addition.py."""
-        from addition import display_difficulty_options
+        from src.presentation.controllers.addition import display_difficulty_options
         
         display_difficulty_options()
         
@@ -175,7 +175,7 @@ class TestUIInAddition:
     
     def test_get_difficulty_range_valid_input(self, mocker):
         """Test get_difficulty_range with valid input."""
-        from addition import get_difficulty_range
+        from src.presentation.controllers.addition import get_difficulty_range
         
         # Mock user entering 2 for low, 4 for high
         mock_input = mocker.patch('builtins.input', side_effect=['2', '4'])
@@ -188,7 +188,7 @@ class TestUIInAddition:
     
     def test_get_difficulty_range_invalid_then_valid(self, mocker, capsys):
         """Test get_difficulty_range with invalid input followed by valid input."""
-        from addition import get_difficulty_range
+        from src.presentation.controllers.addition import get_difficulty_range
         
         # Mock user entering invalid, then valid input
         mock_input = mocker.patch('builtins.input', side_effect=['0', '1', '6', '3'])
@@ -205,7 +205,7 @@ class TestUIInAddition:
     
     def test_get_num_problems_valid(self, mocker):
         """Test get_num_problems with valid input."""
-        from addition import get_num_problems
+        from src.presentation.controllers.addition import get_num_problems
         
         mock_input = mocker.patch('builtins.input', return_value='10')
         
@@ -216,7 +216,7 @@ class TestUIInAddition:
     
     def test_get_num_problems_unlimited(self, mocker):
         """Test get_num_problems with unlimited (0) input."""
-        from addition import get_num_problems
+        from src.presentation.controllers.addition import get_num_problems
         
         mock_input = mocker.patch('builtins.input', return_value='0')
         
@@ -227,7 +227,7 @@ class TestUIInAddition:
     
     def test_get_num_problems_invalid_then_valid(self, mocker, capsys):
         """Test get_num_problems with invalid input followed by valid input."""
-        from addition import get_num_problems
+        from src.presentation.controllers.addition import get_num_problems
         
         mock_input = mocker.patch('builtins.input', side_effect=['-5', 'abc', '5'])
         

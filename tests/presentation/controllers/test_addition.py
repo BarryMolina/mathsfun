@@ -255,7 +255,7 @@ class TestGetDifficultyRangeInputValidation:
     
     def test_invalid_low_difficulty_input(self, mocker, capsys):
         """Test invalid input for low difficulty followed by valid input."""
-        from addition import get_difficulty_range
+        from src.presentation.controllers.addition import get_difficulty_range
         
         # Mock input to provide invalid input first, then valid
         mock_input = mocker.patch('builtins.input', side_effect=['abc', '2', '4'])
@@ -272,7 +272,7 @@ class TestGetDifficultyRangeInputValidation:
     
     def test_high_less_than_low_difficulty(self, mocker, capsys):
         """Test when high difficulty is less than low difficulty."""
-        from addition import get_difficulty_range
+        from src.presentation.controllers.addition import get_difficulty_range
         
         # Mock input: valid low, then high < low, then valid high
         mock_input = mocker.patch('builtins.input', side_effect=['3', '1', '5'])
@@ -289,7 +289,7 @@ class TestGetDifficultyRangeInputValidation:
     
     def test_invalid_high_difficulty_input(self, mocker, capsys):
         """Test invalid input for high difficulty followed by valid input."""
-        from addition import get_difficulty_range
+        from src.presentation.controllers.addition import get_difficulty_range
         
         # Mock input: valid low, invalid high, then valid high
         mock_input = mocker.patch('builtins.input', side_effect=['2', 'xyz', '4'])
@@ -310,13 +310,13 @@ class TestRunAdditionQuizEdgeCases:
     
     def test_unlimited_mode_start_message(self, mocker, capsys):
         """Test that unlimited mode shows correct start message."""
-        from addition import run_addition_quiz, ProblemGenerator
+        from src.presentation.controllers.addition import run_addition_quiz, ProblemGenerator
         
         # Create unlimited generator
         generator = ProblemGenerator(1, 2, 0)  # 0 means unlimited
         
         # Mock dependencies
-        mock_prompt = mocker.patch('addition.prompt_start_session')
+        mock_prompt = mocker.patch('src.presentation.controllers.addition.prompt_start_session')
         mock_input = mocker.patch('builtins.input', return_value='exit')
         mocker.patch.object(generator, 'get_next_problem', return_value=('1 + 1', 2))
         
@@ -327,12 +327,12 @@ class TestRunAdditionQuizEdgeCases:
     
     def test_quiz_invalid_input_handling(self, mocker, capsys):
         """Test handling of invalid input during quiz."""
-        from addition import run_addition_quiz, ProblemGenerator
+        from src.presentation.controllers.addition import run_addition_quiz, ProblemGenerator
         
         generator = ProblemGenerator(1, 1, 2)
         
         # Mock dependencies
-        mock_prompt = mocker.patch('addition.prompt_start_session')
+        mock_prompt = mocker.patch('src.presentation.controllers.addition.prompt_start_session')
         # Provide invalid input, then valid answer, then second valid answer
         mock_input = mocker.patch('builtins.input', side_effect=['invalid', '2', '4'])
         mocker.patch.object(generator, 'get_next_problem', side_effect=[

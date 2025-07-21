@@ -42,9 +42,9 @@ class TestAdditionModeIntegration:
     def test_addition_mode_unlimited_flow(self, mocker, capsys):
         """Test addition mode with unlimited problems."""
         # Mock user inputs: difficulty 3-5, unlimited (0)
-        mock_get_user_input = mocker.patch('addition.get_user_input', side_effect=['3', '5', '0'])
-        mock_run_quiz = mocker.patch('addition.run_addition_quiz', return_value=(15, 20, 180.5))
-        mock_show_results = mocker.patch('addition.show_results')
+        mock_get_user_input = mocker.patch('src.presentation.controllers.addition.get_user_input', side_effect=['3', '5', '0'])
+        mock_run_quiz = mocker.patch('src.presentation.controllers.addition.run_addition_quiz', return_value=(15, 20, 180.5))
+        mock_show_results = mocker.patch('src.presentation.controllers.addition.show_results')
         
         addition_mode()
         
@@ -57,7 +57,7 @@ class TestAdditionModeIntegration:
     def test_addition_mode_error_handling(self, mocker, capsys):
         """Test addition mode error handling."""
         # Mock an exception during the flow
-        mock_get_user_input = mocker.patch('addition.get_user_input', side_effect=Exception("Test error"))
+        mock_get_user_input = mocker.patch('src.presentation.controllers.addition.get_user_input', side_effect=Exception("Test error"))
         
         addition_mode()
         
@@ -77,7 +77,7 @@ class TestQuizFlowIntegration:
         generator = ProblemGenerator(1, 1, 2)  # 2 single-digit problems
         
         # Mock the session prompt
-        mock_prompt = mocker.patch('addition.prompt_start_session')
+        mock_prompt = mocker.patch('src.presentation.controllers.addition.prompt_start_session')
         
         # Mock user inputs: correct answer, correct answer (completes all problems)
         # Patch the input function used in run_addition_quiz
@@ -104,7 +104,7 @@ class TestQuizFlowIntegration:
         """Test quiz session with early stop command."""
         generator = ProblemGenerator(1, 1, 5)  # 5 problems but will stop early
         
-        mock_prompt = mocker.patch('addition.prompt_start_session')
+        mock_prompt = mocker.patch('src.presentation.controllers.addition.prompt_start_session')
         
         # Mock user inputs: correct answer, then stop
         mock_input = mocker.patch('builtins.input', side_effect=['8', 'stop'])
@@ -124,7 +124,7 @@ class TestQuizFlowIntegration:
         """Test quiz with skip commands and incorrect attempts."""
         generator = ProblemGenerator(1, 1, 2)
         
-        mock_prompt = mocker.patch('addition.prompt_start_session')
+        mock_prompt = mocker.patch('src.presentation.controllers.addition.prompt_start_session')
         
         # Mock user inputs: wrong, wrong, next (skip), correct answer
         mock_input = mocker.patch('builtins.input', side_effect=['3', '4', 'next', '12'])
@@ -152,7 +152,7 @@ class TestQuizFlowIntegration:
         """Test quiz session with exit command."""
         generator = ProblemGenerator(1, 1, 5)
         
-        mock_prompt = mocker.patch('addition.prompt_start_session')
+        mock_prompt = mocker.patch('src.presentation.controllers.addition.prompt_start_session')
         mock_input = mocker.patch('builtins.input', return_value='exit')
         
         mocker.patch.object(generator, 'get_next_problem', return_value=('1 + 1', 2))
@@ -171,10 +171,10 @@ class TestEndToEndFlows:
     def test_perfect_score_session(self, mocker, capsys):
         """Test a session where user gets perfect score."""
         # Setup mocks for perfect session
-        mock_get_user_input = mocker.patch('addition.get_user_input', side_effect=['1', '1', '3'])
+        mock_get_user_input = mocker.patch('src.presentation.controllers.addition.get_user_input', side_effect=['1', '1', '3'])
         
         # Mock quiz to return perfect score
-        mock_run_quiz = mocker.patch('addition.run_addition_quiz', return_value=(3, 3, 60.0))
+        mock_run_quiz = mocker.patch('src.presentation.controllers.addition.run_addition_quiz', return_value=(3, 3, 60.0))
         
         # Don't mock show_results to test the actual result display
         addition_mode()
