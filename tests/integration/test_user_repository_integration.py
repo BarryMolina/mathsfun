@@ -4,8 +4,8 @@ import pytest
 import os
 from datetime import datetime
 from supabase import create_client
-from repositories.user_repository import UserRepository
-from models.user import User
+from src.infrastructure.database.repositories.user_repository import UserRepository
+from src.domain.models.user import User
 
 
 @pytest.fixture(scope="session")

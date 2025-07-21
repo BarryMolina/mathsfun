@@ -46,22 +46,24 @@ pytest tests/integration/ -v
 
 ### Layered Architecture
 
-The application follows a clean layered architecture with dependency injection:
+The application follows a clean layered architecture with dependency injection, organized in a `src/` directory:
 
 **Core Layers:**
-- **Presentation**: `main.py`, `ui.py` - User interface and application entry point
-- **Services**: `services/` - Business logic layer (`UserService`, `QuizService`)
-- **Repositories**: `repositories/` - Data access layer (`UserRepository`, `QuizRepository`)
-- **Models**: `models/` - Domain entities (`User`, `QuizSession`, `ProblemAttempt`)
-- **Infrastructure**: `supabase_manager.py`, `container.py` - External services and DI
+- **Presentation**: `src/presentation/` - User interface and controllers
+  - `cli/` - CLI interface (`main.py`, `ui.py`)
+  - `controllers/` - Business flow controllers (`addition.py`, `addition_tables.py`, `session.py`)
+- **Domain**: `src/domain/` - Business logic and models
+  - `models/` - Domain entities (`User`, `QuizSession`, `ProblemAttempt`)
+  - `services/` - Business logic layer (`UserService`, `QuizService`)
+- **Infrastructure**: `src/infrastructure/` - External services and data access
+  - `database/` - Data persistence (`supabase_manager.py`, `repositories/`)
+  - `storage/` - Local storage (`session_storage.py`)
+  - `auth/` - Authentication (`auth.py`)
+- **Configuration**: `src/config/` - Dependency injection (`container.py`)
 
-**Key Files:**
-- **`main.py`**: Entry point with main application loop and menu handling
-- **`ui.py`**: User interface functions for display and input handling
-- **`addition.py`**: Addition-specific logic, problem generation, and quiz execution
-- **`session.py`**: Session management, results display, and timing utilities
-- **`container.py`**: Dependency injection container wiring all components
-- **`supabase_manager.py`**: Supabase client management and authentication
+**Entry Points:**
+- **`main.py`** (root): Simple entry point that imports from `src/presentation/cli/main.py`
+- **`src/presentation/cli/main.py`**: Main application loop and menu handling
 
 ### Core Components
 
@@ -75,16 +77,16 @@ The application follows a clean layered architecture with dependency injection:
 ### Key Classes and Functions
 
 **Domain/Business Logic:**
-- `ProblemGenerator` (addition.py): Central class for generating math problems with difficulty range support
-- `UserService` (services/): User authentication, profile management, and caching
-- `QuizService` (services/): Quiz session management and business logic
-- `User`, `QuizSession`, `ProblemAttempt` (models/): Domain entities
+- `ProblemGenerator` (src/presentation/controllers/addition.py): Central class for generating math problems
+- `UserService` (src/domain/services/): User authentication, profile management, and caching
+- `QuizService` (src/domain/services/): Quiz session management and business logic
+- `User`, `QuizSession`, `ProblemAttempt` (src/domain/models/): Domain entities
 
 **Core Functions:**
-- `run_addition_quiz()` (addition.py): Main quiz loop with timer, scoring, and user interaction
-- `show_results()` (session.py): Comprehensive results display with accuracy metrics
-- `get_user_input()` (ui.py): Centralized input handling with default value support
-- `Container` (container.py): Dependency injection setup and wiring
+- `run_addition_quiz()` (src/presentation/controllers/addition.py): Main quiz loop with timer, scoring, and user interaction
+- `show_results()` (src/presentation/controllers/session.py): Comprehensive results display with accuracy metrics
+- `get_user_input()` (src/presentation/cli/ui.py): Centralized input handling with default value support
+- `Container` (src/config/container.py): Dependency injection setup and wiring
 
 ### Difficulty Levels
 
@@ -129,9 +131,12 @@ The application supports 5 difficulty levels with specific mathematical constrai
 
 - Always run tests using "pytest" (configured in pytest.ini with coverage and markers)
 - Use dependency injection through the Container class for new components
-- Follow the repository pattern for data access
-- Keep business logic in service classes
+- Follow the layered architecture: place files in appropriate `src/` subdirectories
+- Follow the repository pattern for data access in `src/infrastructure/database/repositories/`
+- Keep business logic in service classes in `src/domain/services/`
+- Place UI controllers in `src/presentation/controllers/`
 - Use pytest markers for test categorization (unit, integration, repository, etc.)
+- Mirror the source structure in the `tests/` directory
 
 ## Code Quality and Maintenance
 

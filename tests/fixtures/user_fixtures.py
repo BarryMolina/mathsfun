@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 from unittest.mock import Mock
-from models.user import User
+from src.domain.models.user import User
 
 
 @pytest.fixture

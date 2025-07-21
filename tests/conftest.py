@@ -3,7 +3,7 @@
 
 import pytest
 from unittest.mock import Mock
-from addition import ProblemGenerator
+from src.presentation.controllers.addition import ProblemGenerator
 
 # Import fixtures from fixtures module
 from tests.fixtures.user_fixtures import *
