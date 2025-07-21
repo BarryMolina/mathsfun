@@ -92,13 +92,6 @@ def main():
             if not user:
                 print("❌ Unable to fetch user data. Please try again.")
                 continue  # Return to authentication
-        
-        # Create or update user profile
-        container.user_svc.get_or_create_user_profile(
-            user.id, 
-            user.email, 
-            user.display_name
-        )
 
         # Inner loop for main menu
         while True:

@@ -54,7 +54,7 @@ class UserService:
         return self.user_repo.update_user_profile(user)
     
     def get_current_user(self, supabase_client) -> Optional[User]:
-        """Get current user data from Supabase client and return as User model."""
+        """Get current user data from Supabase client and fetch full profile from repository."""
         try:
             if not supabase_client.is_authenticated():
                 return None
@@ -63,20 +63,31 @@ class UserService:
             response = client.auth.get_user()
             
             if response and response.user:
-                user = response.user
+                user_id = response.user.id
                 
-                # Create User model from Supabase auth data
-                return User(
-                    id=user.id,
-                    email=user.email,
-                    display_name=(
-                        user.user_metadata.get("full_name") if user.user_metadata
-                        else user.user_metadata.get("name", "Unknown") if user.user_metadata
+                # Fetch full user profile from repository
+                user_profile = self.user_repo.get_user_profile(user_id)
+                
+                if user_profile:
+                    # Update last active timestamp
+                    self.user_repo.update_last_active(user_id)
+                    return user_profile
+                else:
+                    # If no profile exists, create one from auth data
+                    auth_user = response.user
+                    display_name = (
+                        auth_user.user_metadata.get("full_name") if auth_user.user_metadata
+                        else auth_user.user_metadata.get("name") if auth_user.user_metadata
+                        else auth_user.email.split('@')[0] if auth_user.email
                         else "Unknown"
-                    ),
-                    created_at=None,  # We don't have this from auth data
-                    last_active=None  # We don't have this from auth data
-                )
+                    )
+                    
+                    # Use get_or_create_user_profile to handle creation
+                    return self.get_or_create_user_profile(
+                        user_id, 
+                        auth_user.email, 
+                        display_name
+                    )
             else:
                 return None
                 
