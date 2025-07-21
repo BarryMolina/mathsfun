@@ -52,3 +52,34 @@ class UserService:
         
         user.display_name = display_name
         return self.user_repo.update_user_profile(user)
+    
+    def get_current_user(self, supabase_client) -> Optional[User]:
+        """Get current user data from Supabase client and return as User model."""
+        try:
+            if not supabase_client.is_authenticated():
+                return None
+                
+            client = supabase_client.get_client()
+            response = client.auth.get_user()
+            
+            if response and response.user:
+                user = response.user
+                
+                # Create User model from Supabase auth data
+                return User(
+                    id=user.id,
+                    email=user.email,
+                    display_name=(
+                        user.user_metadata.get("full_name") if user.user_metadata
+                        else user.user_metadata.get("name", "Unknown") if user.user_metadata
+                        else "Unknown"
+                    ),
+                    created_at=None,  # We don't have this from auth data
+                    last_active=None  # We don't have this from auth data
+                )
+            else:
+                return None
+                
+        except Exception as e:
+            print(f"Error fetching user data: {e}")
+            return None

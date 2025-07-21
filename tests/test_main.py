@@ -2,7 +2,8 @@
 """Tests for main application entry point."""
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from models.user import User
 
 
 class TestMain:
@@ -14,6 +15,9 @@ class TestMain:
         
         # Mock print functions to avoid actual output during test
         mock_print_welcome = mocker.patch('main.print_welcome')
+        mock_container = mocker.patch('main.Container')
+        mock_supabase_client = mocker.patch('main.supabase_client')
+        mock_supabase_client.load_persisted_session.return_value = False
         mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(False, None))
         
         main()
@@ -21,7 +25,7 @@ class TestMain:
         # Verify welcome was printed
         mock_print_welcome.assert_called_once()
         
-        # Verify authentication flow was called
+        # Verify authentication flow was called with container
         mock_authentication_flow.assert_called_once()
         
         # Check exit message
@@ -37,12 +41,20 @@ class TestMain:
         mock_print_main_menu = mocker.patch('main.print_main_menu')
         mock_addition_mode = mocker.patch('main.addition_mode')
         
-        # Mock successful authentication
-        user_data = {"id": "test_user", "email": "test@example.com", "name": "Test User"}
-        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user_data))
-        mock_get_current_user = mocker.patch('main.get_current_user', return_value=user_data)
-        mock_container = mocker.patch('main.Container')
+        # Mock successful authentication with User model
+        user = User(id="test_user", email="test@example.com", display_name="Test User")
+        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user))
+        
+        # Mock container and its services
+        mock_container_instance = MagicMock()
+        mock_user_service = MagicMock()
+        mock_user_service.get_current_user.return_value = user
+        mock_user_service.get_or_create_user_profile.return_value = user
+        mock_container_instance.user_svc = mock_user_service
+        mock_container = mocker.patch('main.Container', return_value=mock_container_instance)
         mock_supabase_client = mocker.patch('main.supabase_client')
+        mock_supabase_client.load_persisted_session.return_value = False
+        mock_supabase_client.is_authenticated.return_value = True
         
         # Mock input to select addition mode then exit
         mock_input = mocker.patch('builtins.input', side_effect=['1', 'exit'])
@@ -73,12 +85,20 @@ class TestMain:
         mock_print_welcome = mocker.patch('main.print_welcome')
         mock_print_main_menu = mocker.patch('main.print_main_menu')
         
-        # Mock successful authentication
-        user_data = {"id": "test_user", "email": "test@example.com", "name": "Test User"}
-        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user_data))
-        mock_get_current_user = mocker.patch('main.get_current_user', return_value=user_data)
-        mock_container = mocker.patch('main.Container')
+        # Mock successful authentication with User model
+        user = User(id="test_user", email="test@example.com", display_name="Test User")
+        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user))
+        
+        # Mock container and its services
+        mock_container_instance = MagicMock()
+        mock_user_service = MagicMock()
+        mock_user_service.get_current_user.return_value = user
+        mock_user_service.get_or_create_user_profile.return_value = user
+        mock_container_instance.user_svc = mock_user_service
+        mock_container = mocker.patch('main.Container', return_value=mock_container_instance)
         mock_supabase_client = mocker.patch('main.supabase_client')
+        mock_supabase_client.load_persisted_session.return_value = False
+        mock_supabase_client.is_authenticated.return_value = True
         
         # Mock input to provide invalid option then exit
         mock_input = mocker.patch('builtins.input', side_effect=['invalid', 'exit'])
@@ -109,12 +129,20 @@ class TestMain:
         mock_addition_mode = mocker.patch('main.addition_mode')
         mock_addition_tables_mode = mocker.patch('main.addition_tables_mode')
         
-        # Mock successful authentication
-        user_data = {"id": "test_user", "email": "test@example.com", "name": "Test User"}
-        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user_data))
-        mock_get_current_user = mocker.patch('main.get_current_user', return_value=user_data)
-        mock_container = mocker.patch('main.Container')
+        # Mock successful authentication with User model
+        user = User(id="test_user", email="test@example.com", display_name="Test User")
+        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user))
+        
+        # Mock container and its services
+        mock_container_instance = MagicMock()
+        mock_user_service = MagicMock()
+        mock_user_service.get_current_user.return_value = user
+        mock_user_service.get_or_create_user_profile.return_value = user
+        mock_container_instance.user_svc = mock_user_service
+        mock_container = mocker.patch('main.Container', return_value=mock_container_instance)
         mock_supabase_client = mocker.patch('main.supabase_client')
+        mock_supabase_client.load_persisted_session.return_value = False
+        mock_supabase_client.is_authenticated.return_value = True
         
         # Mock input sequence: invalid options, then valid selection, then exit
         mock_input = mocker.patch('builtins.input', side_effect=['invalid', 'abc', '1', 'exit'])
