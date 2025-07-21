@@ -404,7 +404,7 @@ class SupabaseManager:
             session_data = self._session_storage.load_session()
             if not session_data:
                 return False
-            
+
             # Try to restore the session
             if self.restore_session(session_data):
                 return True
@@ -412,7 +412,7 @@ class SupabaseManager:
                 # If restore failed, clear the invalid session
                 self._session_storage.clear_session()
                 return False
-                
+
         except Exception as e:
             print(f"Warning: Error loading persisted session: {e}")
             return False
@@ -423,9 +423,9 @@ class SupabaseManager:
             with self._lock:
                 if not self._authenticated or not self._session_data:
                     return False
-                
+
                 return self._session_storage.save_session(self._session_data)
-                
+
         except Exception as e:
             print(f"Warning: Error saving session: {e}")
             return False
@@ -439,4 +439,4 @@ def validate_environment():
 
 
 # Singleton instance for app-wide access
-supabase_client = SupabaseManager()
+supabase_manager = SupabaseManager()
