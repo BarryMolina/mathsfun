@@ -30,6 +30,7 @@ class User:
         """Convert User instance to dictionary."""
         return {
             "id": self.id,
+            "email": self.email,
             "display_name": self.display_name,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "last_active": self.last_active.isoformat() if self.last_active else None,

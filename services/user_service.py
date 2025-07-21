@@ -32,7 +32,17 @@ class UserService:
             last_active=datetime.now()
         )
         
-        return self.user_repo.create_user_profile(new_user)
+        created_user = self.user_repo.create_user_profile(new_user)
+        
+        # If creation failed due to duplicate key, try to fetch the existing user
+        if not created_user:
+            user = self.user_repo.get_user_profile(user_id)
+            if user:
+                # Update last active for the existing user
+                self.user_repo.update_last_active(user_id)
+                return user
+        
+        return created_user
     
     def update_display_name(self, user_id: str, display_name: str) -> Optional[User]:
         """Update user's display name."""
