@@ -1,6 +1,5 @@
 """Dependency injection container for MathsFun application."""
 
-from supabase import Client
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.database.repositories.quiz_repository import QuizRepository
 from src.domain.services.user_service import UserService
@@ -15,15 +14,12 @@ class Container:
         """Initialize container with Supabase manager."""
         self.supabase_manager = supabase_manager
 
-        # Get raw client for repositories that need it
-        supabase_client = supabase_manager.get_client()
-
         # Initialize repositories
-        self.user_repository = UserRepository(supabase_client)
-        self.quiz_repository = QuizRepository(supabase_client)
+        self.user_repository = UserRepository(supabase_manager)
+        self.quiz_repository = QuizRepository(supabase_manager)
 
-        # Initialize services (UserService needs the manager, not just the client)
-        self.user_service = UserService(self.user_repository, supabase_manager)
+        # Initialize services
+        self.user_service = UserService(self.user_repository)
         self.quiz_service = QuizService(self.quiz_repository)
 
     @property

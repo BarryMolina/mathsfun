@@ -4,18 +4,15 @@ from typing import Optional
 from datetime import datetime
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from ..models.user import User
-from src.infrastructure.database.supabase_manager import SupabaseManager
 
 
 class UserService:
     """Service for user-related business logic."""
 
-    def __init__(
-        self, user_repository: UserRepository, supabase_manager: SupabaseManager
-    ):
+    def __init__(self, user_repository: UserRepository):
         """Initialize service with user repository and supabase manager."""
         self.user_repo = user_repository
-        self.supabase_manager = supabase_manager
+        self.supabase_manager = user_repository.supabase_manager
         self._cached_user: Optional[User] = None
         self._cached_user_id: Optional[str] = None
 
