@@ -16,8 +16,8 @@ class TestMain:
         # Mock print functions to avoid actual output during test
         mock_print_welcome = mocker.patch('main.print_welcome')
         mock_container = mocker.patch('main.Container')
-        mock_supabase_client = mocker.patch('main.supabase_client')
-        mock_supabase_client.load_persisted_session.return_value = False
+        mock_supabase_manager = mocker.patch('main.supabase_manager')
+        mock_supabase_manager.load_persisted_session.return_value = False
         mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(False, None))
         
         main()
@@ -52,9 +52,9 @@ class TestMain:
         mock_user_service.get_or_create_user_profile.return_value = user
         mock_container_instance.user_svc = mock_user_service
         mock_container = mocker.patch('main.Container', return_value=mock_container_instance)
-        mock_supabase_client = mocker.patch('main.supabase_client')
-        mock_supabase_client.load_persisted_session.return_value = False
-        mock_supabase_client.is_authenticated.return_value = True
+        mock_supabase_manager = mocker.patch('main.supabase_manager')
+        mock_supabase_manager.load_persisted_session.return_value = False
+        mock_supabase_manager.is_authenticated.return_value = True
         
         # Mock input to select addition mode then exit
         mock_input = mocker.patch('builtins.input', side_effect=['1', 'exit'])
@@ -96,9 +96,9 @@ class TestMain:
         mock_user_service.get_or_create_user_profile.return_value = user
         mock_container_instance.user_svc = mock_user_service
         mock_container = mocker.patch('main.Container', return_value=mock_container_instance)
-        mock_supabase_client = mocker.patch('main.supabase_client')
-        mock_supabase_client.load_persisted_session.return_value = False
-        mock_supabase_client.is_authenticated.return_value = True
+        mock_supabase_manager = mocker.patch('main.supabase_manager')
+        mock_supabase_manager.load_persisted_session.return_value = False
+        mock_supabase_manager.is_authenticated.return_value = True
         
         # Mock input to provide invalid option then exit
         mock_input = mocker.patch('builtins.input', side_effect=['invalid', 'exit'])
@@ -140,9 +140,9 @@ class TestMain:
         mock_user_service.get_or_create_user_profile.return_value = user
         mock_container_instance.user_svc = mock_user_service
         mock_container = mocker.patch('main.Container', return_value=mock_container_instance)
-        mock_supabase_client = mocker.patch('main.supabase_client')
-        mock_supabase_client.load_persisted_session.return_value = False
-        mock_supabase_client.is_authenticated.return_value = True
+        mock_supabase_manager = mocker.patch('main.supabase_manager')
+        mock_supabase_manager.load_persisted_session.return_value = False
+        mock_supabase_manager.is_authenticated.return_value = True
         
         # Mock input sequence: invalid options, then valid selection, then exit
         mock_input = mocker.patch('builtins.input', side_effect=['invalid', 'abc', '1', 'exit'])
