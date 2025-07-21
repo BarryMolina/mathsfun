@@ -37,7 +37,7 @@ class TestAdditionModeIntegration:
         # Verify function calls
         assert mock_get_user_input.call_count == 3
         mock_run_quiz.assert_called_once()
-        mock_show_results.assert_called_once_with(2, 3, 45.0, mocker.ANY)
+        mock_show_results.assert_called_once_with(2, 3, 45.0, mocker.ANY, None, None)
     
     def test_addition_mode_unlimited_flow(self, mocker, capsys):
         """Test addition mode with unlimited problems."""

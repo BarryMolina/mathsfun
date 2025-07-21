@@ -9,30 +9,24 @@ class TestMain:
     """Test main application function."""
     
     def test_main_exit_immediately(self, mocker, capsys):
-        """Test main function with immediate exit."""
+        """Test main function with immediate exit during authentication."""
         from main import main
         
         # Mock print functions to avoid actual output during test
         mock_print_welcome = mocker.patch('main.print_welcome')
-        mock_print_main_menu = mocker.patch('main.print_main_menu')
-        
-        # Mock input to immediately exit
-        mock_input = mocker.patch('builtins.input', return_value='exit')
+        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(False, None))
         
         main()
         
         # Verify welcome was printed
         mock_print_welcome.assert_called_once()
         
-        # Verify menu was printed
-        mock_print_main_menu.assert_called_once()
-        
-        # Verify input was called
-        mock_input.assert_called_once_with("Select an option: ")
+        # Verify authentication flow was called
+        mock_authentication_flow.assert_called_once()
         
         # Check exit message
         captured = capsys.readouterr()
-        assert "👋 Thanks for using MathsFun! Keep practicing!" in captured.out
+        assert "👋 Thanks for visiting MathsFun!" in captured.out
     
     def test_main_addition_mode_then_exit(self, mocker, capsys):
         """Test main function with addition mode selection then exit."""
@@ -42,6 +36,13 @@ class TestMain:
         mock_print_welcome = mocker.patch('main.print_welcome')
         mock_print_main_menu = mocker.patch('main.print_main_menu')
         mock_addition_mode = mocker.patch('main.addition_mode')
+        
+        # Mock successful authentication
+        user_data = {"id": "test_user", "email": "test@example.com", "name": "Test User"}
+        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user_data))
+        mock_get_current_user = mocker.patch('main.get_current_user', return_value=user_data)
+        mock_container = mocker.patch('main.Container')
+        mock_supabase_client = mocker.patch('main.supabase_client')
         
         # Mock input to select addition mode then exit
         mock_input = mocker.patch('builtins.input', side_effect=['1', 'exit'])
@@ -62,7 +63,7 @@ class TestMain:
         
         # Check exit message
         captured = capsys.readouterr()
-        assert "👋 Thanks for using MathsFun! Keep practicing!" in captured.out
+        assert "👋 Thanks for using MathsFun, Test User! Keep practicing!" in captured.out
     
     def test_main_invalid_option_then_exit(self, mocker, capsys):
         """Test main function with invalid option then exit."""
@@ -71,6 +72,13 @@ class TestMain:
         # Mock dependencies
         mock_print_welcome = mocker.patch('main.print_welcome')
         mock_print_main_menu = mocker.patch('main.print_main_menu')
+        
+        # Mock successful authentication
+        user_data = {"id": "test_user", "email": "test@example.com", "name": "Test User"}
+        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user_data))
+        mock_get_current_user = mocker.patch('main.get_current_user', return_value=user_data)
+        mock_container = mocker.patch('main.Container')
+        mock_supabase_client = mocker.patch('main.supabase_client')
         
         # Mock input to provide invalid option then exit
         mock_input = mocker.patch('builtins.input', side_effect=['invalid', 'exit'])
@@ -89,7 +97,7 @@ class TestMain:
         # Check both invalid option and exit messages
         captured = capsys.readouterr()
         assert "❌ Invalid option. Please try again." in captured.out
-        assert "👋 Thanks for using MathsFun! Keep practicing!" in captured.out
+        assert "👋 Thanks for using MathsFun, Test User! Keep practicing!" in captured.out
     
     def test_main_multiple_invalid_options_then_addition_then_exit(self, mocker, capsys):
         """Test main function with multiple invalid options, then addition, then exit."""
@@ -100,6 +108,13 @@ class TestMain:
         mock_print_main_menu = mocker.patch('main.print_main_menu')
         mock_addition_mode = mocker.patch('main.addition_mode')
         mock_addition_tables_mode = mocker.patch('main.addition_tables_mode')
+        
+        # Mock successful authentication
+        user_data = {"id": "test_user", "email": "test@example.com", "name": "Test User"}
+        mock_authentication_flow = mocker.patch('main.authentication_flow', return_value=(True, user_data))
+        mock_get_current_user = mocker.patch('main.get_current_user', return_value=user_data)
+        mock_container = mocker.patch('main.Container')
+        mock_supabase_client = mocker.patch('main.supabase_client')
         
         # Mock input sequence: invalid options, then valid selection, then exit
         mock_input = mocker.patch('builtins.input', side_effect=['invalid', 'abc', '1', 'exit'])
@@ -123,7 +138,7 @@ class TestMain:
         # Should see 2 invalid option messages
         invalid_count = captured.out.count("❌ Invalid option. Please try again.")
         assert invalid_count == 2
-        assert "👋 Thanks for using MathsFun! Keep practicing!" in captured.out
+        assert "👋 Thanks for using MathsFun, Test User! Keep practicing!" in captured.out
 
 
 class TestMainIfName:

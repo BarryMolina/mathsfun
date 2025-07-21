@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import random
 import time
-from typing import Tuple
+from typing import Tuple, Optional
 from ui import get_user_input
 from session import show_results, prompt_start_session
 
@@ -185,9 +185,18 @@ class ProblemGenerator:
             return f"{self.problems_generated}/{self.num_problems}"
 
 
-def run_addition_quiz(generator: ProblemGenerator) -> Tuple[int, int, float]:
+def run_addition_quiz(generator: ProblemGenerator, container=None, user_id: Optional[str] = None) -> Tuple[int, int, float]:
     """Run the interactive addition quiz with problem generation"""
     prompt_start_session(generator)
+
+    # Start a quiz session if container and user_id are provided
+    quiz_session = None
+    if container and user_id:
+        quiz_session = container.quiz_svc.start_quiz_session(
+            user_id, 
+            "addition", 
+            generator.high_difficulty
+        )
 
     if generator.is_unlimited:
         print(f"\n🎯 Timer started! Solve problems until you're ready to stop.")
@@ -208,24 +217,47 @@ def run_addition_quiz(generator: ProblemGenerator) -> Tuple[int, int, float]:
         progress = generator.get_progress_display()
         print(f"\n📝 Problem {progress}: {problem}")
 
+        problem_start_time = time.time()
+        attempts_on_problem = 0
+
         while True:
             user_input = input("Your answer: ").strip().lower()
 
             if user_input == "exit":
+                # Complete session if active
+                if quiz_session and container:
+                    container.quiz_svc.complete_session(quiz_session.id)
                 end_time = time.time()
                 duration = end_time - start_time
                 return correct_count, total_attempted, duration
             elif user_input == "stop":
+                # Complete session if active
+                if quiz_session and container:
+                    container.quiz_svc.complete_session(quiz_session.id)
                 end_time = time.time()
                 duration = end_time - start_time
                 return correct_count, total_attempted, duration
             elif user_input == "next":
+                # Record skipped attempt if first attempt on this problem
+                if attempts_on_problem == 0 and quiz_session and container:
+                    response_time_ms = int((time.time() - problem_start_time) * 1000)
+                    container.quiz_svc.record_answer(
+                        quiz_session.id, problem, None, correct_answer, response_time_ms
+                    )
                 print(f"⏭️  Skipped! The answer was {correct_answer}")
                 break
 
             try:
                 user_answer = int(user_input)
+                attempts_on_problem += 1
                 total_attempted += 1
+                response_time_ms = int((time.time() - problem_start_time) * 1000)
+
+                # Record the attempt if session is active
+                if quiz_session and container:
+                    container.quiz_svc.record_answer(
+                        quiz_session.id, problem, user_answer, correct_answer, response_time_ms
+                    )
 
                 if user_answer == correct_answer:
                     print("✅ Correct! Great job!")
@@ -239,12 +271,16 @@ def run_addition_quiz(generator: ProblemGenerator) -> Tuple[int, int, float]:
                 print("❌ Please enter a number, 'next', 'stop', or 'exit'")
 
     # If we reach here, all problems in limited mode are completed
+    # Complete session if active
+    if quiz_session and container:
+        container.quiz_svc.complete_session(quiz_session.id)
+    
     end_time = time.time()
     duration = end_time - start_time
     return correct_count, total_attempted, duration
 
 
-def addition_mode():
+def addition_mode(container=None, user_id: Optional[str] = None):
     """Handle addition problems workflow"""
     try:
         print("\n🔢 Addition Mode Selected!")
@@ -264,10 +300,10 @@ def addition_mode():
         generator = ProblemGenerator(low, high, num_problems)
 
         # Run the quiz
-        correct, total, duration = run_addition_quiz(generator)
+        correct, total, duration = run_addition_quiz(generator, container, user_id)
 
         # Show results
-        show_results(correct, total, duration, generator)
+        show_results(correct, total, duration, generator, container, user_id)
 
     except Exception as e:
         print(f"❌ Error: {e}")

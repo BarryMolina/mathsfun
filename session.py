@@ -16,8 +16,8 @@ def format_duration(duration: float) -> str:
         return f"{hours}h {minutes}m {seconds:.1f}s"
 
 
-def show_results(correct: int, total: int, duration: float, generator):
-    """Display quiz results with timing"""
+def show_results(correct: int, total: int, duration: float, generator, container=None, user_id=None):
+    """Display quiz results with timing and optional historical data"""
     print("\n" + "=" * 60)
 
     if generator.is_unlimited:
@@ -56,6 +56,26 @@ def show_results(correct: int, total: int, duration: float, generator):
             print("💪 Keep practicing! You'll get better!")
     else:
         print("🤔 No problems attempted this time.")
+
+    # Show historical progress if available
+    if container and user_id:
+        try:
+            progress = container.quiz_svc.get_user_progress(user_id)
+            if progress.total_sessions > 1:  # Only show if there's historical data
+                print("\n📊 Your Progress Summary:")
+                print(f"📈 Total sessions completed: {progress.total_sessions}")
+                print(f"🎯 Overall accuracy: {progress.overall_accuracy:.1f}%")
+                print(f"🏆 Best session accuracy: {progress.best_accuracy:.1f}%")
+                print(f"⚡ Average session time: {format_duration(progress.average_session_time)}")
+                
+                if progress.recent_sessions:
+                    print(f"\n📋 Recent Sessions:")
+                    for i, session in enumerate(progress.recent_sessions[:3], 1):
+                        session_date = session.start_time.strftime("%m/%d %H:%M")
+                        print(f"   {i}. {session_date} - {session.accuracy:.1f}% accuracy, {session.total_problems} problems")
+        except Exception as e:
+            # Don't fail the results display if progress fetch fails
+            print(f"📊 Progress data temporarily unavailable")
 
     print("=" * 60 + "\n")
 

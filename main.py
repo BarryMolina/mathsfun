@@ -9,6 +9,7 @@ from ui import (
 from addition import addition_mode
 from addition_tables import addition_tables_mode
 from supabase_client import supabase_client, validate_environment
+from container import Container
 
 
 def get_current_user():
@@ -102,6 +103,16 @@ def main():
             print("❌ Unable to fetch user data. Please try again.")
             return
 
+    # Initialize the container with Supabase client
+    container = Container(supabase_client.get_client())
+    
+    # Create or update user profile
+    container.user_svc.get_or_create_user_profile(
+        user_data["id"], 
+        user_data["email"], 
+        user_data["name"]
+    )
+
     while True:
         # Check if still authenticated before showing menu
         if not supabase_client.is_authenticated():
@@ -118,7 +129,7 @@ def main():
             print(f"\n👋 Thanks for using MathsFun, {name}! Keep practicing!")
             break
         elif choice == "1":
-            addition_mode()
+            addition_mode(container, user_data["id"])
         elif choice == "2":
             addition_tables_mode()
         else:
