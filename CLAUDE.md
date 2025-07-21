@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MathsFun is a Python CLI application for interactive math practice, focusing on addition problems with configurable difficulty levels. The application uses a clean, modular architecture with separation of concerns across multiple files.
+MathsFun is a Python CLI application for interactive math practice, focusing on addition problems with configurable difficulty levels. The application uses a clean, layered architecture with dependency injection, Supabase integration for data persistence, and comprehensive testing.
 
 ## Running the Application
 
@@ -12,53 +12,79 @@ MathsFun is a Python CLI application for interactive math practice, focusing on 
 # Run the main application
 python3 main.py
 
-# Install dependencies (if needed)
+# Install dependencies
 pip install -r requirements.txt
+
+# Setup environment (requires Supabase credentials)
+# Create .env file with SUPABASE_URL and SUPABASE_KEY
 ```
 
 ## Testing
 
 ```bash
-# Run all tests
+# Run all tests (preferred method)
 pytest
 
-# Run tests with coverage
+# Run tests with coverage (configured in pytest.ini)
 pytest --cov=. --cov-report=html
 
-# Run comprehensive test suite with runner
-python run_tests.py
+# Run specific test categories
+pytest -m unit              # Unit tests only
+pytest -m integration       # Integration tests only
+pytest -m repository        # Repository layer tests
 
 # Run specific test files
 pytest tests/test_ui.py -v
 pytest tests/test_addition.py -v
 pytest tests/test_session.py -v
-pytest tests/test_integration.py -v
+pytest tests/integration/ -v
+
+# Note: run_tests.py is for user convenience only
 ```
 
 ## Code Architecture
 
-### Module Structure
+### Layered Architecture
 
+The application follows a clean layered architecture with dependency injection:
+
+**Core Layers:**
+- **Presentation**: `main.py`, `ui.py` - User interface and application entry point
+- **Services**: `services/` - Business logic layer (`UserService`, `QuizService`)
+- **Repositories**: `repositories/` - Data access layer (`UserRepository`, `QuizRepository`)
+- **Models**: `models/` - Domain entities (`User`, `QuizSession`, `ProblemAttempt`)
+- **Infrastructure**: `supabase_manager.py`, `container.py` - External services and DI
+
+**Key Files:**
 - **`main.py`**: Entry point with main application loop and menu handling
 - **`ui.py`**: User interface functions for display and input handling
 - **`addition.py`**: Addition-specific logic, problem generation, and quiz execution
 - **`session.py`**: Session management, results display, and timing utilities
+- **`container.py`**: Dependency injection container wiring all components
+- **`supabase_manager.py`**: Supabase client management and authentication
 
 ### Core Components
 
-- **Main Application Flow**: `main()` function in `main.py` handles menu loop and navigation
+- **Main Application Flow**: `main()` function handles menu loop and dependency injection setup
 - **Problem Generation**: `ProblemGenerator` class in `addition.py` manages on-demand problem creation
 - **Quiz Engine**: `run_addition_quiz()` function manages timed quiz sessions with real-time feedback
-- **UI Layer**: Clean separation of input/output functions in `ui.py`
-- **Session Management**: Results display and timing in `session.py`
+- **User Management**: `UserService` handles authentication and user profile management
+- **Data Persistence**: Repository pattern with Supabase for user profiles and quiz sessions
+- **Session Management**: Results display, timing, and local session storage
 
 ### Key Classes and Functions
 
+**Domain/Business Logic:**
 - `ProblemGenerator` (addition.py): Central class for generating math problems with difficulty range support
-- `generate_problem_by_difficulty()` (addition.py): Core problem generation logic based on difficulty level
+- `UserService` (services/): User authentication, profile management, and caching
+- `QuizService` (services/): Quiz session management and business logic
+- `User`, `QuizSession`, `ProblemAttempt` (models/): Domain entities
+
+**Core Functions:**
 - `run_addition_quiz()` (addition.py): Main quiz loop with timer, scoring, and user interaction
-- `show_results()` (session.py): Comprehensive results display with accuracy metrics and performance feedback
+- `show_results()` (session.py): Comprehensive results display with accuracy metrics
 - `get_user_input()` (ui.py): Centralized input handling with default value support
+- `Container` (container.py): Dependency injection setup and wiring
 
 ### Difficulty Levels
 
@@ -87,11 +113,13 @@ The application supports 5 difficulty levels with specific mathematical constrai
 
 ## Development Notes
 
-- Modular architecture with clear separation of concerns
-- Uses only Python standard library (no external dependencies beyond testing)
-- Extensive input validation and error handling throughout
-- Unicode emojis used for enhanced user experience
-- Comprehensive test coverage including UI, logic, and integration tests
+- Clean layered architecture with dependency injection pattern
+- Supabase integration for user management and data persistence
+- Repository pattern for data access abstraction
+- Service layer for business logic separation
+- Comprehensive testing with pytest markers for different test types
+- OAuth authentication flow with local callback server
+- Session caching for improved user experience
 
 ## Code Style and Best Practices
 
@@ -99,7 +127,11 @@ The application supports 5 difficulty levels with specific mathematical constrai
 
 ## Development Guidelines
 
-- Always run tests using "pytest". the run_tests.py file is for the user only!
+- Always run tests using "pytest" (configured in pytest.ini with coverage and markers)
+- Use dependency injection through the Container class for new components
+- Follow the repository pattern for data access
+- Keep business logic in service classes
+- Use pytest markers for test categorization (unit, integration, repository, etc.)
 
 ## Code Quality and Maintenance
 
