@@ -33,8 +33,8 @@ def authentication_flow(container):
             if result and result.get("success"):
                 print_authentication_status("Authentication successful!")
                 
-                # Fetch fresh user data from UserService
-                user = container.user_svc.get_current_user(supabase_client)
+                # Fetch fresh user data from UserService (force refresh for authentication)
+                user = container.user_svc.get_current_user(supabase_client, force_refresh=True)
                 if user:
                     # Convert User model to dict for UI compatibility
                     user_data = {
