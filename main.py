@@ -92,10 +92,25 @@ def main():
     print_welcome()
 
     while True:  # Outer loop for authentication flow
-        auth_success, user_data = authentication_flow()
-        if not auth_success:
-            print("\n👋 Thanks for visiting MathsFun!")
-            return
+        # Try to restore from saved session first
+        auto_login_success = False
+        user_data = None
+        
+        if supabase_client.load_persisted_session():
+            user_data = get_current_user()
+            if user_data:
+                print(f"✅ Welcome back, {user_data.get('name', 'User')}!")
+                print("🔄 Restored previous session\n")
+                auto_login_success = True
+            else:
+                print("⚠️  Stored session invalid, please sign in again")
+        
+        # If auto-login failed, go through normal authentication flow
+        if not auto_login_success:
+            auth_success, user_data = authentication_flow()
+            if not auth_success:
+                print("\n👋 Thanks for visiting MathsFun!")
+                return
 
         # Refresh user data from Supabase client for main loop
         if not user_data:

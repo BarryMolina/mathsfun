@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
 from supabase import create_client, Client, ClientOptions
 from typing import Optional, Dict, Any
+from session_storage import SessionStorage
 
 dotenv.load_dotenv()
 
@@ -171,6 +172,7 @@ class SupabaseManager:
         self._authenticated = False
         self._lock = threading.Lock()
         self._session_data: Optional[Dict[str, Any]] = None
+        self._session_storage = SessionStorage()
 
     def sign_in_with_google(self) -> Dict[str, Any]:
         """Authenticate user with Google OAuth and store client"""
@@ -309,6 +311,9 @@ class SupabaseManager:
                             self._authenticated = True
                             self._session_data = session_data
 
+                        # Save session to persistent storage
+                        self.save_session()
+
                         return {
                             "success": True,
                             "user": user_data,
@@ -351,6 +356,8 @@ class SupabaseManager:
         with self._lock:
             self._authenticated = False
             self._session_data = None
+            # Clear stored session
+            self._session_storage.clear_session()
             # Recreate client to clear session
             self._client = create_client(url, key)
 
@@ -389,6 +396,38 @@ class SupabaseManager:
             return True
 
         except Exception:
+            return False
+
+    def load_persisted_session(self) -> bool:
+        """Attempt to restore authentication from persisted session"""
+        try:
+            session_data = self._session_storage.load_session()
+            if not session_data:
+                return False
+            
+            # Try to restore the session
+            if self.restore_session(session_data):
+                return True
+            else:
+                # If restore failed, clear the invalid session
+                self._session_storage.clear_session()
+                return False
+                
+        except Exception as e:
+            print(f"Warning: Error loading persisted session: {e}")
+            return False
+
+    def save_session(self) -> bool:
+        """Save current session to persistent storage"""
+        try:
+            with self._lock:
+                if not self._authenticated or not self._session_data:
+                    return False
+                
+                return self._session_storage.save_session(self._session_data)
+                
+        except Exception as e:
+            print(f"Warning: Error saving session: {e}")
             return False
 
 
