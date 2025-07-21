@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from datetime import datetime
-from .base import BaseRepository
+from .base import BaseRepository, requires_authentication
 from src.domain.models.quiz_session import QuizSession, SessionStatus
 from src.domain.models.problem_attempt import ProblemAttempt
 
@@ -10,6 +10,7 @@ from src.domain.models.problem_attempt import ProblemAttempt
 class QuizRepository(BaseRepository):
     """Repository for quiz-related database operations."""
 
+    @requires_authentication
     def create_session(self, session: QuizSession) -> Optional[QuizSession]:
         """Create a new quiz session."""
         try:
@@ -28,6 +29,7 @@ class QuizRepository(BaseRepository):
             print(f"Error creating quiz session: {e}")
             return None
 
+    @requires_authentication
     def get_session(self, session_id: str) -> Optional[QuizSession]:
         """Get quiz session by ID."""
         try:
@@ -44,6 +46,7 @@ class QuizRepository(BaseRepository):
             print(f"Error fetching quiz session: {e}")
             return None
 
+    @requires_authentication
     def update_session(self, session: QuizSession) -> Optional[QuizSession]:
         """Update existing quiz session."""
         try:
@@ -60,6 +63,7 @@ class QuizRepository(BaseRepository):
             print(f"Error updating quiz session: {e}")
             return None
 
+    @requires_authentication
     def complete_session(self, session_id: str) -> Optional[QuizSession]:
         """Mark session as completed with end time."""
         try:
@@ -81,6 +85,7 @@ class QuizRepository(BaseRepository):
             print(f"Error completing quiz session: {e}")
             return None
 
+    @requires_authentication
     def get_user_sessions(
         self, user_id: str, limit: int = 50, status: Optional[SessionStatus] = None
     ) -> List[QuizSession]:
@@ -106,6 +111,7 @@ class QuizRepository(BaseRepository):
             print(f"Error fetching user sessions: {e}")
             return []
 
+    @requires_authentication
     def save_attempt(self, attempt: ProblemAttempt) -> Optional[ProblemAttempt]:
         """Save a problem attempt."""
         try:
@@ -124,6 +130,7 @@ class QuizRepository(BaseRepository):
             print(f"Error saving problem attempt: {e}")
             return None
 
+    @requires_authentication
     def get_session_attempts(self, session_id: str) -> List[ProblemAttempt]:
         """Get all attempts for a quiz session."""
         try:
@@ -144,6 +151,7 @@ class QuizRepository(BaseRepository):
             print(f"Error fetching session attempts: {e}")
             return []
 
+    @requires_authentication
     def increment_session_stats(self, session_id: str, is_correct: bool) -> bool:
         """Increment session problem count and correct answers."""
         try:

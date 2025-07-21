@@ -1,18 +1,16 @@
 """User repository for MathsFun application."""
 
 from typing import Optional
-from .base import BaseRepository
+from .base import BaseRepository, requires_authentication
 from src.domain.models.user import User
 
 
 class UserRepository(BaseRepository):
     """Repository for user-related database operations."""
 
+    @requires_authentication
     def get_user_profile(self, user_id: str) -> Optional[User]:
         """Get user profile by ID."""
-        if not self.supabase_manager.is_authenticated():
-            print("User not authenticated")
-            return None
         try:
             response = (
                 self.supabase_manager.get_client()
@@ -27,6 +25,7 @@ class UserRepository(BaseRepository):
             print(f"Error fetching user profile: {e}")
             return None
 
+    @requires_authentication
     def create_user_profile(self, user: User) -> Optional[User]:
         """Create a new user profile."""
         try:
@@ -42,6 +41,7 @@ class UserRepository(BaseRepository):
             print(f"Error creating user profile: {e}")
             return None
 
+    @requires_authentication
     def update_user_profile(self, user: User) -> Optional[User]:
         """Update existing user profile."""
         try:
@@ -58,6 +58,7 @@ class UserRepository(BaseRepository):
             print(f"Error updating user profile: {e}")
             return None
 
+    @requires_authentication
     def update_last_active(self, user_id: str) -> bool:
         """Update user's last active timestamp."""
         try:
