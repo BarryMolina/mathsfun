@@ -1,7 +1,9 @@
 annotated-types==0.7.0
 anyio==4.9.0
 attrs==25.3.0
+black==25.1.0
 certifi==2025.7.14
+click==8.2.1
 coverage==7.9.2
 deprecation==2.1.0
 dotenv==0.9.9
@@ -15,7 +17,11 @@ hyperframe==6.1.0
 hypothesis==6.136.0
 idna==3.10
 iniconfig==2.1.0
+mypy==1.17.0
+mypy_extensions==1.1.0
 packaging==25.0
+pathspec==0.12.1
+platformdirs==4.3.8
 pluggy==1.6.0
 postgrest==1.1.1
 pydantic==2.11.7
