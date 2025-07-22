@@ -894,8 +894,11 @@ class TestPKCEStorage:
                     "src.infrastructure.database.supabase_manager.time.time",
                     side_effect=[0, 1, 2],
                 ):
-                    # This will create a PKCEStorage instance internally
-                    supabase_manager.sign_in_with_google()
+                    with patch(
+                        "src.infrastructure.database.supabase_manager.webbrowser.open"
+                    ):
+                        # This will create a PKCEStorage instance internally
+                        supabase_manager.sign_in_with_google()
 
         # Test is implicit in the fact that the method completes without error
         # The PKCEStorage class is tested indirectly through the OAuth flow
