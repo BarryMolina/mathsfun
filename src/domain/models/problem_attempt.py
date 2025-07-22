@@ -8,7 +8,7 @@ from typing import Optional
 @dataclass
 class ProblemAttempt:
     """Represents a single problem attempt in a quiz session."""
-    
+
     id: str
     session_id: str
     problem: str
@@ -17,12 +17,12 @@ class ProblemAttempt:
     response_time_ms: int
     timestamp: datetime
     user_answer: Optional[int] = None
-    
+
     @property
     def response_time_seconds(self) -> float:
         """Get response time in seconds."""
         return self.response_time_ms / 1000.0
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "ProblemAttempt":
         """Create ProblemAttempt instance from dictionary data."""
@@ -36,7 +36,7 @@ class ProblemAttempt:
             timestamp=datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00")),
             user_answer=data.get("user_answer"),
         )
-    
+
     def to_dict(self) -> dict:
         """Convert ProblemAttempt instance to dictionary."""
         return {

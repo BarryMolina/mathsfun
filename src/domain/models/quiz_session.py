@@ -8,12 +8,14 @@ from enum import Enum
 
 class QuizType(Enum):
     """Quiz type enumeration."""
+
     ADDITION = "addition"
     TABLES = "tables"
 
 
 class SessionStatus(Enum):
     """Session status enumeration."""
+
     ACTIVE = "active"
     COMPLETED = "completed"
     ABANDONED = "abandoned"
@@ -22,7 +24,7 @@ class SessionStatus(Enum):
 @dataclass
 class QuizSession:
     """Represents a quiz session in the system."""
-    
+
     id: str
     user_id: str
     quiz_type: QuizType
@@ -32,26 +34,26 @@ class QuizSession:
     correct_answers: int = 0
     status: SessionStatus = SessionStatus.ACTIVE
     end_time: Optional[datetime] = None
-    
+
     @property
     def accuracy(self) -> float:
         """Calculate accuracy percentage."""
         if self.total_problems == 0:
             return 0.0
         return (self.correct_answers / self.total_problems) * 100
-    
+
     @property
     def duration_seconds(self) -> Optional[float]:
         """Calculate session duration in seconds."""
         if not self.end_time:
             return None
         return (self.end_time - self.start_time).total_seconds()
-    
+
     @property
     def is_completed(self) -> bool:
         """Check if session is completed."""
         return self.status == SessionStatus.COMPLETED
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> "QuizSession":
         """Create QuizSession instance from dictionary data."""
@@ -60,13 +62,19 @@ class QuizSession:
             user_id=data["user_id"],
             quiz_type=QuizType(data["quiz_type"]),
             difficulty_level=data["difficulty_level"],
-            start_time=datetime.fromisoformat(data["start_time"].replace("Z", "+00:00")),
+            start_time=datetime.fromisoformat(
+                data["start_time"].replace("Z", "+00:00")
+            ),
             total_problems=data.get("total_problems", 0),
             correct_answers=data.get("correct_answers", 0),
             status=SessionStatus(data.get("status", "active")),
-            end_time=datetime.fromisoformat(data["end_time"].replace("Z", "+00:00")) if data.get("end_time") else None,
+            end_time=(
+                datetime.fromisoformat(data["end_time"].replace("Z", "+00:00"))
+                if data.get("end_time")
+                else None
+            ),
         )
-    
+
     def to_dict(self) -> dict:
         """Convert QuizSession instance to dictionary."""
         return {

@@ -121,16 +121,13 @@ class UserService:
                     auth_user = session.user
                 display_name = None
                 if auth_user.user_metadata:
-                    display_name = (
-                        auth_user.user_metadata.get("full_name") or 
-                        auth_user.user_metadata.get("name")
-                    )
-                
+                    display_name = auth_user.user_metadata.get(
+                        "full_name"
+                    ) or auth_user.user_metadata.get("name")
+
                 if not display_name:
                     display_name = (
-                        auth_user.email.split("@")[0]
-                        if auth_user.email
-                        else "Unknown"
+                        auth_user.email.split("@")[0] if auth_user.email else "Unknown"
                     )
 
                 # Use get_or_create_user_profile to handle creation

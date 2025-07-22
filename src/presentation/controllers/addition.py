@@ -185,7 +185,9 @@ class ProblemGenerator:
             return f"{self.problems_generated}/{self.num_problems}"
 
 
-def run_addition_quiz(generator: ProblemGenerator, container=None, user_id: Optional[str] = None) -> Tuple[int, int, float]:
+def run_addition_quiz(
+    generator: ProblemGenerator, container=None, user_id: Optional[str] = None
+) -> Tuple[int, int, float]:
     """Run the interactive addition quiz with problem generation"""
     prompt_start_session(generator)
 
@@ -193,9 +195,7 @@ def run_addition_quiz(generator: ProblemGenerator, container=None, user_id: Opti
     quiz_session = None
     if container and user_id:
         quiz_session = container.quiz_svc.start_quiz_session(
-            user_id, 
-            "addition", 
-            generator.high_difficulty
+            user_id, "addition", generator.high_difficulty
         )
 
     if generator.is_unlimited:
@@ -256,7 +256,11 @@ def run_addition_quiz(generator: ProblemGenerator, container=None, user_id: Opti
                 # Record the attempt if session is active
                 if quiz_session and container:
                     container.quiz_svc.record_answer(
-                        quiz_session.id, problem, user_answer, correct_answer, response_time_ms
+                        quiz_session.id,
+                        problem,
+                        user_answer,
+                        correct_answer,
+                        response_time_ms,
                     )
 
                 if user_answer == correct_answer:
@@ -274,7 +278,7 @@ def run_addition_quiz(generator: ProblemGenerator, container=None, user_id: Opti
     # Complete session if active
     if quiz_session and container:
         container.quiz_svc.complete_session(quiz_session.id)
-    
+
     end_time = time.time()
     duration = end_time - start_time
     return correct_count, total_attempted, duration

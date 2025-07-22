@@ -8,7 +8,10 @@ from .ui import (
 )
 from ..controllers.addition import addition_mode
 from ..controllers.addition_tables import addition_tables_mode
-from src.infrastructure.database.supabase_manager import supabase_manager, validate_environment
+from src.infrastructure.database.supabase_manager import (
+    supabase_manager,
+    validate_environment,
+)
 from src.config.container import Container
 
 

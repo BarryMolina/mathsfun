@@ -39,7 +39,7 @@ def print_user_welcome(user_data: dict):
     """Display personalized welcome message with user data"""
     name = user_data.get("name", "User")
     email = user_data.get("email", "")
-    
+
     print(f"\n🎉 Welcome back, {name}!")
     print(f"📧 Signed in as: {email}")
     if user_data.get("avatar_url"):
