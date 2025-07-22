@@ -51,7 +51,7 @@ class TestOAuthServer:
         server = OAuthServer(("localhost", 8080), handler_class)
         
         assert server.auth_result is None
-        assert server.server_address == ("localhost", 8080)
+        assert server.server_address == ("127.0.0.1", 8080)
 
 
 class TestOAuthCallbackHandler:
@@ -59,7 +59,8 @@ class TestOAuthCallbackHandler:
 
     def test_log_message_suppressed(self):
         """Test that log_message is suppressed."""
-        handler = OAuthCallbackHandler(Mock(), Mock(), Mock())
+        # Create a mock handler without initializing the BaseHTTPRequestHandler
+        handler = OAuthCallbackHandler.__new__(OAuthCallbackHandler)
         
         # Should not raise any exception and should return None
         result = handler.log_message("test %s", "message")
@@ -70,7 +71,8 @@ class TestOAuthCallbackHandler:
         mock_server = Mock(spec=OAuthServer)
         mock_server.auth_result = None
         
-        handler = OAuthCallbackHandler(Mock(), Mock(), mock_server)
+        handler = OAuthCallbackHandler.__new__(OAuthCallbackHandler)
+        handler.server = mock_server
         handler.path = "/favicon.ico"
         handler.send_response = Mock()
         handler.end_headers = Mock()
@@ -85,7 +87,8 @@ class TestOAuthCallbackHandler:
         mock_server = Mock(spec=OAuthServer)
         mock_server.auth_result = {"success": True}
         
-        handler = OAuthCallbackHandler(Mock(), Mock(), mock_server)
+        handler = OAuthCallbackHandler.__new__(OAuthCallbackHandler)
+        handler.server = mock_server
         handler.path = "/callback"
         handler.send_response = Mock()
         handler.send_header = Mock()
@@ -104,7 +107,8 @@ class TestOAuthCallbackHandler:
         mock_server = Mock(spec=OAuthServer)
         mock_server.auth_result = None
         
-        handler = OAuthCallbackHandler(Mock(), Mock(), mock_server)
+        handler = OAuthCallbackHandler.__new__(OAuthCallbackHandler)
+        handler.server = mock_server
         handler.path = "/callback?code=test_code&state=test_state"
         handler.send_response = Mock()
         handler.send_header = Mock()
@@ -126,7 +130,8 @@ class TestOAuthCallbackHandler:
         mock_server = Mock(spec=OAuthServer)
         mock_server.auth_result = None
         
-        handler = OAuthCallbackHandler(Mock(), Mock(), mock_server)
+        handler = OAuthCallbackHandler.__new__(OAuthCallbackHandler)
+        handler.server = mock_server
         handler.path = "/callback?error=access_denied&error_description=User%20denied"
         handler.send_response = Mock()
         handler.send_header = Mock()
@@ -148,7 +153,8 @@ class TestOAuthCallbackHandler:
         mock_server = Mock(spec=OAuthServer)
         mock_server.auth_result = None
         
-        handler = OAuthCallbackHandler(Mock(), Mock(), mock_server)
+        handler = OAuthCallbackHandler.__new__(OAuthCallbackHandler)
+        handler.server = mock_server
         handler.path = "/callback?unknown=param"
         handler.send_response = Mock()
         handler.send_header = Mock()
@@ -483,16 +489,28 @@ class TestSignInWithGoogle:
         }
         mock_start_server.return_value = mock_server
         
-        # Mock OAuth client
+        # Mock OAuth client  
         mock_oauth_client = Mock()
-        mock_create_client.return_value = mock_oauth_client
+        
+        # Create a side effect for create_client that captures the storage and sets the code verifier
+        def mock_create_client_with_storage(url, key, options=None):
+            if options and hasattr(options, 'storage') and options.storage:
+                # Simulate what happens when sign_in_with_oauth is called - it stores the code verifier
+                options.storage.set_item("supabase.auth.token-code-verifier", "test_code_verifier")
+            return mock_oauth_client
+        
+        mock_create_client.side_effect = mock_create_client_with_storage
         
         mock_oauth_response = Mock()
         mock_oauth_response.url = "https://oauth.example.com"
-        mock_oauth_client.auth.sign_in_with_oauth.return_value = mock_oauth_response
+        # Create a side effect that simulates what the real sign_in_with_oauth does:
+        # it stores the code verifier in the storage that was passed to create_client
+        def simulate_oauth_flow(*args, **kwargs):
+            # The create_client call will be made with options.storage
+            # We need to store the code verifier in that storage
+            return mock_oauth_response
         
-        # Mock PKCE storage
-        mock_storage = Mock()
+        mock_oauth_client.auth.sign_in_with_oauth.side_effect = simulate_oauth_flow
         
         # Mock session exchange
         mock_user = Mock()
@@ -518,14 +536,9 @@ class TestSignInWithGoogle:
         # Mock time to prevent timeout
         mock_time.side_effect = [0, 1, 2]  # Stay well under timeout
         
-        with patch('src.infrastructure.database.supabase_manager.PKCEStorage') as mock_pkce_class:
-            mock_storage_instance = Mock()
-            mock_storage_instance.get_item.return_value = "test_code_verifier"
-            mock_pkce_class.return_value = mock_storage_instance
-            
-            # Mock the save_session method
-            with patch.object(supabase_manager, 'save_session') as mock_save:
-                result = supabase_manager.sign_in_with_google()
+        # Mock the save_session method
+        with patch.object(supabase_manager, 'save_session') as mock_save:
+            result = supabase_manager.sign_in_with_google()
         
         # Verify success
         assert result["success"] is True
@@ -565,12 +578,7 @@ class TestSignInWithGoogle:
         
         mock_time.side_effect = [0, 1, 2]
         
-        with patch('src.infrastructure.database.supabase_manager.PKCEStorage') as mock_pkce_class:
-            mock_storage_instance = Mock()
-            mock_storage_instance.get_item.return_value = None  # No code verifier
-            mock_pkce_class.return_value = mock_storage_instance
-            
-            result = supabase_manager.sign_in_with_google()
+        result = supabase_manager.sign_in_with_google()
         
         assert result["success"] is False
         assert "Could not find code verifier" in result["error"]
@@ -592,7 +600,15 @@ class TestSignInWithGoogle:
         mock_start_server.return_value = mock_server
         
         mock_oauth_client = Mock()
-        mock_create_client.return_value = mock_oauth_client
+        
+        # Create a side effect for create_client that captures the storage and sets the code verifier
+        def mock_create_client_with_storage(url, key, options=None):
+            if options and hasattr(options, 'storage') and options.storage:
+                # Simulate what happens when sign_in_with_oauth is called - it stores the code verifier
+                options.storage.set_item("supabase.auth.token-code-verifier", "test_code_verifier")
+            return mock_oauth_client
+        
+        mock_create_client.side_effect = mock_create_client_with_storage
         
         mock_oauth_response = Mock()
         mock_oauth_response.url = "https://oauth.example.com"
@@ -603,12 +619,7 @@ class TestSignInWithGoogle:
         
         mock_time.side_effect = [0, 1, 2]
         
-        with patch('src.infrastructure.database.supabase_manager.PKCEStorage') as mock_pkce_class:
-            mock_storage_instance = Mock()
-            mock_storage_instance.get_item.return_value = "test_code_verifier"
-            mock_pkce_class.return_value = mock_storage_instance
-            
-            result = supabase_manager.sign_in_with_google()
+        result = supabase_manager.sign_in_with_google()
         
         assert result["success"] is False
         assert "Failed to exchange code for session" in result["error"]
@@ -630,7 +641,15 @@ class TestSignInWithGoogle:
         mock_start_server.return_value = mock_server
         
         mock_oauth_client = Mock()
-        mock_create_client.return_value = mock_oauth_client
+        
+        # Create a side effect for create_client that captures the storage and sets the code verifier
+        def mock_create_client_with_storage(url, key, options=None):
+            if options and hasattr(options, 'storage') and options.storage:
+                # Simulate what happens when sign_in_with_oauth is called - it stores the code verifier
+                options.storage.set_item("supabase.auth.token-code-verifier", "test_code_verifier")
+            return mock_oauth_client
+        
+        mock_create_client.side_effect = mock_create_client_with_storage
         
         mock_oauth_response = Mock()
         mock_oauth_response.url = "https://oauth.example.com"
@@ -643,12 +662,7 @@ class TestSignInWithGoogle:
         
         mock_time.side_effect = [0, 1, 2]
         
-        with patch('src.infrastructure.database.supabase_manager.PKCEStorage') as mock_pkce_class:
-            mock_storage_instance = Mock()
-            mock_storage_instance.get_item.return_value = "test_code_verifier"
-            mock_pkce_class.return_value = mock_storage_instance
-            
-            result = supabase_manager.sign_in_with_google()
+        result = supabase_manager.sign_in_with_google()
         
         assert result["success"] is False
         assert "Failed to create session from code" in result["error"]

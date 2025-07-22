@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 from datetime import datetime
 
 from src.infrastructure.database.repositories.quiz_repository import QuizRepository
-from src.domain.models.quiz_session import QuizSession, SessionStatus
+from src.domain.models.quiz_session import QuizSession, SessionStatus, QuizType
 from src.domain.models.problem_attempt import ProblemAttempt
 
 
@@ -36,14 +36,13 @@ def sample_quiz_session():
     return QuizSession(
         id="session-123",
         user_id="user-456",
+        quiz_type=QuizType.ADDITION,
+        difficulty_level=1,
         start_time=datetime(2023, 1, 1, 12, 0, 0),
         end_time=datetime(2023, 1, 1, 12, 30, 0),
         status=SessionStatus.COMPLETED,
         total_problems=10,
-        correct_answers=8,
-        difficulty_low=1,
-        difficulty_high=5,
-        problem_type="addition"
+        correct_answers=8
     )
 
 
@@ -58,9 +57,8 @@ def sample_session_dict():
         "status": "completed",
         "total_problems": 10,
         "correct_answers": 8,
-        "difficulty_low": 1,
-        "difficulty_high": 5,
-        "problem_type": "addition"
+        "difficulty_level": 1,  # Changed from difficulty_low/high to difficulty_level
+        "quiz_type": "addition"  # Changed from problem_type to quiz_type
     }
 
 
@@ -70,12 +68,12 @@ def sample_problem_attempt():
     return ProblemAttempt(
         id="attempt-123",
         session_id="session-456",
-        problem_text="2 + 3 = ?",
-        correct_answer="5",
-        user_answer="5",
+        problem="2 + 3 = ?",
+        correct_answer=5,
+        user_answer=5,
         is_correct=True,
         timestamp=datetime(2023, 1, 1, 12, 15, 0),
-        response_time=2.5
+        response_time_ms=2500
     )
 
 
@@ -85,12 +83,12 @@ def sample_attempt_dict():
     return {
         "id": "attempt-123",
         "session_id": "session-456",
-        "problem_text": "2 + 3 = ?",
-        "correct_answer": "5",
-        "user_answer": "5",
+        "problem": "2 + 3 = ?",
+        "correct_answer": 5,
+        "user_answer": 5,
         "is_correct": True,
         "timestamp": "2023-01-01T12:15:00",
-        "response_time": 2.5
+        "response_time_ms": 2500
     }
 
 

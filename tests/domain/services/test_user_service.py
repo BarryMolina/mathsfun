@@ -444,16 +444,20 @@ class TestGetCurrentUser:
             user_service.get_current_user(force_refresh=False)
             mock_get_or_create.assert_called_with("test-user-123", "test@example.com", "Metadata Name")
         
+        # Clear cache between test cases
+        user_service.clear_user_cache()
+        
         # Test case 2: email split fallback
         auth_user_2 = Mock()
-        auth_user_2.id = "test-user-123"
+        auth_user_2.id = "test-user-456"  # Different user ID to avoid cache issues
         auth_user_2.email = "test@example.com"
         auth_user_2.user_metadata = {}
         mock_session.user = auth_user_2
+        mock_user_repository.get_user_profile.return_value = None  # No existing profile
         
         with patch.object(user_service, 'get_or_create_user_profile', return_value=sample_user) as mock_get_or_create:
             user_service.get_current_user(force_refresh=False)
-            mock_get_or_create.assert_called_with("test-user-123", "test@example.com", "test")
+            mock_get_or_create.assert_called_with("test-user-456", "test@example.com", "test")
         
         # Test case 3: Unknown fallback
         auth_user_3 = Mock()
