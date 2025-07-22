@@ -12,7 +12,7 @@ from ..storage.session_storage import SessionStorage
 dotenv.load_dotenv()
 
 url = os.getenv("SUPABASE_URL") or ""
-key = os.getenv("SUPABASE_KEY") or ""
+key = os.getenv("SUPABASE_ANON_KEY") or ""
 
 
 class OAuthServer(HTTPServer):
@@ -434,7 +434,7 @@ class SupabaseManager:
 def validate_environment():
     """Validate that required environment variables are set"""
     if not url or not key:
-        return False, "Missing SUPABASE_URL or SUPABASE_KEY environment variables"
+        return False, "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables"
     return True, "Environment validated"
 
 

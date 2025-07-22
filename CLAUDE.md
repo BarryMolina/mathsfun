@@ -18,7 +18,7 @@ source venv/bin/activate  # On macOS/Linux
 pip install -r requirements.txt
 
 # Setup environment (requires Supabase credentials)
-# Create .env file with SUPABASE_URL and SUPABASE_KEY
+# Create .env file with SUPABASE_URL and SUPABASE_ANON_KEY
 
 # Run the main application
 python3 main.py
@@ -57,6 +57,7 @@ pytest tests/integration/ -v
 The application follows a clean layered architecture with dependency injection, organized in a `src/` directory:
 
 **Core Layers:**
+
 - **Presentation**: `src/presentation/` - User interface and controllers
   - `cli/` - CLI interface (`main.py`, `ui.py`)
   - `controllers/` - Business flow controllers (`addition.py`, `addition_tables.py`, `session.py`)
@@ -70,6 +71,7 @@ The application follows a clean layered architecture with dependency injection, 
 - **Configuration**: `src/config/` - Dependency injection (`container.py`)
 
 **Entry Points:**
+
 - **`main.py`** (root): Simple entry point that imports from `src/presentation/cli/main.py`
 - **`src/presentation/cli/main.py`**: Main application loop and menu handling
 
@@ -85,12 +87,14 @@ The application follows a clean layered architecture with dependency injection, 
 ### Key Classes and Functions
 
 **Domain/Business Logic:**
+
 - `ProblemGenerator` (src/presentation/controllers/addition.py): Central class for generating math problems
 - `UserService` (src/domain/services/): User authentication, profile management, and caching
 - `QuizService` (src/domain/services/): Quiz session management and business logic
 - `User`, `QuizSession`, `ProblemAttempt` (src/domain/models/): Domain entities
 
 **Core Functions:**
+
 - `run_addition_quiz()` (src/presentation/controllers/addition.py): Main quiz loop with timer, scoring, and user interaction
 - `show_results()` (src/presentation/controllers/session.py): Comprehensive results display with accuracy metrics
 - `get_user_input()` (src/presentation/cli/ui.py): Centralized input handling with default value support
@@ -99,6 +103,7 @@ The application follows a clean layered architecture with dependency injection, 
 ### Difficulty Levels
 
 The application supports 5 difficulty levels with specific mathematical constraints:
+
 1. Single-digit numbers (0-9)
 2. Two-digit numbers without carrying
 3. Two-digit numbers with carrying required
