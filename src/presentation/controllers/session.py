@@ -16,7 +16,15 @@ def format_duration(duration: float) -> str:
         return f"{hours}h {minutes}m {seconds:.1f}s"
 
 
-def show_results(correct: int, total: int, duration: float, generator, container=None, user_id=None):
+def show_results(
+    correct: int,
+    total: int,
+    duration: float,
+    generator,
+    container=None,
+    user_id=None,
+    skipped_count: int = 0,
+):
     """Display quiz results with timing and optional historical data"""
     print("\n" + "=" * 60)
 
@@ -34,7 +42,7 @@ def show_results(correct: int, total: int, duration: float, generator, container
     print(f"📊 Problems presented: {generator.get_total_generated()}")
     print(f"✅ Correct answers: {correct}")
     print(f"📝 Total attempted: {total}")
-    print(f"⏭️  Skipped: {generator.get_total_generated() - total}")
+    print(f"⏭️  Skipped: {skipped_count}")
     print(f"⏱️  Time taken: {format_duration(duration)}")
     print(f"ℹ️  {completion_text}")
 
@@ -66,13 +74,17 @@ def show_results(correct: int, total: int, duration: float, generator, container
                 print(f"📈 Total sessions completed: {progress.total_sessions}")
                 print(f"🎯 Overall accuracy: {progress.overall_accuracy:.1f}%")
                 print(f"🏆 Best session accuracy: {progress.best_accuracy:.1f}%")
-                print(f"⚡ Average session time: {format_duration(progress.average_session_time)}")
-                
+                print(
+                    f"⚡ Average session time: {format_duration(progress.average_session_time)}"
+                )
+
                 if progress.recent_sessions:
                     print(f"\n📋 Recent Sessions:")
                     for i, session in enumerate(progress.recent_sessions[:3], 1):
                         session_date = session.start_time.strftime("%m/%d %H:%M")
-                        print(f"   {i}. {session_date} - {session.accuracy:.1f}% accuracy, {session.total_problems} problems")
+                        print(
+                            f"   {i}. {session_date} - {session.accuracy:.1f}% accuracy, {session.total_problems} problems"
+                        )
         except Exception as e:
             # Don't fail the results display if progress fetch fails
             print(f"📊 Progress data temporarily unavailable")
