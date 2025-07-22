@@ -154,3 +154,4 @@ The application supports 5 difficulty levels with specific mathematical constrai
 ## Code Quality and Maintenance
 
 - After writing or editing a python file, run the `mypy` command for static type checking
+- Always run `black src/` after writing or editing a file to ensure consistent formatting 
