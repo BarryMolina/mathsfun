@@ -62,8 +62,8 @@ The application follows a clean layered architecture with dependency injection, 
   - `cli/` - CLI interface (`main.py`, `ui.py`)
   - `controllers/` - Business flow controllers (`addition.py`, `addition_tables.py`, `session.py`)
 - **Domain**: `src/domain/` - Business logic and models
-  - `models/` - Domain entities (`User`, `QuizSession`, `ProblemAttempt`)
-  - `services/` - Business logic layer (`UserService`, `QuizService`)
+  - `models/` - Domain entities (`User`, `QuizSession`, `ProblemAttempt`, `AdditionFactPerformance`, `MasteryLevel`)
+  - `services/` - Business logic layer (`UserService`, `QuizService`, `AdditionFactService`)
 - **Infrastructure**: `src/infrastructure/` - External services and data access
   - `database/` - Data persistence (`supabase_manager.py`, `repositories/`)
   - `storage/` - Local storage (`session_storage.py`)
@@ -91,12 +91,16 @@ The application follows a clean layered architecture with dependency injection, 
 - `ProblemGenerator` (src/presentation/controllers/addition.py): Central class for generating math problems
 - `UserService` (src/domain/services/): User authentication, profile management, and caching
 - `QuizService` (src/domain/services/): Quiz session management and business logic
-- `User`, `QuizSession`, `ProblemAttempt` (src/domain/models/): Domain entities
+- `AdditionFactService` (src/domain/services/): Addition fact performance tracking and analytics
+- `User`, `QuizSession`, `ProblemAttempt` (src/domain/models/): Core domain entities
+- `AdditionFactPerformance`, `MasteryLevel` (src/domain/models/): Fact tracking domain entities
 
 **Core Functions:**
 
 - `run_addition_quiz()` (src/presentation/controllers/addition.py): Main quiz loop with timer, scoring, and user interaction
+- `run_addition_table_quiz()` (src/presentation/controllers/addition_tables.py): Addition tables quiz with fact tracking
 - `show_results()` (src/presentation/controllers/session.py): Comprehensive results display with accuracy metrics
+- `show_results_with_fact_insights()` (src/presentation/controllers/addition_tables.py): Enhanced results with fact-specific insights
 - `get_user_input()` (src/presentation/cli/ui.py): Centralized input handling with default value support
 - `Container` (src/config/container.py): Dependency injection setup and wiring
 
@@ -117,6 +121,37 @@ The application supports 5 difficulty levels with specific mathematical constrai
 - Comprehensive timing and accuracy tracking
 - Interactive commands during quiz (next, stop, exit)
 - Performance feedback with motivational messages
+- **Addition Fact Performance Tracking**: Individual fact mastery tracking with personalized insights
+
+### Addition Fact Performance Tracking
+
+The application includes a comprehensive fact tracking system for addition tables that provides personalized learning insights:
+
+**Key Features:**
+- **Individual Fact Tracking**: Tracks performance for each unique addition fact (e.g., "7+8", "3+5")
+- **Mastery Progression**: Three-level progression system (Learning → Practicing → Mastered)
+- **Performance Analytics**: Accuracy, response times, and improvement tracking over time
+- **Personalized Recommendations**: Identifies weak facts needing practice and celebrates mastered facts
+- **Session Insights**: Enhanced results display with fact-specific analysis
+
+**Architecture Components:**
+- `AdditionFactPerformance` model: Domain entity tracking individual fact performance
+- `MasteryLevel` enum: Learning progression states with clear criteria
+- `AdditionFactService`: Business logic for tracking, analytics, and recommendations
+- `AdditionFactRepository`: Data access layer with CRUD operations and analytics queries
+- Enhanced quiz integration: Seamless tracking during addition tables practice
+
+**Mastery Determination Logic:**
+- **Learning**: < 80% accuracy OR < 5 attempts
+- **Practicing**: 80-94% accuracy with 5+ attempts  
+- **Mastered**: 95%+ accuracy with 10+ attempts
+
+**User Experience:**
+- Non-intrusive tracking during normal quiz flow
+- Enhanced results display with actionable insights
+- Practice recommendations based on performance patterns
+- Progress visualization and motivation through mastery celebrations
+- Sign-in encouragement for users not yet authenticated
 
 ## Testing Strategy
 
