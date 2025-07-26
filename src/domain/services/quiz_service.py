@@ -82,7 +82,8 @@ class QuizService:
             return False
 
         # Update session statistics
-        return self.quiz_repo.increment_session_stats(session_id, is_correct)
+        result = self.quiz_repo.increment_session_stats(session_id, is_correct)
+        return result if result is not None else False
 
     def complete_session(self, session_id: str) -> Optional[QuizSessionResult]:
         """Complete a quiz session and return results."""
@@ -92,7 +93,7 @@ class QuizService:
             return None
 
         # Get all attempts for the session
-        attempts = self.quiz_repo.get_session_attempts(session_id)
+        attempts = self.quiz_repo.get_session_attempts(session_id) or []
 
         # Calculate statistics
         if attempts:
@@ -132,9 +133,12 @@ class QuizService:
     def get_user_progress(self, user_id: str, limit: int = 10) -> UserProgress:
         """Get comprehensive user progress statistics."""
         # Get recent sessions
-        recent_sessions = self.quiz_repo.get_user_sessions(user_id, limit=limit)
-        completed_sessions = self.quiz_repo.get_user_sessions(
-            user_id, limit=1000, status=SessionStatus.COMPLETED
+        recent_sessions = self.quiz_repo.get_user_sessions(user_id, limit=limit) or []
+        completed_sessions = (
+            self.quiz_repo.get_user_sessions(
+                user_id, limit=1000, status=SessionStatus.COMPLETED
+            )
+            or []
         )
 
         if not completed_sessions:
@@ -189,7 +193,7 @@ class QuizService:
         if not session:
             return None
 
-        attempts = self.quiz_repo.get_session_attempts(session_id)
+        attempts = self.quiz_repo.get_session_attempts(session_id) or []
 
         # Calculate statistics
         if attempts:
