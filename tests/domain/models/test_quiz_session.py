@@ -29,7 +29,7 @@ def sample_quiz_session(sample_start_time, sample_end_time):
         total_problems=10,
         correct_answers=8,
         status=SessionStatus.COMPLETED,
-        end_time=sample_end_time
+        end_time=sample_end_time,
     )
 
 
@@ -83,9 +83,9 @@ class TestQuizSessionInit:
             user_id="test-user",
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
-            start_time=sample_start_time
+            start_time=sample_start_time,
         )
-        
+
         assert session.id == "test-id"
         assert session.user_id == "test-user"
         assert session.quiz_type == QuizType.ADDITION
@@ -107,9 +107,9 @@ class TestQuizSessionInit:
             total_problems=15,
             correct_answers=12,
             status=SessionStatus.COMPLETED,
-            end_time=sample_end_time
+            end_time=sample_end_time,
         )
-        
+
         assert session.id == "test-id"
         assert session.user_id == "test-user"
         assert session.quiz_type == QuizType.TABLES
@@ -133,9 +133,9 @@ class TestQuizSessionProperties:
             difficulty_level=1,
             start_time=sample_start_time,
             total_problems=10,
-            correct_answers=8
+            correct_answers=8,
         )
-        
+
         assert session.accuracy == 80.0
 
     def test_accuracy_property_perfect_score(self, sample_start_time):
@@ -147,9 +147,9 @@ class TestQuizSessionProperties:
             difficulty_level=1,
             start_time=sample_start_time,
             total_problems=5,
-            correct_answers=5
+            correct_answers=5,
         )
-        
+
         assert session.accuracy == 100.0
 
     def test_accuracy_property_zero_correct(self, sample_start_time):
@@ -161,9 +161,9 @@ class TestQuizSessionProperties:
             difficulty_level=1,
             start_time=sample_start_time,
             total_problems=10,
-            correct_answers=0
+            correct_answers=0,
         )
-        
+
         assert session.accuracy == 0.0
 
     def test_accuracy_property_zero_problems(self, sample_start_time):
@@ -175,12 +175,14 @@ class TestQuizSessionProperties:
             difficulty_level=1,
             start_time=sample_start_time,
             total_problems=0,
-            correct_answers=0
+            correct_answers=0,
         )
-        
+
         assert session.accuracy == 0.0
 
-    def test_duration_seconds_property_with_end_time(self, sample_start_time, sample_end_time):
+    def test_duration_seconds_property_with_end_time(
+        self, sample_start_time, sample_end_time
+    ):
         """Test duration calculation when end_time is set."""
         session = QuizSession(
             id="test-id",
@@ -188,9 +190,9 @@ class TestQuizSessionProperties:
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            end_time=sample_end_time
+            end_time=sample_end_time,
         )
-        
+
         # 30 minutes = 1800 seconds
         assert session.duration_seconds == 1800.0
 
@@ -202,9 +204,9 @@ class TestQuizSessionProperties:
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            end_time=None
+            end_time=None,
         )
-        
+
         assert session.duration_seconds is None
 
     def test_duration_seconds_property_same_start_end_time(self, sample_start_time):
@@ -215,9 +217,9 @@ class TestQuizSessionProperties:
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            end_time=sample_start_time
+            end_time=sample_start_time,
         )
-        
+
         assert session.duration_seconds == 0.0
 
     def test_is_completed_property_true(self, sample_start_time):
@@ -228,9 +230,9 @@ class TestQuizSessionProperties:
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            status=SessionStatus.COMPLETED
+            status=SessionStatus.COMPLETED,
         )
-        
+
         assert session.is_completed is True
 
     def test_is_completed_property_false_active(self, sample_start_time):
@@ -241,9 +243,9 @@ class TestQuizSessionProperties:
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            status=SessionStatus.ACTIVE
+            status=SessionStatus.ACTIVE,
         )
-        
+
         assert session.is_completed is False
 
     def test_is_completed_property_false_abandoned(self, sample_start_time):
@@ -254,9 +256,9 @@ class TestQuizSessionProperties:
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            status=SessionStatus.ABANDONED
+            status=SessionStatus.ABANDONED,
         )
-        
+
         assert session.is_completed is False
 
 
@@ -270,11 +272,11 @@ class TestQuizSessionFromDict:
             "user_id": "user-456",
             "quiz_type": "addition",
             "difficulty_level": 2,
-            "start_time": "2023-01-01T12:00:00"
+            "start_time": "2023-01-01T12:00:00",
         }
-        
+
         session = QuizSession.from_dict(data)
-        
+
         assert session.id == "session-123"
         assert session.user_id == "user-456"
         assert session.quiz_type == QuizType.ADDITION
@@ -296,11 +298,11 @@ class TestQuizSessionFromDict:
             "total_problems": 15,
             "correct_answers": 12,
             "status": "completed",
-            "end_time": "2023-01-01T12:30:00"
+            "end_time": "2023-01-01T12:30:00",
         }
-        
+
         session = QuizSession.from_dict(data)
-        
+
         assert session.id == "session-123"
         assert session.user_id == "user-456"
         assert session.quiz_type == QuizType.TABLES
@@ -319,13 +321,14 @@ class TestQuizSessionFromDict:
             "quiz_type": "addition",
             "difficulty_level": 1,
             "start_time": "2023-01-01T12:00:00Z",
-            "end_time": "2023-01-01T12:30:00Z"
+            "end_time": "2023-01-01T12:30:00Z",
         }
-        
+
         session = QuizSession.from_dict(data)
-        
+
         # Z should be replaced with +00:00 timezone info
         from datetime import timezone
+
         assert session.start_time == datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         assert session.end_time == datetime(2023, 1, 1, 12, 30, 0, tzinfo=timezone.utc)
 
@@ -337,12 +340,13 @@ class TestQuizSessionFromDict:
             "quiz_type": "addition",
             "difficulty_level": 1,
             "start_time": "2023-01-01T12:00:00+00:00",
-            "end_time": "2023-01-01T12:30:00+00:00"
+            "end_time": "2023-01-01T12:30:00+00:00",
         }
-        
+
         session = QuizSession.from_dict(data)
-        
+
         from datetime import timezone
+
         assert session.start_time == datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         assert session.end_time == datetime(2023, 1, 1, 12, 30, 0, tzinfo=timezone.utc)
 
@@ -353,9 +357,9 @@ class TestQuizSessionFromDict:
             "user_id": "user-456",
             "quiz_type": "invalid_type",
             "difficulty_level": 1,
-            "start_time": "2023-01-01T12:00:00"
+            "start_time": "2023-01-01T12:00:00",
         }
-        
+
         with pytest.raises(ValueError):
             QuizSession.from_dict(data)
 
@@ -367,9 +371,9 @@ class TestQuizSessionFromDict:
             "quiz_type": "addition",
             "difficulty_level": 1,
             "start_time": "2023-01-01T12:00:00",
-            "status": "invalid_status"
+            "status": "invalid_status",
         }
-        
+
         with pytest.raises(ValueError):
             QuizSession.from_dict(data)
 
@@ -380,9 +384,9 @@ class TestQuizSessionFromDict:
             "user_id": "user-456",
             "quiz_type": "addition",
             "difficulty_level": 1,
-            "start_time": "invalid-datetime"
+            "start_time": "invalid-datetime",
         }
-        
+
         with pytest.raises(ValueError):
             QuizSession.from_dict(data)
 
@@ -393,9 +397,9 @@ class TestQuizSessionFromDict:
             "user_id": "user-456",
             "quiz_type": "addition",
             # Missing difficulty_level
-            "start_time": "2023-01-01T12:00:00"
+            "start_time": "2023-01-01T12:00:00",
         }
-        
+
         with pytest.raises(KeyError):
             QuizSession.from_dict(data)
 
@@ -406,7 +410,7 @@ class TestQuizSessionToDict:
     def test_to_dict_complete_session(self, sample_quiz_session):
         """Test converting complete QuizSession to dictionary."""
         result = sample_quiz_session.to_dict()
-        
+
         expected = {
             "id": "session-123",
             "user_id": "user-456",
@@ -416,9 +420,9 @@ class TestQuizSessionToDict:
             "total_problems": 10,
             "correct_answers": 8,
             "status": "completed",
-            "end_time": "2023-01-01T12:30:00"
+            "end_time": "2023-01-01T12:30:00",
         }
-        
+
         assert result == expected
 
     def test_to_dict_no_end_time(self, sample_start_time):
@@ -432,11 +436,11 @@ class TestQuizSessionToDict:
             total_problems=5,
             correct_answers=3,
             status=SessionStatus.ACTIVE,
-            end_time=None
+            end_time=None,
         )
-        
+
         result = session.to_dict()
-        
+
         expected = {
             "id": "session-123",
             "user_id": "user-456",
@@ -446,9 +450,9 @@ class TestQuizSessionToDict:
             "total_problems": 5,
             "correct_answers": 3,
             "status": "active",
-            "end_time": None
+            "end_time": None,
         }
-        
+
         assert result == expected
 
     def test_to_dict_minimal_session(self, sample_start_time):
@@ -458,11 +462,11 @@ class TestQuizSessionToDict:
             user_id="test-user",
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
-            start_time=sample_start_time
+            start_time=sample_start_time,
         )
-        
+
         result = session.to_dict()
-        
+
         expected = {
             "id": "test-id",
             "user_id": "test-user",
@@ -472,9 +476,9 @@ class TestQuizSessionToDict:
             "total_problems": 0,
             "correct_answers": 0,
             "status": "active",
-            "end_time": None
+            "end_time": None,
         }
-        
+
         assert result == expected
 
 
@@ -486,7 +490,7 @@ class TestQuizSessionRoundTrip:
         # Convert to dict and back
         dict_data = sample_quiz_session.to_dict()
         restored_session = QuizSession.from_dict(dict_data)
-        
+
         # Should be identical
         assert restored_session.id == sample_quiz_session.id
         assert restored_session.user_id == sample_quiz_session.user_id
@@ -505,13 +509,13 @@ class TestQuizSessionRoundTrip:
             user_id="test-user",
             quiz_type=QuizType.TABLES,
             difficulty_level=2,
-            start_time=sample_start_time
+            start_time=sample_start_time,
         )
-        
+
         # Convert to dict and back
         dict_data = original_session.to_dict()
         restored_session = QuizSession.from_dict(dict_data)
-        
+
         # Should be identical
         assert restored_session.id == original_session.id
         assert restored_session.user_id == original_session.user_id
@@ -537,9 +541,9 @@ class TestQuizSessionEdgeCases:
             difficulty_level=1,
             start_time=sample_start_time,
             total_problems=5,
-            correct_answers=10  # Invalid: more correct than total
+            correct_answers=10,  # Invalid: more correct than total
         )
-        
+
         # Should still calculate, even if mathematically incorrect
         assert session.accuracy == 200.0
 
@@ -552,9 +556,9 @@ class TestQuizSessionEdgeCases:
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            end_time=end_time
+            end_time=end_time,
         )
-        
+
         assert session.duration_seconds == 1.0
 
     def test_large_numbers(self, sample_start_time):
@@ -566,13 +570,13 @@ class TestQuizSessionEdgeCases:
             difficulty_level=1,
             start_time=sample_start_time,
             total_problems=1000000,
-            correct_answers=999999
+            correct_answers=999999,
         )
-        
+
         assert session.accuracy == 99.9999
 
 
-@pytest.mark.unit  
+@pytest.mark.unit
 class TestQuizSessionDataclass:
     """Test QuizSession dataclass behavior."""
 
@@ -584,18 +588,18 @@ class TestQuizSessionDataclass:
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            end_time=sample_end_time
+            end_time=sample_end_time,
         )
-        
+
         session2 = QuizSession(
             id="test-id",
             user_id="test-user",
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
             start_time=sample_start_time,
-            end_time=sample_end_time
+            end_time=sample_end_time,
         )
-        
+
         assert session1 == session2
 
     def test_dataclass_inequality(self, sample_start_time):
@@ -605,17 +609,17 @@ class TestQuizSessionDataclass:
             user_id="test-user",
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
-            start_time=sample_start_time
+            start_time=sample_start_time,
         )
-        
+
         session2 = QuizSession(
             id="test-id-2",  # Different ID
             user_id="test-user",
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
-            start_time=sample_start_time
+            start_time=sample_start_time,
         )
-        
+
         assert session1 != session2
 
     def test_dataclass_str_representation(self, sample_start_time):
@@ -625,11 +629,11 @@ class TestQuizSessionDataclass:
             user_id="test-user",
             quiz_type=QuizType.ADDITION,
             difficulty_level=1,
-            start_time=sample_start_time
+            start_time=sample_start_time,
         )
-        
+
         str_repr = str(session)
-        
+
         # Should contain key information
         assert "test-id" in str_repr
         assert "test-user" in str_repr
