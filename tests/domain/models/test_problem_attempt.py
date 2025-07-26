@@ -22,7 +22,7 @@ def sample_problem_attempt(sample_timestamp):
         is_correct=True,
         response_time_ms=2500,
         timestamp=sample_timestamp,
-        user_answer=5
+        user_answer=5,
     )
 
 
@@ -39,9 +39,9 @@ class TestProblemAttemptInit:
             is_correct=True,
             response_time_ms=3000,
             timestamp=sample_timestamp,
-            user_answer=11
+            user_answer=11,
         )
-        
+
         assert attempt.id == "attempt-123"
         assert attempt.session_id == "session-456"
         assert attempt.problem == "4 + 7 = ?"
@@ -60,9 +60,9 @@ class TestProblemAttemptInit:
             correct_answer=5,
             is_correct=False,
             response_time_ms=1500,
-            timestamp=sample_timestamp
+            timestamp=sample_timestamp,
         )
-        
+
         assert attempt.user_answer is None
         assert attempt.is_correct is False
 
@@ -76,9 +76,9 @@ class TestProblemAttemptInit:
             is_correct=False,
             response_time_ms=4000,
             timestamp=sample_timestamp,
-            user_answer=None
+            user_answer=None,
         )
-        
+
         assert attempt.user_answer is None
         assert attempt.is_correct is False
 
@@ -92,9 +92,9 @@ class TestProblemAttemptInit:
             is_correct=False,
             response_time_ms=2000,
             timestamp=sample_timestamp,
-            user_answer=11
+            user_answer=11,
         )
-        
+
         assert attempt.user_answer == 11
         assert attempt.correct_answer == 10
         assert attempt.is_correct is False
@@ -113,9 +113,9 @@ class TestProblemAttemptProperties:
             is_correct=True,
             response_time_ms=2500,
             timestamp=sample_timestamp,
-            user_answer=10
+            user_answer=10,
         )
-        
+
         assert attempt.response_time_seconds == 2.5
 
     def test_response_time_seconds_zero_ms(self, sample_timestamp):
@@ -128,9 +128,9 @@ class TestProblemAttemptProperties:
             is_correct=True,
             response_time_ms=0,
             timestamp=sample_timestamp,
-            user_answer=2
+            user_answer=2,
         )
-        
+
         assert attempt.response_time_seconds == 0.0
 
     def test_response_time_seconds_large_value(self, sample_timestamp):
@@ -143,9 +143,9 @@ class TestProblemAttemptProperties:
             is_correct=True,
             response_time_ms=60000,  # 60 seconds
             timestamp=sample_timestamp,
-            user_answer=20
+            user_answer=20,
         )
-        
+
         assert attempt.response_time_seconds == 60.0
 
     def test_response_time_seconds_fractional(self, sample_timestamp):
@@ -158,9 +158,9 @@ class TestProblemAttemptProperties:
             is_correct=True,
             response_time_ms=1500,  # 1.5 seconds
             timestamp=sample_timestamp,
-            user_answer=10
+            user_answer=10,
         )
-        
+
         assert attempt.response_time_seconds == 1.5
 
 
@@ -177,11 +177,11 @@ class TestProblemAttemptFromDict:
             "is_correct": True,
             "response_time_ms": 2200,
             "timestamp": "2023-01-01T12:15:30",
-            "user_answer": 7
+            "user_answer": 7,
         }
-        
+
         attempt = ProblemAttempt.from_dict(data)
-        
+
         assert attempt.id == "attempt-123"
         assert attempt.session_id == "session-456"
         assert attempt.problem == "3 + 4 = ?"
@@ -200,12 +200,12 @@ class TestProblemAttemptFromDict:
             "correct_answer": 3,
             "is_correct": False,
             "response_time_ms": 1800,
-            "timestamp": "2023-01-01T12:15:30"
+            "timestamp": "2023-01-01T12:15:30",
             # No user_answer key
         }
-        
+
         attempt = ProblemAttempt.from_dict(data)
-        
+
         assert attempt.user_answer is None
         assert attempt.is_correct is False
 
@@ -219,11 +219,11 @@ class TestProblemAttemptFromDict:
             "is_correct": False,
             "response_time_ms": 3500,
             "timestamp": "2023-01-01T12:15:30",
-            "user_answer": None
+            "user_answer": None,
         }
-        
+
         attempt = ProblemAttempt.from_dict(data)
-        
+
         assert attempt.user_answer is None
 
     def test_from_dict_with_z_suffix_timestamp(self):
@@ -236,13 +236,14 @@ class TestProblemAttemptFromDict:
             "is_correct": True,
             "response_time_ms": 2000,
             "timestamp": "2023-01-01T12:15:30Z",
-            "user_answer": 10
+            "user_answer": 10,
         }
-        
+
         attempt = ProblemAttempt.from_dict(data)
-        
+
         # Z should be replaced with +00:00 timezone info
         from datetime import timezone
+
         expected_timestamp = datetime(2023, 1, 1, 12, 15, 30, tzinfo=timezone.utc)
         assert attempt.timestamp == expected_timestamp
 
@@ -256,12 +257,13 @@ class TestProblemAttemptFromDict:
             "is_correct": True,
             "response_time_ms": 1900,
             "timestamp": "2023-01-01T12:15:30+00:00",
-            "user_answer": 7
+            "user_answer": 7,
         }
-        
+
         attempt = ProblemAttempt.from_dict(data)
-        
+
         from datetime import timezone
+
         expected_timestamp = datetime(2023, 1, 1, 12, 15, 30, tzinfo=timezone.utc)
         assert attempt.timestamp == expected_timestamp
 
@@ -275,9 +277,9 @@ class TestProblemAttemptFromDict:
             "is_correct": True,
             "response_time_ms": 2500,
             "timestamp": "invalid-timestamp",
-            "user_answer": 8
+            "user_answer": 8,
         }
-        
+
         with pytest.raises(ValueError):
             ProblemAttempt.from_dict(data)
 
@@ -291,9 +293,9 @@ class TestProblemAttemptFromDict:
             "is_correct": True,
             "response_time_ms": 2100,
             "timestamp": "2023-01-01T12:15:30",
-            "user_answer": 10
+            "user_answer": 10,
         }
-        
+
         with pytest.raises(KeyError):
             ProblemAttempt.from_dict(data)
 
@@ -307,11 +309,11 @@ class TestProblemAttemptFromDict:
             "is_correct": False,
             "response_time_ms": 3000,
             "timestamp": "2023-01-01T12:15:30",
-            "user_answer": 9
+            "user_answer": 9,
         }
-        
+
         attempt = ProblemAttempt.from_dict(data)
-        
+
         assert attempt.is_correct is False
         assert isinstance(attempt.is_correct, bool)
 
@@ -322,7 +324,7 @@ class TestProblemAttemptToDict:
     def test_to_dict_complete_attempt(self, sample_problem_attempt):
         """Test converting complete ProblemAttempt to dictionary."""
         result = sample_problem_attempt.to_dict()
-        
+
         expected = {
             "id": "attempt-123",
             "session_id": "session-456",
@@ -331,9 +333,9 @@ class TestProblemAttemptToDict:
             "correct_answer": 5,
             "is_correct": True,
             "response_time_ms": 2500,
-            "timestamp": "2023-01-01T12:15:30"
+            "timestamp": "2023-01-01T12:15:30",
         }
-        
+
         assert result == expected
 
     def test_to_dict_without_user_answer(self, sample_timestamp):
@@ -346,11 +348,11 @@ class TestProblemAttemptToDict:
             is_correct=False,
             response_time_ms=4000,
             timestamp=sample_timestamp,
-            user_answer=None
+            user_answer=None,
         )
-        
+
         result = attempt.to_dict()
-        
+
         expected = {
             "id": "attempt-123",
             "session_id": "session-456",
@@ -359,9 +361,9 @@ class TestProblemAttemptToDict:
             "correct_answer": 3,
             "is_correct": False,
             "response_time_ms": 4000,
-            "timestamp": "2023-01-01T12:15:30"
+            "timestamp": "2023-01-01T12:15:30",
         }
-        
+
         assert result == expected
 
     def test_to_dict_incorrect_attempt(self, sample_timestamp):
@@ -374,11 +376,11 @@ class TestProblemAttemptToDict:
             is_correct=False,
             response_time_ms=3500,
             timestamp=sample_timestamp,
-            user_answer=16
+            user_answer=16,
         )
-        
+
         result = attempt.to_dict()
-        
+
         expected = {
             "id": "attempt-456",
             "session_id": "session-789",
@@ -387,9 +389,9 @@ class TestProblemAttemptToDict:
             "correct_answer": 15,
             "is_correct": False,
             "response_time_ms": 3500,
-            "timestamp": "2023-01-01T12:15:30"
+            "timestamp": "2023-01-01T12:15:30",
         }
-        
+
         assert result == expected
 
     def test_to_dict_zero_response_time(self, sample_timestamp):
@@ -402,11 +404,11 @@ class TestProblemAttemptToDict:
             is_correct=True,
             response_time_ms=0,
             timestamp=sample_timestamp,
-            user_answer=0
+            user_answer=0,
         )
-        
+
         result = attempt.to_dict()
-        
+
         assert result["response_time_ms"] == 0
 
 
@@ -418,7 +420,7 @@ class TestProblemAttemptRoundTrip:
         # Convert to dict and back
         dict_data = sample_problem_attempt.to_dict()
         restored_attempt = ProblemAttempt.from_dict(dict_data)
-        
+
         # Should be identical
         assert restored_attempt.id == sample_problem_attempt.id
         assert restored_attempt.session_id == sample_problem_attempt.session_id
@@ -426,7 +428,9 @@ class TestProblemAttemptRoundTrip:
         assert restored_attempt.user_answer == sample_problem_attempt.user_answer
         assert restored_attempt.correct_answer == sample_problem_attempt.correct_answer
         assert restored_attempt.is_correct == sample_problem_attempt.is_correct
-        assert restored_attempt.response_time_ms == sample_problem_attempt.response_time_ms
+        assert (
+            restored_attempt.response_time_ms == sample_problem_attempt.response_time_ms
+        )
         assert restored_attempt.timestamp == sample_problem_attempt.timestamp
 
     def test_round_trip_conversion_no_user_answer(self, sample_timestamp):
@@ -439,13 +443,13 @@ class TestProblemAttemptRoundTrip:
             is_correct=False,
             response_time_ms=5000,
             timestamp=sample_timestamp,
-            user_answer=None
+            user_answer=None,
         )
-        
+
         # Convert to dict and back
         dict_data = original_attempt.to_dict()
         restored_attempt = ProblemAttempt.from_dict(dict_data)
-        
+
         # Should be identical
         assert restored_attempt.id == original_attempt.id
         assert restored_attempt.session_id == original_attempt.session_id
@@ -461,9 +465,12 @@ class TestProblemAttemptRoundTrip:
         # Convert to dict and back
         dict_data = sample_problem_attempt.to_dict()
         restored_attempt = ProblemAttempt.from_dict(dict_data)
-        
+
         # Properties should be identical
-        assert restored_attempt.response_time_seconds == sample_problem_attempt.response_time_seconds
+        assert (
+            restored_attempt.response_time_seconds
+            == sample_problem_attempt.response_time_seconds
+        )
 
 
 class TestProblemAttemptEdgeCases:
@@ -479,9 +486,9 @@ class TestProblemAttemptEdgeCases:
             is_correct=True,
             response_time_ms=999999999,  # Very large response time
             timestamp=sample_timestamp,
-            user_answer=2000
+            user_answer=2000,
         )
-        
+
         assert attempt.response_time_ms == 999999999
         assert attempt.response_time_seconds == 999999.999
 
@@ -495,9 +502,9 @@ class TestProblemAttemptEdgeCases:
             is_correct=True,
             response_time_ms=3000,
             timestamp=sample_timestamp,
-            user_answer=-5
+            user_answer=-5,
         )
-        
+
         assert attempt.correct_answer == -5
         assert attempt.user_answer == -5
         assert attempt.is_correct is True
@@ -512,9 +519,9 @@ class TestProblemAttemptEdgeCases:
             is_correct=False,
             response_time_ms=8000,
             timestamp=sample_timestamp,
-            user_answer=13
+            user_answer=13,
         )
-        
+
         assert "×" in attempt.problem
         assert "(" in attempt.problem
         assert attempt.is_correct is False
@@ -529,9 +536,9 @@ class TestProblemAttemptEdgeCases:
             is_correct=True,
             response_time_ms=0,
             timestamp=sample_timestamp,
-            user_answer=0
+            user_answer=0,
         )
-        
+
         assert attempt.correct_answer == 0
         assert attempt.user_answer == 0
         assert attempt.response_time_ms == 0
@@ -552,9 +559,9 @@ class TestProblemAttemptDataclass:
             is_correct=True,
             response_time_ms=2000,
             timestamp=sample_timestamp,
-            user_answer=10
+            user_answer=10,
         )
-        
+
         attempt2 = ProblemAttempt(
             id="attempt-123",
             session_id="session-456",
@@ -563,9 +570,9 @@ class TestProblemAttemptDataclass:
             is_correct=True,
             response_time_ms=2000,
             timestamp=sample_timestamp,
-            user_answer=10
+            user_answer=10,
         )
-        
+
         assert attempt1 == attempt2
 
     def test_dataclass_inequality(self, sample_timestamp):
@@ -578,9 +585,9 @@ class TestProblemAttemptDataclass:
             is_correct=True,
             response_time_ms=2000,
             timestamp=sample_timestamp,
-            user_answer=10
+            user_answer=10,
         )
-        
+
         attempt2 = ProblemAttempt(
             id="attempt-456",  # Different ID
             session_id="session-456",
@@ -589,9 +596,9 @@ class TestProblemAttemptDataclass:
             is_correct=True,
             response_time_ms=2000,
             timestamp=sample_timestamp,
-            user_answer=10
+            user_answer=10,
         )
-        
+
         assert attempt1 != attempt2
 
     def test_dataclass_str_representation(self, sample_timestamp):
@@ -604,11 +611,11 @@ class TestProblemAttemptDataclass:
             is_correct=True,
             response_time_ms=1500,
             timestamp=sample_timestamp,
-            user_answer=10
+            user_answer=10,
         )
-        
+
         str_repr = str(attempt)
-        
+
         # Should contain key information
         assert "attempt-123" in str_repr
         assert "session-456" in str_repr
