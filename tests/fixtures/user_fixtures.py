@@ -14,17 +14,14 @@ def sample_user():
         email="test@example.com",
         display_name="Test User",
         created_at=datetime(2023, 12, 1, 10, 0, 0),
-        last_active=datetime(2023, 12, 1, 10, 0, 0)
+        last_active=datetime(2023, 12, 1, 10, 0, 0),
     )
 
 
 @pytest.fixture
 def minimal_user():
     """User object with only required fields."""
-    return User(
-        id="minimal-user-456",
-        email="minimal@example.com"
-    )
+    return User(id="minimal-user-456", email="minimal@example.com")
 
 
 @pytest.fixture
@@ -35,7 +32,7 @@ def sample_db_response():
         "email": "test@example.com",
         "display_name": "Test User",
         "created_at": "2023-12-01T10:00:00Z",
-        "last_active": "2023-12-01T10:00:00Z"
+        "last_active": "2023-12-01T10:00:00Z",
     }
 
 
@@ -47,7 +44,7 @@ def minimal_db_response():
         "email": "minimal@example.com",
         "display_name": None,
         "created_at": None,
-        "last_active": None
+        "last_active": None,
     }
 
 
@@ -66,15 +63,15 @@ def multiple_users_db_response():
             "email": "user1@example.com",
             "display_name": "User One",
             "created_at": "2023-12-01T10:00:00Z",
-            "last_active": "2023-12-01T10:00:00Z"
+            "last_active": "2023-12-01T10:00:00Z",
         },
         {
-            "id": "user-2", 
+            "id": "user-2",
             "email": "user2@example.com",
             "display_name": "User Two",
             "created_at": "2023-12-01T11:00:00Z",
-            "last_active": "2023-12-01T11:00:00Z"
-        }
+            "last_active": "2023-12-01T11:00:00Z",
+        },
     ]
 
 
@@ -90,7 +87,7 @@ def mock_supabase_response():
 def mock_supabase_client():
     """Mock Supabase client for unit tests."""
     client = Mock()
-    
+
     # Create a mock table that supports method chaining
     table_mock = Mock()
     select_mock = Mock()
@@ -98,7 +95,7 @@ def mock_supabase_client():
     update_mock = Mock()
     insert_mock = Mock()
     execute_mock = Mock()
-    
+
     # Set up the method chain
     client.table.return_value = table_mock
     table_mock.select.return_value = select_mock
@@ -108,7 +105,7 @@ def mock_supabase_client():
     update_mock.eq.return_value = eq_mock
     eq_mock.execute.return_value = execute_mock
     insert_mock.execute.return_value = execute_mock
-    
+
     return client
 
 
@@ -120,7 +117,7 @@ def user_not_found_response():
     return response
 
 
-@pytest.fixture 
+@pytest.fixture
 def database_error_response():
     """Response when database error occurs."""
     response = Mock()
