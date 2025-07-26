@@ -2,7 +2,9 @@
 
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.database.repositories.quiz_repository import QuizRepository
-from src.infrastructure.database.repositories.addition_fact_repository import AdditionFactRepository
+from src.infrastructure.database.repositories.addition_fact_repository import (
+    AdditionFactRepository,
+)
 from src.domain.services.user_service import UserService
 from src.domain.services.quiz_service import QuizService
 from src.domain.services.addition_fact_service import AdditionFactService
