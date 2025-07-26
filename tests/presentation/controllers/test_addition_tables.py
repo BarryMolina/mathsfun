@@ -356,8 +356,8 @@ class TestRunAdditionTableQuiz:
         """Test completing all problems in quiz."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        # Mock time progression
-        mock_time.side_effect = [0, 10]  # Start and end times
+        # Mock time progression: start_time, problem_start_time, response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 10]
 
         # Mock user inputs: Enter to start, then correct answer
         mock_input.side_effect = [
@@ -365,12 +365,13 @@ class TestRunAdditionTableQuiz:
             "2",
         ]  # Empty string for "Press Enter", then answer
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         assert correct == 1
         assert total == 1
         assert skipped == 0
         assert duration == 10
+        assert len(session_attempts) == 1
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -381,16 +382,18 @@ class TestRunAdditionTableQuiz:
         """Test wrong answer followed by correct answer."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        mock_time.side_effect = [0, 10]
+        # Mock time progression: start_time, problem_start_time, wrong_response_time, correct_response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 3, 10]
         # Enter to start, wrong answer, then correct answer
         mock_input.side_effect = ["", "3", "2"]
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         assert correct == 1
         assert total == 2  # Two attempts
         assert skipped == 0
         assert duration == 10
+        assert len(session_attempts) == 2
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -399,16 +402,18 @@ class TestRunAdditionTableQuiz:
         """Test skipping a problem."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        mock_time.side_effect = [0, 5]
+        # Mock time progression: start_time, problem_start_time, end_time
+        mock_time.side_effect = [0, 1, 5]
         # Enter to start, then skip
         mock_input.side_effect = ["", "next"]
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         assert correct == 0
         assert total == 0  # No attempts when skipping
         assert skipped == 1
         assert duration == 5
+        assert len(session_attempts) == 0
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -417,16 +422,18 @@ class TestRunAdditionTableQuiz:
         """Test exiting with 'exit' command."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        mock_time.side_effect = [0, 3]
+        # Mock time progression: start_time, problem_start_time, end_time
+        mock_time.side_effect = [0, 1, 3]
         # Enter to start, then exit
         mock_input.side_effect = ["", "exit"]
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         assert correct == 0
         assert total == 0
         assert skipped == 0
         assert duration == 3
+        assert len(session_attempts) == 0
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -435,16 +442,18 @@ class TestRunAdditionTableQuiz:
         """Test stopping with 'stop' command."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        mock_time.side_effect = [0, 7]
+        # Mock time progression: start_time, problem_start_time, end_time
+        mock_time.side_effect = [0, 1, 7]
         # Enter to start, then stop
         mock_input.side_effect = ["", "stop"]
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         assert correct == 0
         assert total == 0
         assert skipped == 0
         assert duration == 7
+        assert len(session_attempts) == 0
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -453,16 +462,18 @@ class TestRunAdditionTableQuiz:
         """Test invalid input followed by valid answer."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        mock_time.side_effect = [0, 12]
+        # Mock time progression: start_time, problem_start_time, valid_response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 12]
         # Enter to start, invalid input, then correct answer
         mock_input.side_effect = ["", "abc", "2"]
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         assert correct == 1
         assert total == 1  # Only valid attempt counts
         assert skipped == 0
         assert duration == 12
+        assert len(session_attempts) == 1
 
         # Should print error message for invalid input
         mock_print.assert_any_call(
@@ -476,16 +487,18 @@ class TestRunAdditionTableQuiz:
         """Test quiz with multiple problems."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        mock_time.side_effect = [0, 20]
+        # Mock time progression: start_time, 4 problem_start_times, 4 response_times, end_time
+        mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 20]
         # Enter to start, then answers for all 4 problems
         mock_input.side_effect = ["", "2", "3", "3", "4"]  # All correct answers
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         assert correct == 4
         assert total == 4
         assert skipped == 0
         assert duration == 20
+        assert len(session_attempts) == 4
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -494,16 +507,18 @@ class TestRunAdditionTableQuiz:
         """Test quiz with mix of correct, incorrect, and skipped problems."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        mock_time.side_effect = [0, 15]
+        # Mock time progression: start, prob1_start, prob1_correct, prob2_start, prob2_wrong, prob2_correct, prob3_start, prob4_start, prob4_correct, end
+        mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 15]
         # Enter, correct, wrong then correct, skip, correct
         mock_input.side_effect = ["", "2", "5", "3", "next", "4"]
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         assert correct == 3
         assert total == 4  # 4 attempts (including the wrong one)
         assert skipped == 1
         assert duration == 15
+        assert len(session_attempts) == 4
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -512,7 +527,8 @@ class TestRunAdditionTableQuiz:
         """Test that appropriate messages are displayed during quiz."""
         generator = AdditionTableGenerator(2, 2, randomize=False)
 
-        mock_time.side_effect = [0, 5]
+        # Mock time progression: start_time, problem_start_time, response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 5]
         mock_input.side_effect = ["", "4"]  # Correct answer
 
         run_addition_table_quiz(generator)
@@ -536,7 +552,8 @@ class TestRunAdditionTableQuiz:
         """Test that wrong answers are counted as attempts but not as skips."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        mock_time.side_effect = [0, 15]
+        # Mock time progression: start_time, problem_start_time, 4 response_times, end_time
+        mock_time.side_effect = [0, 1, 2, 3, 4, 5, 15]
         # Enter to start, then multiple wrong answers before getting it right
         mock_input.side_effect = [
             "",
@@ -546,7 +563,7 @@ class TestRunAdditionTableQuiz:
             "2",
         ]  # 3 wrong attempts, then correct
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         # Should have 1 correct answer
         assert correct == 1
@@ -555,6 +572,7 @@ class TestRunAdditionTableQuiz:
         # Should have 0 skipped (no 'next' commands)
         assert skipped == 0
         assert duration == 15
+        assert len(session_attempts) == 4
 
         # Verify error messages were printed for wrong answers
         mock_print.assert_any_call("❌ Not quite right. Try again!")
@@ -573,12 +591,13 @@ class TestRunAdditionTableQuiz:
         """Test mixed scenario with wrong answers, skips, and correct answers."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        mock_time.side_effect = [0, 20]
+        # Mock time progression: start, prob1_start, prob1_wrong, prob1_correct, prob2_start, prob3_start, prob3_wrong, prob3_correct, prob4_start, prob4_correct, prob4_final, end
+        mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20]
         # Enter, wrong then correct, skip, wrong then correct, correct, correct
         # Problems: 1+1=2, 1+2=3, 2+1=3, 2+2=4
         mock_input.side_effect = ["", "5", "2", "next", "8", "3", "3", "4"]
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
 
         # Should have 3 correct answers (1+1=2, 2+1=3, 2+2=4)
         assert correct == 3
@@ -587,6 +606,7 @@ class TestRunAdditionTableQuiz:
         # Should have 1 skipped
         assert skipped == 1
         assert duration == 20
+        assert len(session_attempts) == 6
 
         # Verify skip message was printed
         mock_print.assert_any_call("⏭️  Skipped! The answer was 3")
@@ -597,7 +617,7 @@ class TestRunAdditionTableQuiz:
 class TestAdditionTablesMode:
     """Test addition_tables_mode function."""
 
-    @patch("src.presentation.controllers.addition_tables.show_results")
+    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
@@ -608,7 +628,7 @@ class TestAdditionTablesMode:
         mock_get_range,
         mock_get_order,
         mock_run_quiz,
-        mock_show_results,
+        mock_show_results_with_fact_insights,
     ):
         """Test successful execution of addition tables mode."""
         # Mock user inputs
@@ -619,7 +639,8 @@ class TestAdditionTablesMode:
             4,
             1,
             60.0,
-        )  # 3 correct, 4 total, 1 skipped, 60 seconds
+            [],
+        )  # 3 correct, 4 total, 1 skipped, 60 seconds, empty session_attempts
 
         addition_tables_mode()
 
@@ -627,7 +648,7 @@ class TestAdditionTablesMode:
         mock_get_range.assert_called_once()
         mock_get_order.assert_called_once()
         mock_run_quiz.assert_called_once()
-        mock_show_results.assert_called_once()
+        mock_show_results_with_fact_insights.assert_called_once()
 
         # Verify settings display
         mock_print.assert_any_call("\n📊 Addition Tables Mode Selected!")
@@ -636,7 +657,7 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("   Order: Random")
         mock_print.assert_any_call("   Total problems: 4")  # (3-2+1)^2
 
-    @patch("src.presentation.controllers.addition_tables.show_results")
+    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
@@ -647,7 +668,7 @@ class TestAdditionTablesMode:
         mock_get_range,
         mock_get_order,
         mock_run_quiz,
-        mock_show_results,
+        mock_show_results_with_fact_insights,
     ):
         """Test addition tables mode with single number."""
         mock_get_range.return_value = (5, 5)
@@ -657,7 +678,8 @@ class TestAdditionTablesMode:
             1,
             0,
             30.0,
-        )  # 1 correct, 1 total, 0 skipped, 30 seconds
+            [],
+        )  # 1 correct, 1 total, 0 skipped, 30 seconds, empty session_attempts
 
         addition_tables_mode()
 
@@ -678,12 +700,12 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("❌ Error: Test error")
         mock_print.assert_any_call("Returning to main menu...")
 
-    @patch("src.presentation.controllers.addition_tables.show_results")
+    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
     def test_addition_tables_mode_generator_created_correctly(
-        self, mock_get_range, mock_get_order, mock_run_quiz, mock_show_results
+        self, mock_get_range, mock_get_order, mock_run_quiz, mock_show_results_with_fact_insights
     ):
         """Test that AdditionTableGenerator is created with correct parameters."""
         mock_get_range.return_value = (3, 7)
@@ -693,7 +715,8 @@ class TestAdditionTablesMode:
             0,
             0,
             0,
-        )  # 0 correct, 0 total, 0 skipped, 0 duration
+            [],
+        )  # 0 correct, 0 total, 0 skipped, 0 duration, empty session_attempts
 
         with patch(
             "src.presentation.controllers.addition_tables.AdditionTableGenerator"
@@ -706,12 +729,12 @@ class TestAdditionTablesMode:
             # Verify generator was created with correct parameters
             mock_generator_class.assert_called_once_with(3, 7, True)
 
-            # Verify generator was passed to quiz function
-            mock_run_quiz.assert_called_once_with(mock_generator_instance)
+            # Verify generator was passed to quiz function with fact service params
+            mock_run_quiz.assert_called_once_with(mock_generator_instance, None, None)
 
-            # Verify generator was passed to show_results with skipped_count
-            mock_show_results.assert_called_once_with(
-                0, 0, 0, mock_generator_instance, skipped_count=0
+            # Verify generator was passed to show_results_with_fact_insights
+            mock_show_results_with_fact_insights.assert_called_once_with(
+                0, 0, 0, mock_generator_instance, 0, [], None, None
             )
 
 
