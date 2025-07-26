@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import random
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from ..cli.ui import get_user_input
 from .session import show_results, prompt_start_session
 
@@ -105,8 +105,10 @@ class AdditionTableGenerator:
 
 def run_addition_table_quiz(
     generator: AdditionTableGenerator,
-) -> Tuple[int, int, int, float]:
-    """Run the addition table quiz"""
+    addition_fact_service: Optional[object] = None,
+    user_id: Optional[str] = None,
+) -> Tuple[int, int, int, float, List[Tuple[int, int, bool, int]]]:
+    """Run the addition table quiz with optional fact tracking"""
     order_text = "random order" if generator.randomize else "sequential order"
     range_text = (
         f"{generator.low} to {generator.high}"
@@ -124,11 +126,19 @@ def run_addition_table_quiz(
     correct_count = 0
     total_attempted = 0
     skipped_count = 0
+    session_attempts = []  # Track attempts for fact performance
 
     while generator.has_more_problems():
         problem, correct_answer = generator.get_next_problem()
         progress = generator.get_progress_display()
         print(f"\n📝 Problem {progress}: {problem}")
+        
+        # Parse operands for fact tracking
+        operands = problem.split(' + ')
+        operand1, operand2 = int(operands[0]), int(operands[1])
+        
+        problem_start_time = time.time()
+        problem_answered = False
 
         while True:
             user_input = input("Your answer: ").strip().lower()
@@ -136,11 +146,11 @@ def run_addition_table_quiz(
             if user_input == "exit":
                 end_time = time.time()
                 duration = end_time - start_time
-                return correct_count, total_attempted, skipped_count, duration
+                return correct_count, total_attempted, skipped_count, duration, session_attempts
             elif user_input == "stop":
                 end_time = time.time()
                 duration = end_time - start_time
-                return correct_count, total_attempted, skipped_count, duration
+                return correct_count, total_attempted, skipped_count, duration, session_attempts
             elif user_input == "next":
                 print(f"⏭️  Skipped! The answer was {correct_answer}")
                 skipped_count += 1
@@ -148,25 +158,46 @@ def run_addition_table_quiz(
 
             try:
                 user_answer = int(user_input)
+                response_time_ms = int((time.time() - problem_start_time) * 1000)
                 total_attempted += 1
+                is_correct = user_answer == correct_answer
 
-                if user_answer == correct_answer:
+                if is_correct:
                     print("✅ Correct! Great job!")
                     correct_count += 1
+                    problem_answered = True
+                    
+                    # Track the attempt for fact performance
+                    session_attempts.append((operand1, operand2, True, response_time_ms))
+                    
+                    # Track with fact service if available
+                    if addition_fact_service and user_id:
+                        addition_fact_service.track_attempt(
+                            user_id, operand1, operand2, True, response_time_ms
+                        )
                     break
                 else:
                     print(f"❌ Not quite right. Try again!")
                     print("You can type 'next' to move on to the next problem.")
+                    
+                    # Track incorrect attempt
+                    session_attempts.append((operand1, operand2, False, response_time_ms))
+                    
+                    # Track with fact service if available
+                    if addition_fact_service and user_id:
+                        addition_fact_service.track_attempt(
+                            user_id, operand1, operand2, False, response_time_ms
+                        )
 
             except ValueError:
                 print("❌ Please enter a number, 'next', 'stop', or 'exit'")
 
     end_time = time.time()
     duration = end_time - start_time
-    return correct_count, total_attempted, skipped_count, duration
+    return correct_count, total_attempted, skipped_count, duration, session_attempts
 
 
-def addition_tables_mode():
+def addition_tables_mode(container=None, user=None):
     """Handle addition tables workflow"""
     try:
         print("\n📊 Addition Tables Mode Selected!")
@@ -184,10 +215,102 @@ def addition_tables_mode():
 
         generator = AdditionTableGenerator(low, high, randomize)
 
-        correct, total, skipped, duration = run_addition_table_quiz(generator)
+        # Get services for fact tracking if available
+        addition_fact_service = None
+        user_id = None
+        if container and user:
+            addition_fact_service = container.addition_fact_svc
+            user_id = user.id
 
-        show_results(correct, total, duration, generator, skipped_count=skipped)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, addition_fact_service, user_id
+        )
+
+        # Show enhanced results with fact tracking if available
+        show_results_with_fact_insights(
+            correct, total, duration, generator, skipped, 
+            session_attempts, addition_fact_service, user_id
+        )
 
     except Exception as e:
         print(f"❌ Error: {e}")
         print("Returning to main menu...")
+
+
+def show_results_with_fact_insights(
+    correct: int,
+    total: int, 
+    duration: float,
+    generator: AdditionTableGenerator,
+    skipped: int,
+    session_attempts: List[Tuple[int, int, bool, int]],
+    addition_fact_service: Optional[object] = None,
+    user_id: Optional[str] = None
+):
+    """Show results with fact-specific insights if fact tracking is available."""
+    
+    # Show standard results first
+    show_results(correct, total, duration, generator, skipped_count=skipped)
+    
+    # Show fact insights if tracking is available
+    if addition_fact_service and user_id and session_attempts:
+        print("\n" + "="*60)
+        print("📊 ADDITION FACT INSIGHTS")
+        print("="*60)
+        
+        try:
+            # Analyze session performance
+            analysis = addition_fact_service.analyze_session_performance(
+                user_id, session_attempts
+            )
+            
+            if "error" not in analysis:
+                # Show session analysis
+                facts_practiced = analysis.get("facts_practiced", 0)
+                print(f"📝 Facts practiced this session: {facts_practiced}")
+                
+                # Show mastery improvements
+                mastery_improvements = analysis.get("mastery_improvements", [])
+                if mastery_improvements:
+                    print(f"\n🎉 MASTERED: {', '.join(mastery_improvements)}")
+                
+                # Show facts needing practice
+                facts_needing_practice = analysis.get("facts_needing_practice", [])
+                if facts_needing_practice:
+                    print(f"\n💪 NEED PRACTICE: {', '.join(facts_needing_practice)}")
+                
+                # Get practice recommendations for this range
+                session_range = (generator.low, generator.high)
+                recommendations = addition_fact_service.get_practice_recommendations(
+                    user_id, session_range
+                )
+                
+                if recommendations.get("recommendation"):
+                    print(f"\n🎯 RECOMMENDATION: {recommendations['recommendation']}")
+                
+                # Show range-specific performance summary
+                weak_facts = recommendations.get("weak_facts", [])
+                mastered_count = recommendations.get("mastered_facts_count", 0)
+                total_possible = recommendations.get("total_possible_facts", 0)
+                
+                if total_possible > 0:
+                    mastery_percentage = (mastered_count / total_possible) * 100
+                    print(f"\n📈 RANGE PROGRESS: {mastered_count}/{total_possible} facts mastered ({mastery_percentage:.1f}%)")
+                
+                if weak_facts:
+                    weak_fact_keys = [f.fact_key for f in weak_facts]
+                    print(f"🎯 FOCUS ON: {', '.join(weak_fact_keys)}")
+            
+        except Exception as e:
+            print(f"\n⚠️  Could not load fact insights: {e}")
+    
+    elif not addition_fact_service:
+        # Show message about signing in for enhanced features
+        print("\n" + "="*60)
+        print("🔐 SIGN IN FOR PERSONALIZED INSIGHTS")
+        print("="*60)
+        print("Sign in to track your progress on individual addition facts!")
+        print("• See which facts you've mastered")
+        print("• Get personalized practice recommendations") 
+        print("• Track improvement over time")
+        print("• Identify facts that need more work")

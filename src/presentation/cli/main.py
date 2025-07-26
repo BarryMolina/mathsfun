@@ -113,7 +113,7 @@ def main():
             elif choice == "1":
                 addition_mode(container, user.id)
             elif choice == "2":
-                addition_tables_mode()
+                addition_tables_mode(container, user)
             elif choice == "3":
                 # Sign out
                 current_user = container.user_svc.get_current_user()
