@@ -35,7 +35,7 @@ class TestMasteryLevel:
         """Test that invalid string raises ValueError."""
         with pytest.raises(ValueError) as exc_info:
             MasteryLevel.from_string("invalid")
-        
+
         assert "Invalid mastery level: invalid" in str(exc_info.value)
         assert "learning" in str(exc_info.value)
         assert "practicing" in str(exc_info.value)

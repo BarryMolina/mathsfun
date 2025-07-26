@@ -2,7 +2,9 @@
 
 import pytest
 from datetime import datetime
-from src.domain.models.addition_fact_performance import AdditionFactPerformance
+from src.domain.models.addition_fact_performance import (
+    AdditionFactPerformance,
+)
 from src.domain.models.mastery_level import MasteryLevel
 
 
@@ -93,10 +95,10 @@ class TestAdditionFactPerformanceProperties:
         """Test accuracy calculation for normal case."""
         performance = AdditionFactPerformance(
             id="test-id",
-            user_id="test-user", 
+            user_id="test-user",
             fact_key="6+4",
             total_attempts=10,
-            correct_attempts=8
+            correct_attempts=8,
         )
         
         assert performance.accuracy == 80.0
@@ -106,9 +108,9 @@ class TestAdditionFactPerformanceProperties:
         performance = AdditionFactPerformance(
             id="test-id",
             user_id="test-user",
-            fact_key="6+4", 
+            fact_key="6+4",
             total_attempts=5,
-            correct_attempts=5
+            correct_attempts=5,
         )
         
         assert performance.accuracy == 100.0
@@ -120,7 +122,7 @@ class TestAdditionFactPerformanceProperties:
             user_id="test-user",
             fact_key="6+4",
             total_attempts=0,
-            correct_attempts=0
+            correct_attempts=0,
         )
         
         assert performance.accuracy == 0.0
@@ -132,7 +134,7 @@ class TestAdditionFactPerformanceProperties:
             user_id="test-user",
             fact_key="6+4",
             correct_attempts=4,
-            total_response_time_ms=12000  # 12 seconds total
+            total_response_time_ms=12000,  # 12 seconds total
         )
         
         assert performance.average_response_time_ms == 3000.0  # 3 seconds average
@@ -144,7 +146,7 @@ class TestAdditionFactPerformanceProperties:
             user_id="test-user",
             fact_key="6+4",
             correct_attempts=0,
-            total_response_time_ms=0
+            total_response_time_ms=0,
         )
         
         assert performance.average_response_time_ms == 0.0
@@ -153,10 +155,10 @@ class TestAdditionFactPerformanceProperties:
         """Test average response time in seconds."""
         performance = AdditionFactPerformance(
             id="test-id",
-            user_id="test-user", 
+            user_id="test-user",
             fact_key="6+4",
             correct_attempts=2,
-            total_response_time_ms=5000  # 5 seconds total
+            total_response_time_ms=5000,  # 5 seconds total
         )
         
         assert performance.average_response_time_seconds == 2.5  # 2.5 seconds average
@@ -175,7 +177,7 @@ class TestAdditionFactPerformanceUpdatePerformance:
             correct_attempts=1,
             total_response_time_ms=3000,
             fastest_response_ms=3000,
-            slowest_response_ms=3000
+            slowest_response_ms=3000,
         )
         
         performance.update_performance(True, 2500, sample_timestamp)
@@ -197,7 +199,7 @@ class TestAdditionFactPerformanceUpdatePerformance:
             correct_attempts=2,
             total_response_time_ms=6000,
             fastest_response_ms=2500,
-            slowest_response_ms=3500
+            slowest_response_ms=3500,
         )
         
         performance.update_performance(False, 4000, sample_timestamp)
@@ -214,7 +216,7 @@ class TestAdditionFactPerformanceUpdatePerformance:
         performance = AdditionFactPerformance(
             id="test-id",
             user_id="test-user",
-            fact_key="5+3"
+            fact_key="5+3",
         )
         
         performance.update_performance(True, 3000)
@@ -237,7 +239,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             user_id="test-user",
             fact_key="5+3",
             total_attempts=3,
-            correct_attempts=3
+            correct_attempts=3,
         )
         
         assert performance.determine_mastery_level() == MasteryLevel.LEARNING
@@ -247,9 +249,9 @@ class TestAdditionFactPerformanceMasteryLevel:
         performance = AdditionFactPerformance(
             id="test-id",
             user_id="test-user",
-            fact_key="5+3", 
+            fact_key="5+3",
             total_attempts=10,
-            correct_attempts=6  # 60% accuracy
+            correct_attempts=6,  # 60% accuracy
         )
         
         assert performance.determine_mastery_level() == MasteryLevel.LEARNING
@@ -261,7 +263,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             user_id="test-user",
             fact_key="5+3",
             total_attempts=8,
-            correct_attempts=7  # 87.5% accuracy
+            correct_attempts=7,  # 87.5% accuracy
         )
         
         assert performance.determine_mastery_level() == MasteryLevel.PRACTICING
@@ -273,7 +275,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             user_id="test-user",
             fact_key="5+3",
             total_attempts=10,
-            correct_attempts=10  # 100% accuracy
+            correct_attempts=10,  # 100% accuracy
         )
         
         assert performance.determine_mastery_level() == MasteryLevel.MASTERED
@@ -285,7 +287,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             user_id="test-user",
             fact_key="5+3",
             total_attempts=20,
-            correct_attempts=19  # 95% accuracy
+            correct_attempts=19,  # 95% accuracy
         )
         
         assert performance.determine_mastery_level() == MasteryLevel.MASTERED
@@ -336,7 +338,7 @@ class TestAdditionFactPerformanceSerialization:
             "last_attempted": "2023-01-01T12:15:30",
             "mastery_level": "practicing",
             "created_at": "2023-01-01T12:15:30",
-            "updated_at": "2023-01-01T12:15:30"
+            "updated_at": "2023-01-01T12:15:30",
         }
         
         assert result == expected
@@ -346,7 +348,7 @@ class TestAdditionFactPerformanceSerialization:
         performance = AdditionFactPerformance(
             id="test-id",
             user_id="test-user",
-            fact_key="1+1"
+            fact_key="1+1",
         )
         
         result = performance.to_dict()

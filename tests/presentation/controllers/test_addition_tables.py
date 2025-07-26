@@ -166,7 +166,9 @@ class TestGetOrderPreference:
 
     @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("builtins.print")
-    def test_get_order_preference_invalid_choice(self, mock_print, mock_get_user_input):
+    def test_get_order_preference_invalid_choice(
+        self, mock_print, mock_get_user_input
+    ):
         """Test invalid choice followed by valid choice."""
         mock_get_user_input.side_effect = ["3", "1"]  # Invalid, then valid
 
@@ -177,7 +179,9 @@ class TestGetOrderPreference:
 
     @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("builtins.print")
-    def test_get_order_preference_invalid_format(self, mock_print, mock_get_user_input):
+    def test_get_order_preference_invalid_format(
+        self, mock_print, mock_get_user_input
+    ):
         """Test invalid number format followed by valid choice."""
         mock_get_user_input.side_effect = ["abc", "2"]  # Invalid, then valid
 
@@ -188,7 +192,9 @@ class TestGetOrderPreference:
 
     @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("builtins.print")
-    def test_get_order_preference_default_value(self, mock_print, mock_get_user_input):
+    def test_get_order_preference_default_value(
+        self, mock_print, mock_get_user_input
+    ):
         """Test using default value (empty input)."""
         mock_get_user_input.return_value = ""  # Will use default "1"
 
@@ -250,7 +256,12 @@ class TestGenerateAdditionTableProblems:
         """Test generating problems with larger numbers."""
         problems = generate_addition_table_problems(10, 11)
 
-        expected = [("10 + 10", 20), ("10 + 11", 21), ("11 + 10", 21), ("11 + 11", 22)]
+        expected = [
+            ("10 + 10", 20),
+            ("10 + 11", 21),
+            ("11 + 10", 21),
+            ("11 + 11", 22),
+        ]
         assert problems == expected
 
 
@@ -365,7 +376,9 @@ class TestRunAdditionTableQuiz:
             "2",
         ]  # Empty string for "Press Enter", then answer
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 1
         assert total == 1
@@ -382,12 +395,15 @@ class TestRunAdditionTableQuiz:
         """Test wrong answer followed by correct answer."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        # Mock time progression: start_time, problem_start_time, wrong_response_time, correct_response_time, end_time
+        # Mock time progression: start_time, problem_start_time,
+        # wrong_response_time, correct_response_time, end_time
         mock_time.side_effect = [0, 1, 2, 3, 10]
         # Enter to start, wrong answer, then correct answer
         mock_input.side_effect = ["", "3", "2"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 1
         assert total == 2  # Two attempts
@@ -407,7 +423,9 @@ class TestRunAdditionTableQuiz:
         # Enter to start, then skip
         mock_input.side_effect = ["", "next"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 0
         assert total == 0  # No attempts when skipping
@@ -427,7 +445,9 @@ class TestRunAdditionTableQuiz:
         # Enter to start, then exit
         mock_input.side_effect = ["", "exit"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 0
         assert total == 0
@@ -447,7 +467,9 @@ class TestRunAdditionTableQuiz:
         # Enter to start, then stop
         mock_input.side_effect = ["", "stop"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 0
         assert total == 0
@@ -467,7 +489,9 @@ class TestRunAdditionTableQuiz:
         # Enter to start, invalid input, then correct answer
         mock_input.side_effect = ["", "abc", "2"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 1
         assert total == 1  # Only valid attempt counts
@@ -487,12 +511,15 @@ class TestRunAdditionTableQuiz:
         """Test quiz with multiple problems."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        # Mock time progression: start_time, 4 problem_start_times, 4 response_times, end_time
+        # Mock time progression: start_time, 4 problem_start_times,
+        # 4 response_times, end_time
         mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 20]
         # Enter to start, then answers for all 4 problems
         mock_input.side_effect = ["", "2", "3", "3", "4"]  # All correct answers
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 4
         assert total == 4
@@ -507,12 +534,15 @@ class TestRunAdditionTableQuiz:
         """Test quiz with mix of correct, incorrect, and skipped problems."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        # Mock time progression: start, prob1_start, prob1_correct, prob2_start, prob2_wrong, prob2_correct, prob3_start, prob4_start, prob4_correct, end
+        # Mock time progression: start, prob1_start, prob1_correct, prob2_start,
+        # prob2_wrong, prob2_correct, prob3_start, prob4_start, prob4_correct, end
         mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 15]
         # Enter, correct, wrong then correct, skip, correct
         mock_input.side_effect = ["", "2", "5", "3", "next", "4"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 3
         assert total == 4  # 4 attempts (including the wrong one)
@@ -552,7 +582,8 @@ class TestRunAdditionTableQuiz:
         """Test that wrong answers are counted as attempts but not as skips."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        # Mock time progression: start_time, problem_start_time, 4 response_times, end_time
+        # Mock time progression: start_time, problem_start_time,
+        # 4 response_times, end_time
         mock_time.side_effect = [0, 1, 2, 3, 4, 5, 15]
         # Enter to start, then multiple wrong answers before getting it right
         mock_input.side_effect = [
@@ -563,7 +594,9 @@ class TestRunAdditionTableQuiz:
             "2",
         ]  # 3 wrong attempts, then correct
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         # Should have 1 correct answer
         assert correct == 1
@@ -591,13 +624,17 @@ class TestRunAdditionTableQuiz:
         """Test mixed scenario with wrong answers, skips, and correct answers."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        # Mock time progression: start, prob1_start, prob1_wrong, prob1_correct, prob2_start, prob3_start, prob3_wrong, prob3_correct, prob4_start, prob4_correct, prob4_final, end
+        # Mock time progression: start, prob1_start, prob1_wrong, prob1_correct,
+        # prob2_start, prob3_start, prob3_wrong, prob3_correct, prob4_start,
+        # prob4_correct, prob4_final, end
         mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20]
         # Enter, wrong then correct, skip, wrong then correct, correct, correct
         # Problems: 1+1=2, 1+2=3, 2+1=3, 2+2=4
         mock_input.side_effect = ["", "5", "2", "next", "8", "3", "3", "4"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         # Should have 3 correct answers (1+1=2, 2+1=3, 2+2=4)
         assert correct == 3
