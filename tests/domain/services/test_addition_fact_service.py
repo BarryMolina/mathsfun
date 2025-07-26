@@ -34,31 +34,31 @@ def sample_performance():
     )
 
 
-class TestAdditionFactServiceNormalizeFact:
-    """Test fact key normalization."""
+class TestAdditionFactServiceCreateFactKey:
+    """Test fact key creation without normalization."""
 
-    def test_normalize_fact_key_ascending_order(self, service):
-        """Test normalization keeps smaller number first."""
-        result = service.normalize_fact_key(3, 8)
+    def test_create_fact_key_ascending_order(self, service):
+        """Test fact key creation preserves operand order."""
+        result = service.create_fact_key(3, 8)
         assert result == "3+8"
 
-    def test_normalize_fact_key_descending_order(self, service):
-        """Test normalization reorders to smaller number first."""
-        result = service.normalize_fact_key(8, 3)
-        assert result == "3+8"
+    def test_create_fact_key_descending_order(self, service):
+        """Test fact key creation preserves operand order (no reordering)."""
+        result = service.create_fact_key(8, 3)
+        assert result == "8+3"
 
-    def test_normalize_fact_key_equal_numbers(self, service):
-        """Test normalization with equal numbers."""
-        result = service.normalize_fact_key(5, 5)
+    def test_create_fact_key_equal_numbers(self, service):
+        """Test fact key creation with equal numbers."""
+        result = service.create_fact_key(5, 5)
         assert result == "5+5"
 
-    def test_normalize_fact_key_zero(self, service):
-        """Test normalization with zero."""
-        result = service.normalize_fact_key(0, 7)
+    def test_create_fact_key_zero(self, service):
+        """Test fact key creation with zero."""
+        result = service.create_fact_key(0, 7)
         assert result == "0+7"
         
-        result = service.normalize_fact_key(7, 0)
-        assert result == "0+7"
+        result = service.create_fact_key(7, 0)
+        assert result == "7+0"
 
 
 class TestAdditionFactServiceTrackAttempt:
@@ -93,7 +93,7 @@ class TestAdditionFactServiceTrackAttempt:
         service.track_attempt(
             user_id="user-456",
             operand1=8,
-            operand2=3,  # Should normalize to 3+8
+            operand2=3,  # Preserves order as 8+3
             is_correct=False,
             response_time_ms=5000,
             timestamp=timestamp
@@ -101,7 +101,7 @@ class TestAdditionFactServiceTrackAttempt:
         
         mock_repository.upsert_fact_performance.assert_called_once_with(
             user_id="user-456",
-            fact_key="3+8",
+            fact_key="8+3",
             is_correct=False,
             response_time_ms=5000,
             timestamp=timestamp
@@ -122,14 +122,14 @@ class TestAdditionFactServiceGetFactPerformance:
             "user-456", "7+8"
         )
 
-    def test_get_fact_performance_normalizes_operands(self, service, mock_repository):
-        """Test that operands are normalized when getting performance."""
+    def test_get_fact_performance_preserves_operands(self, service, mock_repository):
+        """Test that operands are preserved when getting performance."""
         mock_repository.get_user_fact_performance.return_value = None
         
-        service.get_fact_performance("user-456", 8, 3)  # Should normalize to 3+8
+        service.get_fact_performance("user-456", 8, 3)  # Preserves order as 8+3
         
         mock_repository.get_user_fact_performance.assert_called_once_with(
-            "user-456", "3+8"
+            "user-456", "8+3"
         )
 
 
@@ -297,7 +297,7 @@ class TestAdditionFactServiceSessionAnalysis:
         session_attempts = [
             (3, 5, True, 2500),   # Correct attempt
             (3, 5, False, 4000),  # Incorrect attempt  
-            (7, 2, True, 3000),   # Correct attempt (normalizes to 2+7)
+            (7, 2, True, 3000),   # Correct attempt (preserves order as 7+2)
         ]
         
         result = service.analyze_session_performance("user-456", session_attempts)
@@ -305,7 +305,7 @@ class TestAdditionFactServiceSessionAnalysis:
         assert result["total_attempts"] == 3
         assert result["correct_attempts"] == 2
         assert result["session_accuracy"] == 66.7  # 2/3 * 100, rounded
-        assert result["facts_practiced"] == 2  # "3+5" and "2+7"
+        assert result["facts_practiced"] == 2  # "3+5" and "7+2"
         assert len(result["updated_performances"]) == 3  # 3 tracking calls
 
 

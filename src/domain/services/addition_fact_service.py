@@ -20,23 +20,20 @@ class AdditionFactService:
         """
         self.fact_repository = fact_repository
 
-    def normalize_fact_key(self, operand1: int, operand2: int) -> str:
-        """Normalize addition fact to consistent format.
+    def create_fact_key(self, operand1: int, operand2: int) -> str:
+        """Create fact key preserving operand order.
 
-        Always puts the smaller number first for consistency.
-        E.g., both "8+3" and "3+8" become "3+8"
+        Records facts exactly as presented without normalization.
+        E.g., "8+3" and "3+8" are tracked as separate facts.
 
         Args:
             operand1: First operand
             operand2: Second operand
 
         Returns:
-            Normalized fact key string
+            Fact key string preserving operand order
         """
-        if operand1 <= operand2:
-            return f"{operand1}+{operand2}"
-        else:
-            return f"{operand2}+{operand1}"
+        return f"{operand1}+{operand2}"
 
     def track_attempt(
         self,
@@ -60,7 +57,7 @@ class AdditionFactService:
         Returns:
             Updated AdditionFactPerformance or None if error
         """
-        fact_key = self.normalize_fact_key(operand1, operand2)
+        fact_key = self.create_fact_key(operand1, operand2)
 
         return self.fact_repository.upsert_fact_performance(
             user_id=user_id,
@@ -83,7 +80,7 @@ class AdditionFactService:
         Returns:
             AdditionFactPerformance if exists, None otherwise
         """
-        fact_key = self.normalize_fact_key(operand1, operand2)
+        fact_key = self.create_fact_key(operand1, operand2)
         return self.fact_repository.get_user_fact_performance(user_id, fact_key)
 
     def get_weak_facts(
@@ -299,7 +296,7 @@ class AdditionFactService:
             "correct_attempts": correct_attempts,
             "facts_practiced": len(
                 set(
-                    self.normalize_fact_key(op1, op2)
+                    self.create_fact_key(op1, op2)
                     for op1, op2, _, _ in session_attempts
                 )
             ),
