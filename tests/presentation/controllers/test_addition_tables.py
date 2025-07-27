@@ -166,9 +166,7 @@ class TestGetOrderPreference:
 
     @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("builtins.print")
-    def test_get_order_preference_invalid_choice(
-        self, mock_print, mock_get_user_input
-    ):
+    def test_get_order_preference_invalid_choice(self, mock_print, mock_get_user_input):
         """Test invalid choice followed by valid choice."""
         mock_get_user_input.side_effect = ["3", "1"]  # Invalid, then valid
 
@@ -179,9 +177,7 @@ class TestGetOrderPreference:
 
     @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("builtins.print")
-    def test_get_order_preference_invalid_format(
-        self, mock_print, mock_get_user_input
-    ):
+    def test_get_order_preference_invalid_format(self, mock_print, mock_get_user_input):
         """Test invalid number format followed by valid choice."""
         mock_get_user_input.side_effect = ["abc", "2"]  # Invalid, then valid
 
@@ -192,9 +188,7 @@ class TestGetOrderPreference:
 
     @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("builtins.print")
-    def test_get_order_preference_default_value(
-        self, mock_print, mock_get_user_input
-    ):
+    def test_get_order_preference_default_value(self, mock_print, mock_get_user_input):
         """Test using default value (empty input)."""
         mock_get_user_input.return_value = ""  # Will use default "1"
 
