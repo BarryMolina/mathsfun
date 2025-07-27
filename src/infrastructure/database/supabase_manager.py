@@ -186,12 +186,16 @@ class SupabaseManager:
 
     def sign_in_with_google(self) -> Dict[str, Any]:
         """Authenticate user with Google OAuth and store client"""
-        
+
         # In local development, warn about OAuth limitations
         if is_local_environment:
-            print("⚠️  Note: OAuth may not work in local development without proper provider configuration")
-            print("   For testing, consider using email/password auth or skip authentication features")
-        
+            print(
+                "⚠️  Note: OAuth may not work in local development without proper provider configuration"
+            )
+            print(
+                "   For testing, consider using email/password auth or skip authentication features"
+            )
+
         server = start_oauth_server(8080)
         redirect_uri = "http://localhost:8080"
 
@@ -451,14 +455,18 @@ def validate_environment():
     """Validate that required environment variables are set"""
     if not url or not key:
         if is_local_environment:
-            return False, ("Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
-                          "For local development:\n"
-                          "1. Run 'supabase start' to start local Supabase\n"
-                          "2. Copy .env.local to .env to use local configuration")
+            return False, (
+                "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
+                "For local development:\n"
+                "1. Run 'supabase start' to start local Supabase\n"
+                "2. Copy .env.local to .env to use local configuration"
+            )
         else:
-            return False, ("Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
-                          "Please set these in your .env file for production use.")
-    
+            return False, (
+                "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
+                "Please set these in your .env file for production use."
+            )
+
     env_type = "local development" if is_local_environment else "production"
     return True, f"Environment validated for {env_type}"
 
