@@ -8,6 +8,8 @@ MathsFun is a Python CLI application for interactive math practice, focusing on 
 
 ## Running the Application
 
+### Production Setup
+
 ```bash
 # Setup virtual environment (recommended)
 python3 -m venv venv
@@ -23,6 +25,54 @@ pip install -r requirements.txt
 # Run the main application
 python3 main.py
 ```
+
+### Local Development Setup
+
+For local development with Supabase, you can run a complete local stack:
+
+```bash
+# Prerequisites: Docker Desktop must be running
+
+# Start local Supabase stack (first time may take a few minutes)
+supabase start
+
+# Copy local environment configuration
+cp .env.local .env
+
+# The application will automatically detect local environment and connect to:
+# - Local API: http://127.0.0.1:54321
+# - Local Database: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+# - Local Studio: http://127.0.0.1:54323
+
+# Run the application
+python3 main.py
+
+# Stop local Supabase when done
+supabase stop
+```
+
+#### Local Development Benefits
+
+- 🚀 **Faster iteration** - No network latency
+- 💰 **Cost-effective** - No production quota usage  
+- 🔒 **Safe testing** - Isolated environment for experiments
+- 📴 **Offline development** - Work without internet
+- 🧪 **Consistent testing** - Reproducible environment with seed data
+
+#### Local Environment URLs
+
+When running locally, these services are available:
+- **API URL**: http://127.0.0.1:54321
+- **Studio (Admin UI)**: http://127.0.0.1:54323  
+- **Database**: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+- **Email Testing**: http://127.0.0.1:54324
+
+#### Switching Between Environments
+
+The application automatically detects your environment based on the `ENVIRONMENT` variable in your `.env` file:
+
+- **Local Development**: `ENVIRONMENT=local` (uses `.env.local` configuration)
+- **Production**: `ENVIRONMENT=production` or unset (uses production Supabase credentials)
 
 ## Testing
 

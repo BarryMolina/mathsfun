@@ -8,8 +8,11 @@ An interactive command-line math practice application that makes learning additi
 - **Flexible Sessions**: Choose unlimited practice or set a specific number of problems
 - **Real-time Feedback**: Instant responses with encouraging messages
 - **Performance Tracking**: Accuracy percentages, timing, and progress statistics
+- **Addition Fact Mastery**: Track individual fact performance and mastery levels
+- **User Authentication**: Google OAuth for personalized learning
 - **Interactive Commands**: Skip problems, stop sessions, or exit anytime
 - **Clean Interface**: Emoji-enhanced CLI for a delightful user experience
+- **Local Development**: Complete offline development environment with local Supabase
 
 ## Installation
 
@@ -42,12 +45,32 @@ An interactive command-line math practice application that makes learning additi
    pip install -r requirements.txt
    ```
 
+4. **Set up environment**
+   
+   **For Local Development (Recommended)**:
+   ```bash
+   # Prerequisites: Docker Desktop must be running
+   
+   # Start local Supabase stack
+   supabase start
+   
+   # Copy local environment configuration
+   cp .env.local .env
+   ```
+   
+   **For Production Use**:
+   ```bash
+   # Create .env file with your Supabase credentials
+   echo "SUPABASE_URL=your_supabase_url" > .env
+   echo "SUPABASE_ANON_KEY=your_supabase_anon_key" >> .env
+   ```
+
 ## Usage
 
 ### Starting the Application
 
 ```bash
-python3 cli.py
+python3 main.py
 ```
 
 ### Main Menu
@@ -147,10 +170,41 @@ After completing a session, you'll see detailed results including:
 
 ## Technical Details
 
-- **Language**: Python 3
-- **Dependencies**: Standard library only (lightweight!)
-- **Architecture**: Single-file CLI application
+- **Language**: Python 3.8+
+- **Architecture**: Clean layered architecture with dependency injection
+- **Database**: Supabase (PostgreSQL) with local development support
+- **Authentication**: OAuth 2.0 with PKCE (Google)
+- **Testing**: Comprehensive test suite with pytest
 - **Platform**: Cross-platform (Windows, macOS, Linux)
+
+## Development
+
+For local development, see the complete setup instructions in [CLAUDE.md](CLAUDE.md) including:
+- Local Supabase stack setup
+- Environment configuration  
+- Testing procedures
+- Code quality tools
+
+### Quick Start for Developers
+
+```bash
+# Clone and setup
+git clone <repository-url>
+cd mathsfun
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Start local development environment
+supabase start
+cp .env.local .env
+
+# Run tests
+pytest
+
+# Start application
+python3 main.py
+```
 
 ## Deactivating Virtual Environment
 
