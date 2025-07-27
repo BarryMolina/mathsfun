@@ -11,8 +11,18 @@ from ..storage.session_storage import SessionStorage
 
 dotenv.load_dotenv()
 
+# Environment detection
+environment = os.getenv("ENVIRONMENT", "production").lower()
+is_local_environment = environment == "local"
+
 url = os.getenv("SUPABASE_URL") or ""
 key = os.getenv("SUPABASE_ANON_KEY") or ""
+
+# Log environment information for development visibility
+if is_local_environment:
+    print(f"🔧 Using local Supabase environment at {url}")
+else:
+    print("🌐 Using production Supabase environment")
 
 
 class OAuthServer(HTTPServer):
@@ -176,6 +186,16 @@ class SupabaseManager:
 
     def sign_in_with_google(self) -> Dict[str, Any]:
         """Authenticate user with Google OAuth and store client"""
+
+        # In local development, warn about OAuth limitations
+        if is_local_environment:
+            print(
+                "⚠️  Note: OAuth may not work in local development without proper provider configuration"
+            )
+            print(
+                "   For testing, consider using email/password auth or skip authentication features"
+            )
+
         server = start_oauth_server(8080)
         redirect_uri = "http://localhost:8080"
 
@@ -434,8 +454,21 @@ class SupabaseManager:
 def validate_environment():
     """Validate that required environment variables are set"""
     if not url or not key:
-        return False, "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables"
-    return True, "Environment validated"
+        if is_local_environment:
+            return False, (
+                "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
+                "For local development:\n"
+                "1. Run 'supabase start' to start local Supabase\n"
+                "2. Copy .env.local to .env to use local configuration"
+            )
+        else:
+            return False, (
+                "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
+                "Please set these in your .env file for production use."
+            )
+
+    env_type = "local development" if is_local_environment else "production"
+    return True, f"Environment validated for {env_type}"
 
 
 # Singleton instance for app-wide access

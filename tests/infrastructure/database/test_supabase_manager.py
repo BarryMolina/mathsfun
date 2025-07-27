@@ -861,7 +861,7 @@ class TestValidateEnvironment:
             valid, message = validate_environment()
 
             assert valid is True
-            assert message == "Environment validated"
+            assert "Environment validated" in message
 
 
 class TestPKCEStorage:
