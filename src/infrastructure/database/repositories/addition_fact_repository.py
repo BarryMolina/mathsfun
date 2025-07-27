@@ -1,7 +1,8 @@
 """Addition fact performance repository for MathsFun application."""
 
-from typing import List, Optional
+from typing import List, Optional, Tuple, Dict
 from datetime import datetime
+from collections import defaultdict
 from .base import BaseRepository, requires_authentication
 from src.domain.models.addition_fact_performance import AdditionFactPerformance
 from src.domain.models.mastery_level import MasteryLevel
@@ -288,3 +289,142 @@ class AdditionFactRepository(BaseRepository):
                 "overall_accuracy": 0.0,
                 "total_attempts": 0,
             }
+
+    @requires_authentication
+    def batch_upsert_fact_performances(
+        self, user_id: str, session_attempts: List[Tuple[int, int, bool, int]]
+    ) -> List[AdditionFactPerformance]:
+        """Batch upsert fact performances for multiple attempts.
+
+        This method efficiently processes multiple attempts by:
+        1. Grouping attempts by fact_key to aggregate duplicates
+        2. Bulk fetching existing performances
+        3. Calculating updates in memory
+        4. Performing bulk upsert operation
+
+        Args:
+            user_id: ID of the user
+            session_attempts: List of (operand1, operand2, is_correct, response_time_ms)
+
+        Returns:
+            List of updated AdditionFactPerformance instances
+        """
+        if not session_attempts:
+            return []
+
+        try:
+            # Group attempts by fact_key and aggregate stats
+            fact_aggregates = self._aggregate_session_attempts(session_attempts)
+            fact_keys = list(fact_aggregates.keys())
+
+            # Bulk fetch existing performances
+            existing_performances = self._bulk_get_fact_performances(user_id, fact_keys)
+            if existing_performances is None:  # Error occurred in bulk fetch
+                return []
+            existing_by_key = {perf.fact_key: perf for perf in existing_performances}
+
+            # Prepare records for upsert
+            upsert_records = []
+            result_performances = []
+
+            for fact_key, stats in fact_aggregates.items():
+                if fact_key in existing_by_key:
+                    # Update existing performance
+                    existing = existing_by_key[fact_key]
+                    self._apply_aggregated_stats(existing, stats)
+                    existing.mastery_level = existing.determine_mastery_level()
+                    upsert_records.append(existing.to_dict())
+                    result_performances.append(existing)
+                else:
+                    # Create new performance
+                    new_perf = AdditionFactPerformance.create_new(user_id, fact_key)
+                    self._apply_aggregated_stats(new_perf, stats)
+                    new_perf.mastery_level = new_perf.determine_mastery_level()
+                    perf_dict = new_perf.to_dict()
+                    perf_dict.pop("id", None)  # Let database generate ID
+                    upsert_records.append(perf_dict)
+                    result_performances.append(new_perf)
+
+            # Perform bulk upsert
+            if upsert_records:
+                self._bulk_upsert_records(upsert_records)
+
+            return result_performances
+
+        except Exception as e:
+            print(f"Error in batch upsert fact performances: {e}")
+            return []
+
+    def _aggregate_session_attempts(
+        self, session_attempts: List[Tuple[int, int, bool, int]]
+    ) -> Dict[str, Dict]:
+        """Aggregate session attempts by fact_key."""
+        aggregates: Dict[str, Dict] = defaultdict(
+            lambda: {
+                "correct_count": 0,
+                "total_count": 0,
+                "response_times": [],
+                "timestamps": [],
+            }
+        )
+
+        timestamp = datetime.now()
+
+        for operand1, operand2, is_correct, response_time_ms in session_attempts:
+            fact_key = f"{operand1}+{operand2}"
+            stats = aggregates[fact_key]
+
+            stats["total_count"] = stats["total_count"] + 1
+            if is_correct:
+                stats["correct_count"] = stats["correct_count"] + 1
+            stats["response_times"].append(response_time_ms)
+            stats["timestamps"].append(timestamp)
+
+        return dict(aggregates)
+
+    def _bulk_get_fact_performances(
+        self, user_id: str, fact_keys: List[str]
+    ) -> Optional[List[AdditionFactPerformance]]:
+        """Bulk fetch existing fact performances."""
+        if not fact_keys:
+            return []
+
+        try:
+            response = (
+                self.supabase_manager.get_client()
+                .table("addition_fact_performances")
+                .select("*")
+                .eq("user_id", user_id)
+                .in_("fact_key", fact_keys)
+                .execute()
+            )
+            data = self._handle_response(response)
+
+            if data and isinstance(data, list):
+                return [AdditionFactPerformance.from_dict(perf) for perf in data]
+            return []
+        except Exception as e:
+            print(f"Error in bulk get fact performances: {e}")
+            return None
+
+    def _apply_aggregated_stats(
+        self, performance: AdditionFactPerformance, stats: Dict
+    ) -> None:
+        """Apply aggregated statistics to a performance object."""
+        # Update each attempt individually to maintain accuracy of the logic
+        for i in range(stats["total_count"]):
+            is_correct = i < stats["correct_count"]
+            response_time = stats["response_times"][i]
+            timestamp = stats["timestamps"][i]
+            performance.update_performance(is_correct, response_time, timestamp)
+
+    def _bulk_upsert_records(self, records: List[Dict]) -> None:
+        """Perform bulk upsert operation using Supabase."""
+        try:
+            # Use upsert operation with conflict resolution
+            self.supabase_manager.get_client().table(
+                "addition_fact_performances"
+            ).upsert(records, on_conflict="user_id,fact_key").execute()
+        except Exception as e:
+            print(f"Error in bulk upsert: {e}")
+            raise

@@ -259,14 +259,12 @@ class AdditionFactService:
         if not session_attempts:
             return {"error": "No attempts to analyze"}
 
-        # Track all attempts
-        updated_facts = []
-        for operand1, operand2, is_correct, response_time_ms in session_attempts:
-            performance = self.track_attempt(
-                user_id, operand1, operand2, is_correct, response_time_ms
-            )
-            if performance:
-                updated_facts.append(performance)
+        # Track all attempts using batch operation for better performance
+        updated_facts = self.fact_repository.batch_upsert_fact_performances(
+            user_id, session_attempts
+        )
+        if updated_facts is None:
+            return {"error": "Failed to process session attempts"}
 
         # Analyze session results
         total_attempts = len(session_attempts)
