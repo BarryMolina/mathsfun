@@ -333,7 +333,11 @@ class AdditionFactRepository(BaseRepository):
                     existing = existing_by_key[fact_key]
                     self._apply_aggregated_stats(existing, stats)
                     existing.mastery_level = existing.determine_mastery_level()
-                    upsert_records.append(existing.to_dict())
+                    existing_dict = existing.to_dict()
+                    existing_dict.pop(
+                        "id", None
+                    )  # Remove ID for consistent upsert behavior
+                    upsert_records.append(existing_dict)
                     result_performances.append(existing)
                 else:
                     # Create new performance
