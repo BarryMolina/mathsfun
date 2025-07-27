@@ -841,3 +841,280 @@ class TestAdditionTablesIntegration:
         assert ("8 + 8", 16) in problems
         assert ("12 + 12", 24) in problems
         assert ("10 + 11", 21) in problems
+
+
+class TestFactTrackingIntegration:
+    """Test fact tracking integration to prevent double-counting."""
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("time.time")
+    def test_fact_tracking_no_double_counting(self, mock_time, mock_print, mock_input):
+        """Test that fact tracking doesn't double-count attempts."""
+        generator = AdditionTableGenerator(1, 1, randomize=False)
+
+        # Mock fact service
+        mock_fact_service = Mock()
+        mock_fact_service.track_attempt.return_value = Mock()
+
+        # Mock time progression: start_time, problem_start_time, response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 10]
+
+        # Mock user inputs: Enter to start, then correct answer
+        mock_input.side_effect = ["", "2"]
+
+        # Run quiz with fact tracking
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, mock_fact_service, "user123"
+        )
+
+        # Verify quiz results
+        assert correct == 1
+        assert total == 1
+        assert skipped == 0
+        assert len(session_attempts) == 1
+
+        # AFTER FIX: track_attempt should NOT be called during the quiz
+        # All tracking should happen only in analyze_session_performance
+        assert mock_fact_service.track_attempt.call_count == 0
+
+        # No calls should have been made during quiz (after fix)
+        mock_fact_service.track_attempt.assert_not_called()
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("time.time")
+    def test_fact_tracking_wrong_then_correct_no_double_counting(
+        self, mock_time, mock_print, mock_input
+    ):
+        """Test that fact tracking doesn't double-count on wrong then correct answers."""
+        generator = AdditionTableGenerator(1, 1, randomize=False)
+
+        # Mock fact service
+        mock_fact_service = Mock()
+        mock_fact_service.track_attempt.return_value = Mock()
+
+        # Mock time progression: start_time, problem_start_time,
+        # wrong_response_time, correct_response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 3, 10]
+
+        # Enter to start, wrong answer, then correct answer
+        mock_input.side_effect = ["", "3", "2"]
+
+        # Run quiz with fact tracking
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, mock_fact_service, "user123"
+        )
+
+        # Verify quiz results
+        assert correct == 1
+        assert total == 2  # Two attempts
+        assert skipped == 0
+        assert len(session_attempts) == 2
+
+        # AFTER FIX: track_attempt should NOT be called during the quiz
+        # All tracking should happen only in analyze_session_performance
+        assert mock_fact_service.track_attempt.call_count == 0
+
+        # No calls should have been made during quiz (after fix)
+        mock_fact_service.track_attempt.assert_not_called()
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("time.time")
+    def test_full_workflow_with_analysis_after_fix(
+        self, mock_time, mock_print, mock_input
+    ):
+        """Test that demonstrates the double-counting bug has been fixed."""
+        from src.presentation.controllers.addition_tables import (
+            show_results_with_fact_insights,
+        )
+
+        generator = AdditionTableGenerator(1, 1, randomize=False)
+
+        # Create a mock fact service that simulates the real analyze_session_performance behavior
+        mock_fact_service = Mock()
+        mock_fact_service.track_attempt.return_value = Mock()
+
+        # IMPORTANT: Make analyze_session_performance call track_attempt like the real implementation
+        def mock_analyze_session_performance(user_id, session_attempts):
+            # This simulates the real behavior where analyze_session_performance
+            # calls track_attempt for each session attempt
+            for operand1, operand2, is_correct, response_time_ms in session_attempts:
+                mock_fact_service.track_attempt(
+                    user_id, operand1, operand2, is_correct, response_time_ms
+                )
+
+            return {
+                "session_accuracy": 100.0,
+                "total_attempts": len(session_attempts),
+                "correct_attempts": sum(
+                    1 for _, _, is_correct, _ in session_attempts if is_correct
+                ),
+                "facts_practiced": 1,
+                "mastery_improvements": [],
+                "facts_needing_practice": [],
+            }
+
+        mock_fact_service.analyze_session_performance.side_effect = (
+            mock_analyze_session_performance
+        )
+        mock_fact_service.get_practice_recommendations.return_value = {
+            "recommendation": "Great job!",
+            "weak_facts": [],
+            "mastered_facts_count": 1,
+            "total_possible_facts": 1,
+        }
+
+        # Mock time progression: start_time, problem_start_time, response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 10]
+
+        # Mock user inputs: Enter to start, then correct answer
+        mock_input.side_effect = ["", "2"]
+
+        # Run quiz with fact tracking
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, mock_fact_service, "user123"
+        )
+
+        # Reset call count to isolate just the analyze_session_performance calls
+        initial_track_calls = mock_fact_service.track_attempt.call_count
+
+        # Now call show_results_with_fact_insights which calls analyze_session_performance
+        show_results_with_fact_insights(
+            correct,
+            total,
+            duration,
+            generator,
+            skipped,
+            session_attempts,
+            mock_fact_service,
+            "user123",
+        )
+
+        final_track_calls = mock_fact_service.track_attempt.call_count
+        analyze_calls = final_track_calls - initial_track_calls
+
+        print(f"Initial track_attempt calls (from quiz): {initial_track_calls}")
+        print(f"Additional track_attempt calls (from analysis): {analyze_calls}")
+        print(f"Total track_attempt calls: {final_track_calls}")
+        print(f"Session attempts: {len(session_attempts)}")
+
+        # AFTER FIX: We expect:
+        # - 0 calls during quiz (removed duplicate calls)
+        # - 1 call during analyze_session_performance (only tracking happens here)
+        # - Total: 1 call for 1 user answer
+
+        expected_total_calls = 1  # 0 from quiz + 1 from analysis
+
+        assert (
+            initial_track_calls == 0
+        ), f"Expected 0 calls during quiz (after fix), but got {initial_track_calls}"
+
+        assert final_track_calls == expected_total_calls, (
+            f"Expected {expected_total_calls} total calls (after fix), "
+            f"but got {final_track_calls}. "
+            f"Quiz calls: {initial_track_calls}, Analysis calls: {analyze_calls}"
+        )
+
+        print("✓ CONFIRMED: Double-counting bug has been FIXED!")
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("time.time")
+    def test_full_workflow_after_fix_no_double_counting(
+        self, mock_time, mock_print, mock_input
+    ):
+        """Test that after fix, fact tracking doesn't double-count attempts."""
+        from src.presentation.controllers.addition_tables import (
+            show_results_with_fact_insights,
+        )
+
+        generator = AdditionTableGenerator(1, 1, randomize=False)
+
+        # Create a mock fact service that simulates the real analyze_session_performance behavior
+        mock_fact_service = Mock()
+        mock_fact_service.track_attempt.return_value = Mock()
+
+        # IMPORTANT: Make analyze_session_performance call track_attempt like the real implementation
+        def mock_analyze_session_performance(user_id, session_attempts):
+            # This simulates the real behavior where analyze_session_performance
+            # calls track_attempt for each session attempt
+            for operand1, operand2, is_correct, response_time_ms in session_attempts:
+                mock_fact_service.track_attempt(
+                    user_id, operand1, operand2, is_correct, response_time_ms
+                )
+
+            return {
+                "session_accuracy": 100.0,
+                "total_attempts": len(session_attempts),
+                "correct_attempts": sum(
+                    1 for _, _, is_correct, _ in session_attempts if is_correct
+                ),
+                "facts_practiced": 1,
+                "mastery_improvements": [],
+                "facts_needing_practice": [],
+            }
+
+        mock_fact_service.analyze_session_performance.side_effect = (
+            mock_analyze_session_performance
+        )
+        mock_fact_service.get_practice_recommendations.return_value = {
+            "recommendation": "Great job!",
+            "weak_facts": [],
+            "mastered_facts_count": 1,
+            "total_possible_facts": 1,
+        }
+
+        # Mock time progression: start_time, problem_start_time, response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 10]
+
+        # Mock user inputs: Enter to start, then correct answer
+        mock_input.side_effect = ["", "2"]
+
+        # Run quiz with fact tracking
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, mock_fact_service, "user123"
+        )
+
+        # Check calls after quiz (should be 0 after fix)
+        initial_track_calls = mock_fact_service.track_attempt.call_count
+
+        # Now call show_results_with_fact_insights which calls analyze_session_performance
+        show_results_with_fact_insights(
+            correct,
+            total,
+            duration,
+            generator,
+            skipped,
+            session_attempts,
+            mock_fact_service,
+            "user123",
+        )
+
+        final_track_calls = mock_fact_service.track_attempt.call_count
+        analyze_calls = final_track_calls - initial_track_calls
+
+        print(f"Quiz calls: {initial_track_calls} (should be 0 after fix)")
+        print(f"Analysis calls: {analyze_calls} (should be 1)")
+        print(f"Total calls: {final_track_calls} (should be 1)")
+        print(f"Session attempts: {len(session_attempts)}")
+
+        # AFTER FIX: We expect:
+        # - 0 calls during quiz (removed duplicate calls)
+        # - 1 call during analyze_session_performance (only tracking happens here)
+        # - Total: 1 call for 1 user answer
+
+        assert (
+            initial_track_calls == 0
+        ), f"Expected 0 calls during quiz (after fix), but got {initial_track_calls}"
+
+        assert (
+            analyze_calls == 1
+        ), f"Expected 1 call during analysis, but got {analyze_calls}"
+
+        assert (
+            final_track_calls == 1
+        ), f"Expected 1 total call (after fix), but got {final_track_calls}"
+
+        print("✓ CONFIRMED: Double-counting bug is FIXED!")
