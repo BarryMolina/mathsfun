@@ -189,11 +189,6 @@ def run_addition_table_quiz(
                         (operand1, operand2, True, response_time_ms)
                     )
 
-                    # Track with fact service if available
-                    if addition_fact_service and user_id:
-                        addition_fact_service.track_attempt(
-                            user_id, operand1, operand2, True, response_time_ms
-                        )
                     break
                 else:
                     print(f"❌ Not quite right. Try again!")
@@ -203,12 +198,6 @@ def run_addition_table_quiz(
                     session_attempts.append(
                         (operand1, operand2, False, response_time_ms)
                     )
-
-                    # Track with fact service if available
-                    if addition_fact_service and user_id:
-                        addition_fact_service.track_attempt(
-                            user_id, operand1, operand2, False, response_time_ms
-                        )
 
             except ValueError:
                 print("❌ Please enter a number, 'next', 'stop', or 'exit'")

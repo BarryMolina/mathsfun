@@ -250,7 +250,12 @@ class TestGenerateAdditionTableProblems:
         """Test generating problems with larger numbers."""
         problems = generate_addition_table_problems(10, 11)
 
-        expected = [("10 + 10", 20), ("10 + 11", 21), ("11 + 10", 21), ("11 + 11", 22)]
+        expected = [
+            ("10 + 10", 20),
+            ("10 + 11", 21),
+            ("11 + 10", 21),
+            ("11 + 11", 22),
+        ]
         assert problems == expected
 
 
@@ -365,7 +370,9 @@ class TestRunAdditionTableQuiz:
             "2",
         ]  # Empty string for "Press Enter", then answer
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 1
         assert total == 1
@@ -382,12 +389,15 @@ class TestRunAdditionTableQuiz:
         """Test wrong answer followed by correct answer."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        # Mock time progression: start_time, problem_start_time, wrong_response_time, correct_response_time, end_time
+        # Mock time progression: start_time, problem_start_time,
+        # wrong_response_time, correct_response_time, end_time
         mock_time.side_effect = [0, 1, 2, 3, 10]
         # Enter to start, wrong answer, then correct answer
         mock_input.side_effect = ["", "3", "2"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 1
         assert total == 2  # Two attempts
@@ -407,7 +417,9 @@ class TestRunAdditionTableQuiz:
         # Enter to start, then skip
         mock_input.side_effect = ["", "next"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 0
         assert total == 0  # No attempts when skipping
@@ -427,7 +439,9 @@ class TestRunAdditionTableQuiz:
         # Enter to start, then exit
         mock_input.side_effect = ["", "exit"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 0
         assert total == 0
@@ -447,7 +461,9 @@ class TestRunAdditionTableQuiz:
         # Enter to start, then stop
         mock_input.side_effect = ["", "stop"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 0
         assert total == 0
@@ -467,7 +483,9 @@ class TestRunAdditionTableQuiz:
         # Enter to start, invalid input, then correct answer
         mock_input.side_effect = ["", "abc", "2"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 1
         assert total == 1  # Only valid attempt counts
@@ -487,12 +505,15 @@ class TestRunAdditionTableQuiz:
         """Test quiz with multiple problems."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        # Mock time progression: start_time, 4 problem_start_times, 4 response_times, end_time
+        # Mock time progression: start_time, 4 problem_start_times,
+        # 4 response_times, end_time
         mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 20]
         # Enter to start, then answers for all 4 problems
         mock_input.side_effect = ["", "2", "3", "3", "4"]  # All correct answers
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 4
         assert total == 4
@@ -507,12 +528,15 @@ class TestRunAdditionTableQuiz:
         """Test quiz with mix of correct, incorrect, and skipped problems."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        # Mock time progression: start, prob1_start, prob1_correct, prob2_start, prob2_wrong, prob2_correct, prob3_start, prob4_start, prob4_correct, end
+        # Mock time progression: start, prob1_start, prob1_correct, prob2_start,
+        # prob2_wrong, prob2_correct, prob3_start, prob4_start, prob4_correct, end
         mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 15]
         # Enter, correct, wrong then correct, skip, correct
         mock_input.side_effect = ["", "2", "5", "3", "next", "4"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         assert correct == 3
         assert total == 4  # 4 attempts (including the wrong one)
@@ -552,7 +576,8 @@ class TestRunAdditionTableQuiz:
         """Test that wrong answers are counted as attempts but not as skips."""
         generator = AdditionTableGenerator(1, 1, randomize=False)
 
-        # Mock time progression: start_time, problem_start_time, 4 response_times, end_time
+        # Mock time progression: start_time, problem_start_time,
+        # 4 response_times, end_time
         mock_time.side_effect = [0, 1, 2, 3, 4, 5, 15]
         # Enter to start, then multiple wrong answers before getting it right
         mock_input.side_effect = [
@@ -563,7 +588,9 @@ class TestRunAdditionTableQuiz:
             "2",
         ]  # 3 wrong attempts, then correct
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         # Should have 1 correct answer
         assert correct == 1
@@ -591,13 +618,17 @@ class TestRunAdditionTableQuiz:
         """Test mixed scenario with wrong answers, skips, and correct answers."""
         generator = AdditionTableGenerator(1, 2, randomize=False)
 
-        # Mock time progression: start, prob1_start, prob1_wrong, prob1_correct, prob2_start, prob3_start, prob3_wrong, prob3_correct, prob4_start, prob4_correct, prob4_final, end
+        # Mock time progression: start, prob1_start, prob1_wrong, prob1_correct,
+        # prob2_start, prob3_start, prob3_wrong, prob3_correct, prob4_start,
+        # prob4_correct, prob4_final, end
         mock_time.side_effect = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20]
         # Enter, wrong then correct, skip, wrong then correct, correct, correct
         # Problems: 1+1=2, 1+2=3, 2+1=3, 2+2=4
         mock_input.side_effect = ["", "5", "2", "next", "8", "3", "3", "4"]
 
-        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(generator)
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator
+        )
 
         # Should have 3 correct answers (1+1=2, 2+1=3, 2+2=4)
         assert correct == 3
@@ -617,7 +648,9 @@ class TestRunAdditionTableQuiz:
 class TestAdditionTablesMode:
     """Test addition_tables_mode function."""
 
-    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
+    @patch(
+        "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
+    )
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
@@ -657,7 +690,9 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("   Order: Random")
         mock_print.assert_any_call("   Total problems: 4")  # (3-2+1)^2
 
-    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
+    @patch(
+        "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
+    )
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
@@ -700,12 +735,18 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("❌ Error: Test error")
         mock_print.assert_any_call("Returning to main menu...")
 
-    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
+    @patch(
+        "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
+    )
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
     def test_addition_tables_mode_generator_created_correctly(
-        self, mock_get_range, mock_get_order, mock_run_quiz, mock_show_results_with_fact_insights
+        self,
+        mock_get_range,
+        mock_get_order,
+        mock_run_quiz,
+        mock_show_results_with_fact_insights,
     ):
         """Test that AdditionTableGenerator is created with correct parameters."""
         mock_get_range.return_value = (3, 7)
@@ -800,3 +841,280 @@ class TestAdditionTablesIntegration:
         assert ("8 + 8", 16) in problems
         assert ("12 + 12", 24) in problems
         assert ("10 + 11", 21) in problems
+
+
+class TestFactTrackingIntegration:
+    """Test fact tracking integration to prevent double-counting."""
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("time.time")
+    def test_fact_tracking_no_double_counting(self, mock_time, mock_print, mock_input):
+        """Test that fact tracking doesn't double-count attempts."""
+        generator = AdditionTableGenerator(1, 1, randomize=False)
+
+        # Mock fact service
+        mock_fact_service = Mock()
+        mock_fact_service.track_attempt.return_value = Mock()
+
+        # Mock time progression: start_time, problem_start_time, response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 10]
+
+        # Mock user inputs: Enter to start, then correct answer
+        mock_input.side_effect = ["", "2"]
+
+        # Run quiz with fact tracking
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, mock_fact_service, "user123"
+        )
+
+        # Verify quiz results
+        assert correct == 1
+        assert total == 1
+        assert skipped == 0
+        assert len(session_attempts) == 1
+
+        # AFTER FIX: track_attempt should NOT be called during the quiz
+        # All tracking should happen only in analyze_session_performance
+        assert mock_fact_service.track_attempt.call_count == 0
+
+        # No calls should have been made during quiz (after fix)
+        mock_fact_service.track_attempt.assert_not_called()
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("time.time")
+    def test_fact_tracking_wrong_then_correct_no_double_counting(
+        self, mock_time, mock_print, mock_input
+    ):
+        """Test that fact tracking doesn't double-count on wrong then correct answers."""
+        generator = AdditionTableGenerator(1, 1, randomize=False)
+
+        # Mock fact service
+        mock_fact_service = Mock()
+        mock_fact_service.track_attempt.return_value = Mock()
+
+        # Mock time progression: start_time, problem_start_time,
+        # wrong_response_time, correct_response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 3, 10]
+
+        # Enter to start, wrong answer, then correct answer
+        mock_input.side_effect = ["", "3", "2"]
+
+        # Run quiz with fact tracking
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, mock_fact_service, "user123"
+        )
+
+        # Verify quiz results
+        assert correct == 1
+        assert total == 2  # Two attempts
+        assert skipped == 0
+        assert len(session_attempts) == 2
+
+        # AFTER FIX: track_attempt should NOT be called during the quiz
+        # All tracking should happen only in analyze_session_performance
+        assert mock_fact_service.track_attempt.call_count == 0
+
+        # No calls should have been made during quiz (after fix)
+        mock_fact_service.track_attempt.assert_not_called()
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("time.time")
+    def test_full_workflow_with_analysis_after_fix(
+        self, mock_time, mock_print, mock_input
+    ):
+        """Test that demonstrates the double-counting bug has been fixed."""
+        from src.presentation.controllers.addition_tables import (
+            show_results_with_fact_insights,
+        )
+
+        generator = AdditionTableGenerator(1, 1, randomize=False)
+
+        # Create a mock fact service that simulates the real analyze_session_performance behavior
+        mock_fact_service = Mock()
+        mock_fact_service.track_attempt.return_value = Mock()
+
+        # IMPORTANT: Make analyze_session_performance call track_attempt like the real implementation
+        def mock_analyze_session_performance(user_id, session_attempts):
+            # This simulates the real behavior where analyze_session_performance
+            # calls track_attempt for each session attempt
+            for operand1, operand2, is_correct, response_time_ms in session_attempts:
+                mock_fact_service.track_attempt(
+                    user_id, operand1, operand2, is_correct, response_time_ms
+                )
+
+            return {
+                "session_accuracy": 100.0,
+                "total_attempts": len(session_attempts),
+                "correct_attempts": sum(
+                    1 for _, _, is_correct, _ in session_attempts if is_correct
+                ),
+                "facts_practiced": 1,
+                "mastery_improvements": [],
+                "facts_needing_practice": [],
+            }
+
+        mock_fact_service.analyze_session_performance.side_effect = (
+            mock_analyze_session_performance
+        )
+        mock_fact_service.get_practice_recommendations.return_value = {
+            "recommendation": "Great job!",
+            "weak_facts": [],
+            "mastered_facts_count": 1,
+            "total_possible_facts": 1,
+        }
+
+        # Mock time progression: start_time, problem_start_time, response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 10]
+
+        # Mock user inputs: Enter to start, then correct answer
+        mock_input.side_effect = ["", "2"]
+
+        # Run quiz with fact tracking
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, mock_fact_service, "user123"
+        )
+
+        # Reset call count to isolate just the analyze_session_performance calls
+        initial_track_calls = mock_fact_service.track_attempt.call_count
+
+        # Now call show_results_with_fact_insights which calls analyze_session_performance
+        show_results_with_fact_insights(
+            correct,
+            total,
+            duration,
+            generator,
+            skipped,
+            session_attempts,
+            mock_fact_service,
+            "user123",
+        )
+
+        final_track_calls = mock_fact_service.track_attempt.call_count
+        analyze_calls = final_track_calls - initial_track_calls
+
+        print(f"Initial track_attempt calls (from quiz): {initial_track_calls}")
+        print(f"Additional track_attempt calls (from analysis): {analyze_calls}")
+        print(f"Total track_attempt calls: {final_track_calls}")
+        print(f"Session attempts: {len(session_attempts)}")
+
+        # AFTER FIX: We expect:
+        # - 0 calls during quiz (removed duplicate calls)
+        # - 1 call during analyze_session_performance (only tracking happens here)
+        # - Total: 1 call for 1 user answer
+
+        expected_total_calls = 1  # 0 from quiz + 1 from analysis
+
+        assert (
+            initial_track_calls == 0
+        ), f"Expected 0 calls during quiz (after fix), but got {initial_track_calls}"
+
+        assert final_track_calls == expected_total_calls, (
+            f"Expected {expected_total_calls} total calls (after fix), "
+            f"but got {final_track_calls}. "
+            f"Quiz calls: {initial_track_calls}, Analysis calls: {analyze_calls}"
+        )
+
+        print("✓ CONFIRMED: Double-counting bug has been FIXED!")
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("time.time")
+    def test_full_workflow_after_fix_no_double_counting(
+        self, mock_time, mock_print, mock_input
+    ):
+        """Test that after fix, fact tracking doesn't double-count attempts."""
+        from src.presentation.controllers.addition_tables import (
+            show_results_with_fact_insights,
+        )
+
+        generator = AdditionTableGenerator(1, 1, randomize=False)
+
+        # Create a mock fact service that simulates the real analyze_session_performance behavior
+        mock_fact_service = Mock()
+        mock_fact_service.track_attempt.return_value = Mock()
+
+        # IMPORTANT: Make analyze_session_performance call track_attempt like the real implementation
+        def mock_analyze_session_performance(user_id, session_attempts):
+            # This simulates the real behavior where analyze_session_performance
+            # calls track_attempt for each session attempt
+            for operand1, operand2, is_correct, response_time_ms in session_attempts:
+                mock_fact_service.track_attempt(
+                    user_id, operand1, operand2, is_correct, response_time_ms
+                )
+
+            return {
+                "session_accuracy": 100.0,
+                "total_attempts": len(session_attempts),
+                "correct_attempts": sum(
+                    1 for _, _, is_correct, _ in session_attempts if is_correct
+                ),
+                "facts_practiced": 1,
+                "mastery_improvements": [],
+                "facts_needing_practice": [],
+            }
+
+        mock_fact_service.analyze_session_performance.side_effect = (
+            mock_analyze_session_performance
+        )
+        mock_fact_service.get_practice_recommendations.return_value = {
+            "recommendation": "Great job!",
+            "weak_facts": [],
+            "mastered_facts_count": 1,
+            "total_possible_facts": 1,
+        }
+
+        # Mock time progression: start_time, problem_start_time, response_time, end_time
+        mock_time.side_effect = [0, 1, 2, 10]
+
+        # Mock user inputs: Enter to start, then correct answer
+        mock_input.side_effect = ["", "2"]
+
+        # Run quiz with fact tracking
+        correct, total, skipped, duration, session_attempts = run_addition_table_quiz(
+            generator, mock_fact_service, "user123"
+        )
+
+        # Check calls after quiz (should be 0 after fix)
+        initial_track_calls = mock_fact_service.track_attempt.call_count
+
+        # Now call show_results_with_fact_insights which calls analyze_session_performance
+        show_results_with_fact_insights(
+            correct,
+            total,
+            duration,
+            generator,
+            skipped,
+            session_attempts,
+            mock_fact_service,
+            "user123",
+        )
+
+        final_track_calls = mock_fact_service.track_attempt.call_count
+        analyze_calls = final_track_calls - initial_track_calls
+
+        print(f"Quiz calls: {initial_track_calls} (should be 0 after fix)")
+        print(f"Analysis calls: {analyze_calls} (should be 1)")
+        print(f"Total calls: {final_track_calls} (should be 1)")
+        print(f"Session attempts: {len(session_attempts)}")
+
+        # AFTER FIX: We expect:
+        # - 0 calls during quiz (removed duplicate calls)
+        # - 1 call during analyze_session_performance (only tracking happens here)
+        # - Total: 1 call for 1 user answer
+
+        assert (
+            initial_track_calls == 0
+        ), f"Expected 0 calls during quiz (after fix), but got {initial_track_calls}"
+
+        assert (
+            analyze_calls == 1
+        ), f"Expected 1 call during analysis, but got {analyze_calls}"
+
+        assert (
+            final_track_calls == 1
+        ), f"Expected 1 total call (after fix), but got {final_track_calls}"
+
+        print("✓ CONFIRMED: Double-counting bug is FIXED!")

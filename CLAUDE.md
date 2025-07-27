@@ -189,8 +189,15 @@ The application includes a comprehensive fact tracking system for addition table
 ## Code Quality and Maintenance
 
 - After writing or editing a python file, run the `mypy` command for static type checking
-- Always run `black src/` after writing or editing a file to ensure consistent formatting 
+- Always run `black src/ tests/` after writing or editing a file to ensure consistent formatting 
 
 ## Deployment and Environment Notes
 
 - This project uses supabase but the local docker environment isn't set up up. However, you have access to the supabase MCP server so use that for anything db-related.
+
+## Development Workflow Guidelines
+
+- Use git flow best practices when implementing changes:
+  - Make small, focused commits with short, concise commit messages
+  - Ensure you are on an appropriately named branch
+  - If you are unsure if the requested changes belong on the current branch, verify with the user before continuing
