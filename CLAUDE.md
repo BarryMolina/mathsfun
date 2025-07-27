@@ -189,7 +189,7 @@ The application includes a comprehensive fact tracking system for addition table
 ## Code Quality and Maintenance
 
 - After writing or editing a python file, run the `mypy` command for static type checking
-- Always run `black src/` after writing or editing a file to ensure consistent formatting 
+- Always run `black src/ tests/` after writing or editing a file to ensure consistent formatting 
 
 ## Deployment and Environment Notes
 

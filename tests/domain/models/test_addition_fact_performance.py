@@ -29,7 +29,7 @@ def sample_performance(sample_timestamp):
         last_attempted=sample_timestamp,
         mastery_level=MasteryLevel.PRACTICING,
         created_at=sample_timestamp,
-        updated_at=sample_timestamp
+        updated_at=sample_timestamp,
     )
 
 
@@ -39,11 +39,9 @@ class TestAdditionFactPerformanceInit:
     def test_init_minimal_required_fields(self):
         """Test initialization with minimal required fields."""
         performance = AdditionFactPerformance(
-            id="test-id",
-            user_id="test-user",
-            fact_key="3+5"
+            id="test-id", user_id="test-user", fact_key="3+5"
         )
-        
+
         assert performance.id == "test-id"
         assert performance.user_id == "test-user"
         assert performance.fact_key == "3+5"
@@ -71,9 +69,9 @@ class TestAdditionFactPerformanceInit:
             last_attempted=sample_timestamp,
             mastery_level=MasteryLevel.MASTERED,
             created_at=sample_timestamp,
-            updated_at=sample_timestamp
+            updated_at=sample_timestamp,
         )
-        
+
         assert performance.id == "test-id"
         assert performance.user_id == "test-user"
         assert performance.fact_key == "9+9"
@@ -100,7 +98,7 @@ class TestAdditionFactPerformanceProperties:
             total_attempts=10,
             correct_attempts=8,
         )
-        
+
         assert performance.accuracy == 80.0
 
     def test_accuracy_property_perfect_score(self):
@@ -112,7 +110,7 @@ class TestAdditionFactPerformanceProperties:
             total_attempts=5,
             correct_attempts=5,
         )
-        
+
         assert performance.accuracy == 100.0
 
     def test_accuracy_property_zero_attempts(self):
@@ -124,7 +122,7 @@ class TestAdditionFactPerformanceProperties:
             total_attempts=0,
             correct_attempts=0,
         )
-        
+
         assert performance.accuracy == 0.0
 
     def test_average_response_time_ms_property(self):
@@ -136,7 +134,7 @@ class TestAdditionFactPerformanceProperties:
             correct_attempts=4,
             total_response_time_ms=12000,  # 12 seconds total
         )
-        
+
         assert performance.average_response_time_ms == 3000.0  # 3 seconds average
 
     def test_average_response_time_ms_no_correct(self):
@@ -148,7 +146,7 @@ class TestAdditionFactPerformanceProperties:
             correct_attempts=0,
             total_response_time_ms=0,
         )
-        
+
         assert performance.average_response_time_ms == 0.0
 
     def test_average_response_time_seconds_property(self):
@@ -160,7 +158,7 @@ class TestAdditionFactPerformanceProperties:
             correct_attempts=2,
             total_response_time_ms=5000,  # 5 seconds total
         )
-        
+
         assert performance.average_response_time_seconds == 2.5  # 2.5 seconds average
 
 
@@ -179,9 +177,9 @@ class TestAdditionFactPerformanceUpdatePerformance:
             fastest_response_ms=3000,
             slowest_response_ms=3000,
         )
-        
+
         performance.update_performance(True, 2500, sample_timestamp)
-        
+
         assert performance.total_attempts == 3
         assert performance.correct_attempts == 2
         assert performance.total_response_time_ms == 5500
@@ -201,9 +199,9 @@ class TestAdditionFactPerformanceUpdatePerformance:
             fastest_response_ms=2500,
             slowest_response_ms=3500,
         )
-        
+
         performance.update_performance(False, 4000, sample_timestamp)
-        
+
         assert performance.total_attempts == 3
         assert performance.correct_attempts == 2  # No change
         assert performance.total_response_time_ms == 6000  # No change
@@ -214,13 +212,11 @@ class TestAdditionFactPerformanceUpdatePerformance:
     def test_update_performance_first_correct_attempt(self):
         """Test updating performance for first correct attempt."""
         performance = AdditionFactPerformance(
-            id="test-id",
-            user_id="test-user",
-            fact_key="5+3",
+            id="test-id", user_id="test-user", fact_key="5+3"
         )
-        
+
         performance.update_performance(True, 3000)
-        
+
         assert performance.total_attempts == 1
         assert performance.correct_attempts == 1
         assert performance.total_response_time_ms == 3000
@@ -241,7 +237,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             total_attempts=3,
             correct_attempts=3,
         )
-        
+
         assert performance.determine_mastery_level() == MasteryLevel.LEARNING
 
     def test_determine_mastery_level_learning_low_accuracy(self):
@@ -253,7 +249,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             total_attempts=10,
             correct_attempts=6,  # 60% accuracy
         )
-        
+
         assert performance.determine_mastery_level() == MasteryLevel.LEARNING
 
     def test_determine_mastery_level_practicing(self):
@@ -265,7 +261,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             total_attempts=8,
             correct_attempts=7,  # 87.5% accuracy
         )
-        
+
         assert performance.determine_mastery_level() == MasteryLevel.PRACTICING
 
     def test_determine_mastery_level_mastered(self):
@@ -277,7 +273,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             total_attempts=10,
             correct_attempts=10,  # 100% accuracy
         )
-        
+
         assert performance.determine_mastery_level() == MasteryLevel.MASTERED
 
     def test_determine_mastery_level_mastered_high_accuracy(self):
@@ -289,7 +285,7 @@ class TestAdditionFactPerformanceMasteryLevel:
             total_attempts=20,
             correct_attempts=19,  # 95% accuracy
         )
-        
+
         assert performance.determine_mastery_level() == MasteryLevel.MASTERED
 
 
@@ -299,7 +295,7 @@ class TestAdditionFactPerformanceCreateNew:
     def test_create_new_minimal(self):
         """Test creating new performance with minimal parameters."""
         performance = AdditionFactPerformance.create_new("user-123", "4+6")
-        
+
         assert performance.user_id == "user-123"
         assert performance.fact_key == "4+6"
         assert performance.total_attempts == 0
@@ -313,7 +309,7 @@ class TestAdditionFactPerformanceCreateNew:
         performance = AdditionFactPerformance.create_new(
             "user-123", "4+6", id="custom-id"
         )
-        
+
         assert performance.id == "custom-id"
         assert performance.user_id == "user-123"
         assert performance.fact_key == "4+6"
@@ -325,7 +321,7 @@ class TestAdditionFactPerformanceSerialization:
     def test_to_dict(self, sample_performance):
         """Test converting to dictionary."""
         result = sample_performance.to_dict()
-        
+
         expected = {
             "id": "perf-123",
             "user_id": "user-456",
@@ -340,19 +336,17 @@ class TestAdditionFactPerformanceSerialization:
             "created_at": "2023-01-01T12:15:30",
             "updated_at": "2023-01-01T12:15:30",
         }
-        
+
         assert result == expected
 
     def test_to_dict_with_none_values(self):
         """Test converting to dictionary with None values."""
         performance = AdditionFactPerformance(
-            id="test-id",
-            user_id="test-user",
-            fact_key="1+1",
+            id="test-id", user_id="test-user", fact_key="1+1"
         )
-        
+
         result = performance.to_dict()
-        
+
         assert result["fastest_response_ms"] is None
         assert result["slowest_response_ms"] is None
         assert result["last_attempted"] is None
@@ -373,11 +367,11 @@ class TestAdditionFactPerformanceSerialization:
             "last_attempted": "2023-01-01T12:15:30",
             "mastery_level": "mastered",
             "created_at": "2023-01-01T12:15:30",
-            "updated_at": "2023-01-01T12:15:30"
+            "updated_at": "2023-01-01T12:15:30",
         }
-        
+
         performance = AdditionFactPerformance.from_dict(data)
-        
+
         assert performance.id == "perf-456"
         assert performance.user_id == "user-789"
         assert performance.fact_key == "9+2"
@@ -400,12 +394,13 @@ class TestAdditionFactPerformanceSerialization:
             "last_attempted": "2023-01-01T12:15:30Z",
             "created_at": "2023-01-01T12:15:30Z",
             "updated_at": "2023-01-01T12:15:30Z",
-            "mastery_level": "learning"
+            "mastery_level": "learning",
         }
-        
+
         performance = AdditionFactPerformance.from_dict(data)
-        
+
         from datetime import timezone
+
         expected_timestamp = datetime(2023, 1, 1, 12, 15, 30, tzinfo=timezone.utc)
         assert performance.last_attempted == expected_timestamp
         assert performance.created_at == expected_timestamp
@@ -415,12 +410,14 @@ class TestAdditionFactPerformanceSerialization:
         """Test round-trip conversion."""
         dict_data = sample_performance.to_dict()
         restored_performance = AdditionFactPerformance.from_dict(dict_data)
-        
+
         assert restored_performance.id == sample_performance.id
         assert restored_performance.user_id == sample_performance.user_id
         assert restored_performance.fact_key == sample_performance.fact_key
         assert restored_performance.total_attempts == sample_performance.total_attempts
-        assert restored_performance.correct_attempts == sample_performance.correct_attempts
+        assert (
+            restored_performance.correct_attempts == sample_performance.correct_attempts
+        )
         assert restored_performance.mastery_level == sample_performance.mastery_level
         assert restored_performance.accuracy == sample_performance.accuracy
 
@@ -438,19 +435,19 @@ class TestAdditionFactPerformanceUnit:
             total_attempts=5,
             correct_attempts=4,
             mastery_level=MasteryLevel.PRACTICING,
-            created_at=sample_timestamp
+            created_at=sample_timestamp,
         )
-        
+
         perf2 = AdditionFactPerformance(
             id="test-id",
-            user_id="test-user", 
+            user_id="test-user",
             fact_key="5+5",
             total_attempts=5,
             correct_attempts=4,
             mastery_level=MasteryLevel.PRACTICING,
-            created_at=sample_timestamp
+            created_at=sample_timestamp,
         )
-        
+
         assert perf1 == perf2
 
     def test_dataclass_inequality(self, sample_timestamp):
@@ -459,14 +456,14 @@ class TestAdditionFactPerformanceUnit:
             id="test-id-1",
             user_id="test-user",
             fact_key="5+5",
-            created_at=sample_timestamp
+            created_at=sample_timestamp,
         )
-        
+
         perf2 = AdditionFactPerformance(
             id="test-id-2",  # Different ID
             user_id="test-user",
             fact_key="5+5",
-            created_at=sample_timestamp
+            created_at=sample_timestamp,
         )
-        
+
         assert perf1 != perf2

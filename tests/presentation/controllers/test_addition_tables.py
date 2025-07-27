@@ -654,7 +654,9 @@ class TestRunAdditionTableQuiz:
 class TestAdditionTablesMode:
     """Test addition_tables_mode function."""
 
-    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
+    @patch(
+        "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
+    )
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
@@ -694,7 +696,9 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("   Order: Random")
         mock_print.assert_any_call("   Total problems: 4")  # (3-2+1)^2
 
-    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
+    @patch(
+        "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
+    )
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
@@ -737,12 +741,18 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("❌ Error: Test error")
         mock_print.assert_any_call("Returning to main menu...")
 
-    @patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights")
+    @patch(
+        "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
+    )
     @patch("src.presentation.controllers.addition_tables.run_addition_table_quiz")
     @patch("src.presentation.controllers.addition_tables.get_order_preference")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
     def test_addition_tables_mode_generator_created_correctly(
-        self, mock_get_range, mock_get_order, mock_run_quiz, mock_show_results_with_fact_insights
+        self,
+        mock_get_range,
+        mock_get_order,
+        mock_run_quiz,
+        mock_show_results_with_fact_insights,
     ):
         """Test that AdditionTableGenerator is created with correct parameters."""
         mock_get_range.return_value = (3, 7)
