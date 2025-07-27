@@ -290,16 +290,27 @@ class TestAdditionFactServiceSessionAnalysis:
         assert result["error"] == "No attempts to analyze"
 
     def test_analyze_session_performance_with_attempts(self, service, mock_repository):
-        """Test session analysis with attempts."""
-        # Mock the track_attempt calls
-        mock_repository.upsert_fact_performance.return_value = AdditionFactPerformance(
-            id="perf-1",
-            user_id="user-456",
-            fact_key="3+5",
-            total_attempts=1,
-            correct_attempts=1,
-            mastery_level=MasteryLevel.LEARNING,
-        )
+        """Test session analysis with attempts using batch operations."""
+        # Mock the batch_upsert_fact_performances call
+        mock_performances = [
+            AdditionFactPerformance(
+                id="perf-1",
+                user_id="user-456",
+                fact_key="3+5",
+                total_attempts=2,
+                correct_attempts=1,
+                mastery_level=MasteryLevel.LEARNING,
+            ),
+            AdditionFactPerformance(
+                id="perf-2",
+                user_id="user-456",
+                fact_key="7+2",
+                total_attempts=1,
+                correct_attempts=1,
+                mastery_level=MasteryLevel.LEARNING,
+            ),
+        ]
+        mock_repository.batch_upsert_fact_performances.return_value = mock_performances
 
         session_attempts = [
             (3, 5, True, 2500),  # Correct attempt
@@ -313,7 +324,86 @@ class TestAdditionFactServiceSessionAnalysis:
         assert result["correct_attempts"] == 2
         assert result["session_accuracy"] == 66.7  # 2/3 * 100, rounded
         assert result["facts_practiced"] == 2  # "3+5" and "7+2"
-        assert len(result["updated_performances"]) == 3  # 3 tracking calls
+        assert len(result["updated_performances"]) == 2  # 2 unique facts updated
+
+        # Verify batch operation was called correctly
+        mock_repository.batch_upsert_fact_performances.assert_called_once_with(
+            "user-456", session_attempts
+        )
+
+
+class TestAdditionFactServiceBatchOperations:
+    """Test batch operations for improved performance."""
+
+    def test_analyze_session_performance_uses_batch_operations(
+        self, service, mock_repository
+    ):
+        """Test that analyze_session_performance uses batch operations."""
+        mock_repository.batch_upsert_fact_performances.return_value = []
+
+        session_attempts = [(3, 5, True, 2500), (7, 8, False, 4000)]
+
+        service.analyze_session_performance("user-456", session_attempts)
+
+        # Verify batch method was called instead of individual track_attempt calls
+        mock_repository.batch_upsert_fact_performances.assert_called_once_with(
+            "user-456", session_attempts
+        )
+        # Verify individual upsert method is NOT called
+        assert (
+            not hasattr(mock_repository, "upsert_fact_performance")
+            or not mock_repository.upsert_fact_performance.called
+        )
+
+    def test_analyze_session_performance_large_session(self, service, mock_repository):
+        """Test batch operations with large session (performance scenario)."""
+        # Simulate 100 attempts (10x10 addition table)
+        session_attempts = [
+            (i, j, i + j < 15, 2000 + (i * j * 10))  # Correct if sum < 15
+            for i in range(1, 11)
+            for j in range(1, 11)
+        ]
+
+        # Mock returning unique facts
+        unique_facts = [
+            AdditionFactPerformance(
+                id=f"perf-{i}-{j}",
+                user_id="user-456",
+                fact_key=f"{i}+{j}",
+                total_attempts=1,
+                correct_attempts=1 if i + j < 15 else 0,
+                mastery_level=MasteryLevel.LEARNING,
+            )
+            for i in range(1, 11)
+            for j in range(1, 11)
+        ]
+        mock_repository.batch_upsert_fact_performances.return_value = unique_facts
+
+        result = service.analyze_session_performance("user-456", session_attempts)
+
+        assert result["total_attempts"] == 100
+        assert result["facts_practiced"] == 100  # 10x10 unique facts
+        assert len(result["updated_performances"]) == 100
+
+        # Most importantly: only ONE batch call instead of 100+ individual calls
+        mock_repository.batch_upsert_fact_performances.assert_called_once()
+
+    def test_analyze_session_performance_empty_batch_result(
+        self, service, mock_repository
+    ):
+        """Test handling of empty batch result."""
+        mock_repository.batch_upsert_fact_performances.return_value = []
+
+        session_attempts = [(3, 5, True, 2500)]
+
+        result = service.analyze_session_performance("user-456", session_attempts)
+
+        assert result["total_attempts"] == 1
+        assert result["correct_attempts"] == 1
+        assert result["facts_practiced"] == 1
+        assert len(result["updated_performances"]) == 0  # Empty batch result
+        assert len(result["mastery_improvements"]) == 0
+        assert len(result["facts_needing_practice"]) == 0
 
 
 @pytest.mark.unit
