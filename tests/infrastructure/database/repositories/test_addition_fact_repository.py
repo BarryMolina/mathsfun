@@ -256,6 +256,135 @@ class TestAdditionFactRepositoryBatchOperations:
 
         assert result == []  # Should return empty list on error
 
+    def test_batch_upsert_id_consistency_mixed_records(
+        self, repository, mock_client, sample_session_attempts
+    ):
+        """Test that all records in batch upsert have consistent ID handling."""
+        # Mock existing performance for 3+5 with an ID
+        existing_perf_data = {
+            "id": "perf-123",
+            "user_id": "user-123",
+            "fact_key": "3+5",
+            "total_attempts": 5,
+            "correct_attempts": 3,
+            "total_response_time_ms": 15000,
+            "mastery_level": "learning",
+            "created_at": "2024-01-01T00:00:00",
+            "updated_at": "2024-01-01T00:00:00",
+            "last_attempted": "2024-01-01T00:00:00",
+        }
+
+        mock_table = Mock()
+        mock_client.table.return_value = mock_table
+
+        # Mock bulk get returning one existing performance (3+5)
+        mock_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = [
+            existing_perf_data
+        ]
+
+        # Mock successful upsert
+        mock_table.upsert.return_value.execute.return_value = Mock()
+
+        repository.batch_upsert_fact_performances("user-123", sample_session_attempts)
+
+        # Verify upsert was called
+        mock_table.upsert.assert_called_once()
+
+        # Get the records that were passed to upsert
+        upsert_call_args = mock_table.upsert.call_args
+        upsert_records = upsert_call_args[0][0]  # First positional argument
+
+        # All records should have consistent ID handling - either all have IDs or none do
+        # For proper upsert behavior with on_conflict, all records should NOT have IDs
+        for record in upsert_records:
+            assert "id" not in record, f"Record should not contain 'id' field: {record}"
+            # Verify required fields are present
+            assert "user_id" in record
+            assert "fact_key" in record
+            assert "total_attempts" in record
+
+    def test_batch_upsert_id_consistency_all_new_records(
+        self, repository, mock_client, sample_session_attempts
+    ):
+        """Test that new records do not contain ID fields."""
+        mock_table = Mock()
+        mock_client.table.return_value = mock_table
+
+        # Mock no existing performances
+        mock_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = (
+            []
+        )
+
+        # Mock successful upsert
+        mock_table.upsert.return_value.execute.return_value = Mock()
+
+        repository.batch_upsert_fact_performances("user-123", sample_session_attempts)
+
+        # Verify upsert was called
+        mock_table.upsert.assert_called_once()
+
+        # Get the records that were passed to upsert
+        upsert_call_args = mock_table.upsert.call_args
+        upsert_records = upsert_call_args[0][0]  # First positional argument
+
+        # All records should be new (no IDs)
+        for record in upsert_records:
+            assert (
+                "id" not in record
+            ), f"New record should not contain 'id' field: {record}"
+            assert "user_id" in record
+            assert "fact_key" in record
+
+    def test_batch_upsert_id_consistency_all_existing_records(
+        self, repository, mock_client
+    ):
+        """Test that existing records do not contain ID fields when batched."""
+        # Create session with only one fact that exists
+        session_attempts = [(3, 5, True, 2500), (3, 5, False, 3000)]
+
+        # Mock existing performance for 3+5 with an ID
+        existing_perf_data = {
+            "id": "perf-123",
+            "user_id": "user-123",
+            "fact_key": "3+5",
+            "total_attempts": 5,
+            "correct_attempts": 3,
+            "total_response_time_ms": 15000,
+            "mastery_level": "learning",
+            "created_at": "2024-01-01T00:00:00",
+            "updated_at": "2024-01-01T00:00:00",
+            "last_attempted": "2024-01-01T00:00:00",
+        }
+
+        mock_table = Mock()
+        mock_client.table.return_value = mock_table
+
+        # Mock bulk get returning the existing performance
+        mock_table.select.return_value.eq.return_value.in_.return_value.execute.return_value.data = [
+            existing_perf_data
+        ]
+
+        # Mock successful upsert
+        mock_table.upsert.return_value.execute.return_value = Mock()
+
+        repository.batch_upsert_fact_performances("user-123", session_attempts)
+
+        # Verify upsert was called
+        mock_table.upsert.assert_called_once()
+
+        # Get the records that were passed to upsert
+        upsert_call_args = mock_table.upsert.call_args
+        upsert_records = upsert_call_args[0][0]  # First positional argument
+
+        # Even existing records should not have IDs in the upsert payload
+        assert len(upsert_records) == 1
+        record = upsert_records[0]
+        assert (
+            "id" not in record
+        ), f"Existing record should not contain 'id' field: {record}"
+        assert record["user_id"] == "user-123"
+        assert record["fact_key"] == "3+5"
+
 
 @pytest.mark.repository
 class TestAdditionFactRepositoryBatchIntegration:
