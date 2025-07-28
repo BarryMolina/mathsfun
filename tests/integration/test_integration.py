@@ -9,7 +9,10 @@ from src.presentation.controllers.addition import (
     run_addition_quiz,
     ProblemGenerator,
 )
-from src.infrastructure.database.supabase_manager import SupabaseManager, validate_environment
+from src.infrastructure.database.supabase_manager import (
+    SupabaseManager,
+    validate_environment,
+)
 
 
 @pytest.mark.integration
@@ -318,43 +321,43 @@ class TestStressTests:
 @pytest.mark.integration
 class TestLocalSupabaseEnvironment:
     """Integration tests for local Supabase environment connectivity."""
-    
-    @patch('requests.get')
+
+    @patch("requests.get")
     def test_local_environment_detection_and_connectivity(self, mock_get):
         """Test that local environment is correctly detected and can be validated."""
         # Mock successful health check
         mock_response = Mock()
         mock_response.status_code = 200
         mock_get.return_value = mock_response
-        
+
         # Test with local environment configuration
         with patch.dict(
             os.environ,
             {
                 "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
-                "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+                "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
             },
             clear=False,
         ):
-            # Create SupabaseManager instance 
+            # Create SupabaseManager instance
             manager = SupabaseManager()
-            
+
             # Verify environment detection
             assert manager.config.environment == "local"
             assert manager.config.is_local is True
             assert manager.config.url == "http://127.0.0.1:54321"
             assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" in manager.config.anon_key
-            
+
             # Verify client creation doesn't raise errors
             client = manager.get_client()
             assert client is not None
-            
+
             # Verify environment validation
             is_valid, message = validate_environment()
             assert is_valid is True
             assert "local development" in message
-    
+
     def test_production_environment_detection(self):
         """Test that production environment is correctly detected."""
         # Test with production environment configuration
@@ -363,23 +366,23 @@ class TestLocalSupabaseEnvironment:
             {
                 "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://example.supabase.co",
-                "SUPABASE_ANON_KEY": "prod-key-example"
+                "SUPABASE_ANON_KEY": "prod-key-example",
             },
             clear=False,
         ):
             manager = SupabaseManager()
-            
+
             # Verify environment detection
             assert manager.config.environment == "production"
             assert manager.config.is_local is False
             assert manager.config.url == "https://example.supabase.co"
             assert manager.config.anon_key == "prod-key-example"
-            
+
             # Verify environment validation
             is_valid, message = validate_environment()
             assert is_valid is True
             assert "production" in message
-    
+
     def test_environment_switching_at_runtime(self):
         """Test that environment can be properly detected when changed at runtime."""
         # Start with production environment
@@ -388,27 +391,27 @@ class TestLocalSupabaseEnvironment:
             {
                 "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://prod.supabase.co",
-                "SUPABASE_ANON_KEY": "prod-key"
+                "SUPABASE_ANON_KEY": "prod-key",
             },
             clear=False,
         ):
             manager1 = SupabaseManager()
             assert manager1.config.is_local is False
-        
+
         # Switch to local environment and create new instance
         with patch.dict(
             os.environ,
             {
                 "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
-                "SUPABASE_ANON_KEY": "local-key"
+                "SUPABASE_ANON_KEY": "local-key",
             },
             clear=False,
         ):
             manager2 = SupabaseManager()
             assert manager2.config.is_local is True
             assert manager2.config.url == "http://127.0.0.1:54321"
-    
+
     def test_missing_environment_variable_handling(self):
         """Test proper error handling when environment variables are missing."""
         # Test missing URL
@@ -417,26 +420,30 @@ class TestLocalSupabaseEnvironment:
             {
                 "ENVIRONMENT": "local",
                 "SUPABASE_URL": "",
-                "SUPABASE_ANON_KEY": "test-key"
+                "SUPABASE_ANON_KEY": "test-key",
             },
             clear=False,
         ):
             is_valid, message = validate_environment()
             assert is_valid is False
             assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
-            assert "supabase start" in message  # Local environment specific instructions
-        
+            assert (
+                "supabase start" in message
+            )  # Local environment specific instructions
+
         # Test missing key
         with patch.dict(
             os.environ,
             {
                 "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://test.supabase.co",
-                "SUPABASE_ANON_KEY": ""
+                "SUPABASE_ANON_KEY": "",
             },
             clear=False,
         ):
             is_valid, message = validate_environment()
             assert is_valid is False
             assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
-            assert ".env file for production" in message  # Production environment specific instructions
+            assert (
+                ".env file for production" in message
+            )  # Production environment specific instructions

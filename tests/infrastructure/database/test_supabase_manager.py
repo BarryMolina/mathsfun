@@ -859,7 +859,10 @@ class TestValidateEnvironment:
         """Test validate_environment with valid environment."""
         with patch.dict(
             os.environ,
-            {"SUPABASE_URL": "http://test.supabase.co", "SUPABASE_ANON_KEY": "test-key"},
+            {
+                "SUPABASE_URL": "http://test.supabase.co",
+                "SUPABASE_ANON_KEY": "test-key",
+            },
             clear=False,
         ):
             valid, message = validate_environment()
@@ -933,7 +936,7 @@ class TestSupabaseManagerMarkings:
 
 class TestSupabaseManagerEnvironmentSwitching:
     """Test SupabaseManager runtime environment switching capabilities."""
-    
+
     def test_runtime_environment_detection(self):
         """Test that SupabaseManager instances can have different environments at runtime."""
         # Create manager with production environment
@@ -942,7 +945,7 @@ class TestSupabaseManagerEnvironmentSwitching:
             {
                 "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://prod.supabase.co",
-                "SUPABASE_ANON_KEY": "prod-key"
+                "SUPABASE_ANON_KEY": "prod-key",
             },
             clear=False,
         ):
@@ -950,14 +953,14 @@ class TestSupabaseManagerEnvironmentSwitching:
             assert prod_manager.config.environment == "production"
             assert prod_manager.config.is_local is False
             assert prod_manager.config.url == "https://prod.supabase.co"
-        
+
         # Create manager with local environment (simulating runtime switch)
         with patch.dict(
             os.environ,
             {
                 "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
-                "SUPABASE_ANON_KEY": "local-key"
+                "SUPABASE_ANON_KEY": "local-key",
             },
             clear=False,
         ):
@@ -965,14 +968,14 @@ class TestSupabaseManagerEnvironmentSwitching:
             assert local_manager.config.environment == "local"
             assert local_manager.config.is_local is True
             assert local_manager.config.url == "http://127.0.0.1:54321"
-        
+
         # Verify both managers maintain their configurations
         assert prod_manager.config.environment == "production"
         assert local_manager.config.environment == "local"
-        
+
         # Verify they have different clients pointing to different URLs
         assert prod_manager.config.url != local_manager.config.url
-    
+
     def test_environment_validation_changes_with_environment(self):
         """Test that validate_environment reflects current environment variables."""
         # Test production validation
@@ -981,21 +984,21 @@ class TestSupabaseManagerEnvironmentSwitching:
             {
                 "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://prod.supabase.co",
-                "SUPABASE_ANON_KEY": "prod-key"
+                "SUPABASE_ANON_KEY": "prod-key",
             },
             clear=False,
         ):
             is_valid, message = validate_environment()
             assert is_valid is True
             assert "production" in message
-        
+
         # Test local validation (will fail health check)
         with patch.dict(
             os.environ,
             {
                 "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
-                "SUPABASE_ANON_KEY": "local-key"
+                "SUPABASE_ANON_KEY": "local-key",
             },
             clear=False,
         ):

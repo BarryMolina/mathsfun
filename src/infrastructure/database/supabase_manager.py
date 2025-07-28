@@ -13,7 +13,6 @@ from .environment_config import EnvironmentConfig
 dotenv.load_dotenv()
 
 
-
 class OAuthServer(HTTPServer):
     """Custom HTTP server that stores OAuth callback results"""
 
@@ -169,10 +168,10 @@ class SupabaseManager:
     def __init__(self):
         # Use configuration object for environment settings
         self.config = EnvironmentConfig.from_environment()
-        
+
         # Log environment information for development visibility
         print(self.config.get_console_message())
-        
+
         self._client: Client = create_client(self.config.url, self.config.anon_key)
         self._authenticated = False
         self._lock = threading.Lock()
