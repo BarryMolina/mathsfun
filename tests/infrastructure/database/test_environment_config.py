@@ -4,7 +4,10 @@ import pytest
 import os
 from unittest.mock import patch, Mock
 import requests
-from src.infrastructure.database.environment_config import EnvironmentConfig
+from src.infrastructure.database.environment_config import (
+    EnvironmentConfig,
+    ValidationLevel,
+)
 
 
 class TestEnvironmentConfig:
@@ -75,10 +78,11 @@ class TestEnvironmentConfig:
             is_local=True,
         )
 
-        is_valid, message = config.validate()
+        is_valid, message, level = config.validate()
 
         assert is_valid is True
         assert "local development" in message
+        assert level == ValidationLevel.INFO
         assert "validated" in message
         mock_get.assert_called_once_with("http://127.0.0.1:54321/health", timeout=5)
 
@@ -91,10 +95,11 @@ class TestEnvironmentConfig:
             is_local=False,
         )
 
-        is_valid, message = config.validate()
+        is_valid, message, level = config.validate()
 
         assert is_valid is True
         assert "production" in message
+        assert level == ValidationLevel.INFO
         assert "validated" in message
 
     def test_validate_missing_url_local(self):
@@ -103,12 +108,13 @@ class TestEnvironmentConfig:
             environment="local", url="", anon_key="test-key", is_local=True
         )
 
-        is_valid, message = config.validate()
+        is_valid, message, level = config.validate()
 
         assert is_valid is False
         assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
         assert "supabase start" in message
         assert ".env.local" in message
+        assert level == ValidationLevel.CRITICAL
 
     def test_validate_missing_key_production(self):
         """Test validation with missing key in production environment."""
@@ -119,11 +125,12 @@ class TestEnvironmentConfig:
             is_local=False,
         )
 
-        is_valid, message = config.validate()
+        is_valid, message, level = config.validate()
 
         assert is_valid is False
         assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
         assert ".env file for production" in message
+        assert level == ValidationLevel.CRITICAL
 
     def test_get_display_name(self):
         """Test get_display_name method."""
@@ -132,6 +139,60 @@ class TestEnvironmentConfig:
 
         assert local_config.get_display_name() == "local development"
         assert prod_config.get_display_name() == "production"
+
+    def test_validation_level_enum_values(self):
+        """Test ValidationLevel enum has expected values."""
+        assert ValidationLevel.CRITICAL.value == "critical"
+        assert ValidationLevel.WARNING.value == "warning"
+        assert ValidationLevel.INFO.value == "info"
+
+    def test_validation_levels_for_different_scenarios(self):
+        """Test that different validation scenarios return appropriate ValidationLevel."""
+        # Test CRITICAL level for missing config
+        critical_config = EnvironmentConfig(
+            environment="production", url="", anon_key="", is_local=False
+        )
+        is_valid, message, level = critical_config.validate()
+        assert not is_valid
+        assert level == ValidationLevel.CRITICAL
+        assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
+
+        # Test INFO level for successful validation
+        info_config = EnvironmentConfig(
+            environment="production",
+            url="https://test.supabase.co",
+            anon_key="test-key",
+            is_local=False,
+        )
+        is_valid, message, level = info_config.validate()
+        assert is_valid
+        assert level == ValidationLevel.INFO
+        assert "validated" in message.lower()
+
+    @patch("requests.get")
+    def test_validation_level_warning_for_health_check_failures(self, mock_get):
+        """Test that health check failures return WARNING level."""
+        # Test connection error returns WARNING
+        mock_get.side_effect = requests.exceptions.ConnectionError()
+        config = EnvironmentConfig(
+            environment="local",
+            url="http://127.0.0.1:54321",
+            anon_key="test-key",
+            is_local=True,
+        )
+        is_valid, message, level = config.validate()
+        assert not is_valid
+        assert level == ValidationLevel.WARNING
+        assert "Local Supabase appears to be offline" in message
+
+        # Test HTTP error returns WARNING
+        mock_response = Mock()
+        mock_response.status_code = 404
+        mock_get.return_value = mock_response
+        is_valid, message, level = config.validate()
+        assert not is_valid
+        assert level == ValidationLevel.WARNING
+        assert "Local Supabase appears to be offline" in message
 
     def test_get_console_message(self):
         """Test get_console_message method."""
@@ -174,12 +235,13 @@ class TestEnvironmentConfig:
             is_local=True,
         )
 
-        is_valid, message = config.validate()
+        is_valid, message, level = config.validate()
 
         assert is_valid is False
         assert "Local Supabase appears to be offline" in message
         assert "supabase start" in message
         assert "http://127.0.0.1:54321" in message
+        assert level == ValidationLevel.WARNING
 
     @patch("requests.get")
     def test_validate_local_supabase_timeout(self, mock_get):
@@ -194,10 +256,11 @@ class TestEnvironmentConfig:
             is_local=True,
         )
 
-        is_valid, message = config.validate()
+        is_valid, message, level = config.validate()
 
         assert is_valid is False
         assert "Local Supabase appears to be offline" in message
+        assert level == ValidationLevel.WARNING
 
     @patch("requests.get")
     def test_validate_local_supabase_error_response(self, mock_get):
@@ -214,10 +277,11 @@ class TestEnvironmentConfig:
             is_local=True,
         )
 
-        is_valid, message = config.validate()
+        is_valid, message, level = config.validate()
 
         assert is_valid is False
         assert "Local Supabase appears to be offline" in message
+        assert level == ValidationLevel.WARNING
 
     def test_is_local_supabase_running_production_skip(self):
         """Test that local Supabase check is skipped for production environment."""

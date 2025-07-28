@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qs
 from supabase import create_client, Client, ClientOptions
 from typing import Optional, Dict, Any
 from ..storage.session_storage import SessionStorage
-from .environment_config import EnvironmentConfig
+from .environment_config import EnvironmentConfig, ValidationLevel
 
 
 class OAuthServer(HTTPServer):
@@ -169,15 +169,16 @@ class SupabaseManager:
         # Use configuration object for environment settings
         self.config = EnvironmentConfig.from_environment()
 
-        # Validate configuration and handle validation failures
-        is_valid, message = self.config.validate()
+        # Validate configuration and handle validation failures based on severity
+        is_valid, message, level = self.config.validate()
         if not is_valid:
-            # For critical missing configuration, raise an exception
-            if not self.config.url or not self.config.anon_key:
-                raise ValueError(f"Critical configuration missing: {message}")
-            else:
-                # For service availability issues, warn but continue with graceful degradation
+            if level == ValidationLevel.CRITICAL:
+                # Critical errors prevent application startup
+                raise ValueError(f"Critical configuration error: {message}")
+            elif level == ValidationLevel.WARNING:
+                # Warnings allow continuation with graceful degradation
                 print(f"⚠️  Configuration warning: {message}")
+            # INFO level messages are handled in successful validation path
 
         # Log environment information for development visibility
         print(self.config.get_console_message())
@@ -458,7 +459,8 @@ class SupabaseManager:
 def validate_environment() -> tuple[bool, str]:
     """Validate that required environment variables are set"""
     config = EnvironmentConfig.from_environment()
-    return config.validate()
+    is_valid, message, level = config.validate()
+    return is_valid, message
 
 
 # Singleton instance for app-wide access

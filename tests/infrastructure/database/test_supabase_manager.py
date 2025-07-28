@@ -1019,7 +1019,7 @@ class TestSupabaseManagerEnvironmentSwitching:
             },
             clear=False,
         ):
-            with pytest.raises(ValueError, match="Critical configuration missing"):
+            with pytest.raises(ValueError, match="Critical configuration error"):
                 SupabaseManager()
 
         # Test missing key raises ValueError
@@ -1032,5 +1032,5 @@ class TestSupabaseManagerEnvironmentSwitching:
             },
             clear=False,
         ):
-            with pytest.raises(ValueError, match="Critical configuration missing"):
+            with pytest.raises(ValueError, match="Critical configuration error"):
                 SupabaseManager()
