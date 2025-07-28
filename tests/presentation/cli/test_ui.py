@@ -4,8 +4,8 @@
 import pytest
 from unittest.mock import patch, Mock
 from src.presentation.cli.ui import (
-    print_welcome, 
-    print_main_menu, 
+    print_welcome,
+    print_main_menu,
     get_user_input,
     get_email_input,
     get_password_input,
@@ -289,7 +289,9 @@ class TestGetEmailInput:
 
     def test_get_email_input_empty_then_valid(self, mocker, capsys):
         """Test get_email_input with empty input followed by valid email."""
-        mock_input = mocker.patch("builtins.input", side_effect=["", "test@example.com"])
+        mock_input = mocker.patch(
+            "builtins.input", side_effect=["", "test@example.com"]
+        )
 
         result = get_email_input()
 
@@ -302,7 +304,9 @@ class TestGetEmailInput:
 
     def test_get_email_input_invalid_format_then_valid(self, mocker, capsys):
         """Test get_email_input with invalid format followed by valid email."""
-        mock_input = mocker.patch("builtins.input", side_effect=["invalid-email", "test@example.com"])
+        mock_input = mocker.patch(
+            "builtins.input", side_effect=["invalid-email", "test@example.com"]
+        )
 
         result = get_email_input()
 
@@ -315,13 +319,16 @@ class TestGetEmailInput:
 
     def test_get_email_input_multiple_invalid_formats(self, mocker, capsys):
         """Test get_email_input with multiple invalid formats."""
-        mock_input = mocker.patch("builtins.input", side_effect=[
-            "plaintext",
-            "@example.com",
-            "test@",
-            "test@example",
-            "test@example.com"
-        ])
+        mock_input = mocker.patch(
+            "builtins.input",
+            side_effect=[
+                "plaintext",
+                "@example.com",
+                "test@",
+                "test@example",
+                "test@example.com",
+            ],
+        )
 
         result = get_email_input()
 
@@ -364,7 +371,9 @@ class TestGetEmailInput:
     )
     def test_get_email_input_invalid_formats(self, mocker, email):
         """Test get_email_input with various invalid email formats."""
-        mock_input = mocker.patch("builtins.input", side_effect=[email, "valid@example.com"])
+        mock_input = mocker.patch(
+            "builtins.input", side_effect=[email, "valid@example.com"]
+        )
 
         result = get_email_input()
 
@@ -377,7 +386,9 @@ class TestGetPasswordInput:
 
     def test_get_password_input_valid_password(self, mocker):
         """Test get_password_input with valid password."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", return_value="password123")
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass", return_value="password123"
+        )
 
         result = get_password_input()
 
@@ -386,7 +397,9 @@ class TestGetPasswordInput:
 
     def test_get_password_input_custom_prompt(self, mocker):
         """Test get_password_input with custom prompt."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", return_value="password123")
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass", return_value="password123"
+        )
 
         result = get_password_input("New password")
 
@@ -395,7 +408,9 @@ class TestGetPasswordInput:
 
     def test_get_password_input_empty_then_valid(self, mocker, capsys):
         """Test get_password_input with empty password followed by valid password."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=["", "password123"])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass", side_effect=["", "password123"]
+        )
 
         result = get_password_input()
 
@@ -408,7 +423,10 @@ class TestGetPasswordInput:
 
     def test_get_password_input_too_short_then_valid(self, mocker, capsys):
         """Test get_password_input with password too short followed by valid password."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=["123", "password123"])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["123", "password123"],
+        )
 
         result = get_password_input()
 
@@ -416,16 +434,18 @@ class TestGetPasswordInput:
         output = captured.out
 
         assert result == "password123"
-        assert "❌ Password must be at least 6 characters long. Please try again." in output
+        assert (
+            "❌ Password must be at least 6 characters long. Please try again."
+            in output
+        )
         assert mock_getpass.call_count == 2
 
     def test_get_password_input_multiple_invalid_attempts(self, mocker, capsys):
         """Test get_password_input with multiple invalid attempts."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=[
-            "",
-            "12345",
-            "password123"
-        ])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["", "12345", "password123"],
+        )
 
         result = get_password_input()
 
@@ -434,7 +454,10 @@ class TestGetPasswordInput:
 
         assert result == "password123"
         assert "❌ Password cannot be empty. Please try again." in output
-        assert "❌ Password must be at least 6 characters long. Please try again." in output
+        assert (
+            "❌ Password must be at least 6 characters long. Please try again."
+            in output
+        )
         assert mock_getpass.call_count == 3
 
 
@@ -443,7 +466,10 @@ class TestGetPasswordConfirmation:
 
     def test_get_password_confirmation_matching_passwords(self, mocker):
         """Test get_password_confirmation with matching passwords."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=["password123", "password123"])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["password123", "password123"],
+        )
 
         result = get_password_confirmation()
 
@@ -452,12 +478,10 @@ class TestGetPasswordConfirmation:
 
     def test_get_password_confirmation_mismatched_then_matching(self, mocker, capsys):
         """Test get_password_confirmation with mismatched then matching passwords."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=[
-            "password123",
-            "different",
-            "newpassword",
-            "newpassword"
-        ])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["password123", "different", "newpassword", "newpassword"],
+        )
 
         result = get_password_confirmation()
 
@@ -470,14 +494,17 @@ class TestGetPasswordConfirmation:
 
     def test_get_password_confirmation_multiple_mismatches(self, mocker, capsys):
         """Test get_password_confirmation with multiple password mismatches."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=[
-            "password1",
-            "password2",
-            "password3",
-            "password4",
-            "finalpass",
-            "finalpass"
-        ])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=[
+                "password1",
+                "password2",
+                "password3",
+                "password4",
+                "finalpass",
+                "finalpass",
+            ],
+        )
 
         result = get_password_confirmation()
 
@@ -490,11 +517,14 @@ class TestGetPasswordConfirmation:
 
     def test_get_password_confirmation_empty_password_validation(self, mocker, capsys):
         """Test get_password_confirmation handles empty password validation."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=[
-            "",  # Empty password
-            "123456",  # Valid password
-            "123456"   # Matching confirmation
-        ])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=[
+                "",  # Empty password
+                "123456",  # Valid password
+                "123456",  # Matching confirmation
+            ],
+        )
 
         result = get_password_confirmation()
 
@@ -507,11 +537,14 @@ class TestGetPasswordConfirmation:
 
     def test_get_password_confirmation_short_password_validation(self, mocker, capsys):
         """Test get_password_confirmation handles short password validation."""
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=[
-            "123",     # Too short
-            "123456",  # Valid password
-            "123456"   # Matching confirmation
-        ])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=[
+                "123",  # Too short
+                "123456",  # Valid password
+                "123456",  # Matching confirmation
+            ],
+        )
 
         result = get_password_confirmation()
 
@@ -519,7 +552,10 @@ class TestGetPasswordConfirmation:
         output = captured.out
 
         assert result == "123456"
-        assert "❌ Password must be at least 6 characters long. Please try again." in output
+        assert (
+            "❌ Password must be at least 6 characters long. Please try again."
+            in output
+        )
         assert mock_getpass.call_count == 3
 
 
@@ -529,7 +565,10 @@ class TestEmailPasswordUIIntegration:
     def test_email_password_signup_flow(self, mocker, capsys):
         """Test complete email/password signup UI flow."""
         mock_input = mocker.patch("builtins.input", return_value="test@example.com")
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", side_effect=["password123", "password123"])
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["password123", "password123"],
+        )
 
         email = get_email_input()
         password = get_password_confirmation()
@@ -542,7 +581,9 @@ class TestEmailPasswordUIIntegration:
     def test_email_password_signin_flow(self, mocker):
         """Test complete email/password signin UI flow."""
         mock_input = mocker.patch("builtins.input", return_value="user@example.com")
-        mock_getpass = mocker.patch("src.presentation.cli.ui.getpass.getpass", return_value="mypassword")
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass", return_value="mypassword"
+        )
 
         email = get_email_input()
         password = get_password_input()
