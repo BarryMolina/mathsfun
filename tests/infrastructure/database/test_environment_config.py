@@ -236,3 +236,40 @@ class TestEnvironmentConfig:
         # Should return True without making any requests
         result = config._is_local_supabase_running()
         assert result is True
+    
+    def test_runtime_environment_switching(self):
+        """Test that multiple config instances can have different environments."""
+        # Create config with production environment
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "production",
+                "SUPABASE_URL": "https://prod.supabase.co",
+                "SUPABASE_ANON_KEY": "prod-key"
+            },
+            clear=False,
+        ):
+            prod_config = EnvironmentConfig.from_environment()
+            assert prod_config.environment == "production"
+            assert prod_config.is_local is False
+        
+        # Switch environment variables and create new config
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "local",
+                "SUPABASE_URL": "http://127.0.0.1:54321",
+                "SUPABASE_ANON_KEY": "local-key"
+            },
+            clear=False,
+        ):
+            local_config = EnvironmentConfig.from_environment()
+            assert local_config.environment == "local"
+            assert local_config.is_local is True
+            assert local_config.url == "http://127.0.0.1:54321"
+            
+        # Verify both configs maintain their state
+        assert prod_config.environment == "production"
+        assert prod_config.is_local is False
+        assert local_config.environment == "local"
+        assert local_config.is_local is True
