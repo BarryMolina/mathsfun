@@ -319,8 +319,14 @@ class TestStressTests:
 class TestLocalSupabaseEnvironment:
     """Integration tests for local Supabase environment connectivity."""
     
-    def test_local_environment_detection_and_connectivity(self):
+    @patch('requests.get')
+    def test_local_environment_detection_and_connectivity(self, mock_get):
         """Test that local environment is correctly detected and can be validated."""
+        # Mock successful health check
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
         # Test with local environment configuration
         with patch.dict(
             os.environ,

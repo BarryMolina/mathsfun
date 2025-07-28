@@ -2,7 +2,8 @@
 
 import pytest
 import os
-from unittest.mock import patch
+from unittest.mock import patch, Mock
+import requests
 from src.infrastructure.database.environment_config import EnvironmentConfig
 
 
@@ -59,8 +60,14 @@ class TestEnvironmentConfig:
             assert config.anon_key == ""  # Missing
             assert config.is_local is False
     
-    def test_validate_success_local(self):
-        """Test validation with valid local configuration."""
+    @patch('requests.get')
+    def test_validate_success_local(self, mock_get):
+        """Test validation with valid local configuration and running Supabase."""
+        # Mock successful health check
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
         config = EnvironmentConfig(
             environment="local",
             url="http://127.0.0.1:54321",
@@ -73,6 +80,7 @@ class TestEnvironmentConfig:
         assert is_valid is True
         assert "local development" in message
         assert "validated" in message
+        mock_get.assert_called_once_with("http://127.0.0.1:54321/health", timeout=5)
     
     def test_validate_success_production(self):
         """Test validation with valid production configuration."""
@@ -157,3 +165,74 @@ class TestEnvironmentConfig:
             
             assert config.environment == "local"  # Should be lowercase
             assert config.is_local is True
+    
+    @patch('requests.get')
+    def test_validate_local_supabase_not_running(self, mock_get):
+        """Test validation when local Supabase is not running."""
+        # Mock failed health check
+        mock_get.side_effect = requests.exceptions.ConnectionError()
+        
+        config = EnvironmentConfig(
+            environment="local",
+            url="http://127.0.0.1:54321",
+            anon_key="test-key",
+            is_local=True
+        )
+        
+        is_valid, message = config.validate()
+        
+        assert is_valid is False
+        assert "Local Supabase appears to be offline" in message
+        assert "supabase start" in message
+        assert "http://127.0.0.1:54321" in message
+    
+    @patch('requests.get')
+    def test_validate_local_supabase_timeout(self, mock_get):
+        """Test validation when local Supabase health check times out."""
+        # Mock timeout
+        mock_get.side_effect = requests.exceptions.Timeout()
+        
+        config = EnvironmentConfig(
+            environment="local",
+            url="http://127.0.0.1:54321",
+            anon_key="test-key",
+            is_local=True
+        )
+        
+        is_valid, message = config.validate()
+        
+        assert is_valid is False
+        assert "Local Supabase appears to be offline" in message
+    
+    @patch('requests.get')
+    def test_validate_local_supabase_error_response(self, mock_get):
+        """Test validation when local Supabase returns an error response."""
+        # Mock error response
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_get.return_value = mock_response
+        
+        config = EnvironmentConfig(
+            environment="local",
+            url="http://127.0.0.1:54321",
+            anon_key="test-key",
+            is_local=True
+        )
+        
+        is_valid, message = config.validate()
+        
+        assert is_valid is False
+        assert "Local Supabase appears to be offline" in message
+    
+    def test_is_local_supabase_running_production_skip(self):
+        """Test that local Supabase check is skipped for production environment."""
+        config = EnvironmentConfig(
+            environment="production",
+            url="https://prod.supabase.co",
+            anon_key="prod-key",
+            is_local=False
+        )
+        
+        # Should return True without making any requests
+        result = config._is_local_supabase_running()
+        assert result is True
