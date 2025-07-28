@@ -50,7 +50,7 @@ class TestEnvironmentConfig:
         """Test creating config with default values."""
         with patch.dict(
             os.environ,
-            {},
+            {"ENVIRONMENT": "", "SUPABASE_URL": "", "SUPABASE_ANON_KEY": ""},
             clear=True,
         ):
             config = EnvironmentConfig.from_environment()

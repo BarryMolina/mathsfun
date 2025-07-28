@@ -7,12 +7,33 @@ from dataclasses import dataclass
 from typing import Optional
 import dotenv
 
-dotenv.load_dotenv()
-
 
 @dataclass
 class EnvironmentConfig:
-    """Configuration object that encapsulates all environment-related settings."""
+    """Configuration object that encapsulates all environment-related settings.
+
+    Examples:
+        Create configuration from environment variables:
+        >>> config = EnvironmentConfig.from_environment()
+        >>> print(config.environment)  # 'local' or 'production'
+
+        Create configuration manually:
+        >>> config = EnvironmentConfig(
+        ...     environment="local",
+        ...     url="http://127.0.0.1:54321",
+        ...     anon_key="your-anon-key",
+        ...     is_local=True
+        ... )
+
+        Validate configuration:
+        >>> is_valid, message = config.validate()
+        >>> if not is_valid:
+        ...     print(f"Config error: {message}")
+
+        Check if local Supabase is running:
+        >>> if config.is_local:
+        ...     print(config.get_console_message())
+    """
 
     environment: str
     url: str
@@ -22,7 +43,10 @@ class EnvironmentConfig:
     @classmethod
     def from_environment(cls) -> "EnvironmentConfig":
         """Create configuration from environment variables."""
-        environment = os.getenv("ENVIRONMENT", "production").lower()
+        # Load environment variables at runtime for dynamic configuration
+        dotenv.load_dotenv()
+
+        environment = (os.getenv("ENVIRONMENT") or "production").lower()
         url = os.getenv("SUPABASE_URL") or ""
         anon_key = os.getenv("SUPABASE_ANON_KEY") or ""
         is_local = environment == "local"
@@ -80,9 +104,11 @@ class EnvironmentConfig:
             return True  # Skip check for non-local environments
 
         try:
-            # Try to reach the Supabase health endpoint
-            health_url = f"{self.url}/health"
-            response = requests.get(health_url, timeout=5)
+            # Try to reach the Supabase health endpoint (configurable)
+            health_endpoint = os.getenv("SUPABASE_HEALTH_ENDPOINT", "/health")
+            health_timeout = int(os.getenv("SUPABASE_HEALTH_TIMEOUT", "5"))
+            health_url = f"{self.url}{health_endpoint}"
+            response = requests.get(health_url, timeout=health_timeout)
             return response.status_code == 200
         except (requests.exceptions.RequestException, requests.exceptions.Timeout):
             return False

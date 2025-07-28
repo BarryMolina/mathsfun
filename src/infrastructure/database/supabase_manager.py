@@ -137,14 +137,14 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         return
 
 
-def start_oauth_server(port=8080):
+def start_oauth_server(port: int = 8080) -> OAuthServer:
     """Start local HTTP server for OAuth callback"""
     server = OAuthServer(("localhost", port), OAuthCallbackHandler)
 
     # Use an event to signal when server is ready
     server_ready = threading.Event()
 
-    def server_runner():
+    def server_runner() -> None:
         server_ready.set()  # Signal that server is ready
         server.serve_forever()
 
@@ -168,6 +168,11 @@ class SupabaseManager:
     def __init__(self):
         # Use configuration object for environment settings
         self.config = EnvironmentConfig.from_environment()
+
+        # Validate configuration and warn about issues
+        is_valid, message = self.config.validate()
+        if not is_valid:
+            print(f"⚠️  Configuration warning: {message}")
 
         # Log environment information for development visibility
         print(self.config.get_console_message())
@@ -445,7 +450,7 @@ class SupabaseManager:
             return False
 
 
-def validate_environment():
+def validate_environment() -> tuple[bool, str]:
     """Validate that required environment variables are set"""
     config = EnvironmentConfig.from_environment()
     return config.validate()
