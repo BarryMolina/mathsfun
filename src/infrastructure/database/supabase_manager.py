@@ -8,6 +8,7 @@ from urllib.parse import urlparse, parse_qs
 from supabase import create_client, Client, ClientOptions
 from typing import Optional, Dict, Any
 from ..storage.session_storage import SessionStorage
+from .environment_config import EnvironmentConfig
 
 dotenv.load_dotenv()
 
@@ -166,21 +167,13 @@ class SupabaseManager:
     """Manages Supabase authentication and client access"""
 
     def __init__(self):
-        # Environment detection at runtime
-        self.environment = os.getenv("ENVIRONMENT", "production").lower()
-        self.is_local_environment = self.environment == "local"
-        
-        # Get environment variables at runtime
-        self.url = os.getenv("SUPABASE_URL") or ""
-        self.key = os.getenv("SUPABASE_ANON_KEY") or ""
+        # Use configuration object for environment settings
+        self.config = EnvironmentConfig.from_environment()
         
         # Log environment information for development visibility
-        if self.is_local_environment:
-            print(f"🔧 Using local Supabase environment at {self.url}")
-        else:
-            print("🌐 Using production Supabase environment")
+        print(self.config.get_console_message())
         
-        self._client: Client = create_client(self.url, self.key)
+        self._client: Client = create_client(self.config.url, self.config.anon_key)
         self._authenticated = False
         self._lock = threading.Lock()
         self._session_data: Optional[Dict[str, Any]] = None
@@ -190,7 +183,7 @@ class SupabaseManager:
         """Authenticate user with Google OAuth and store client"""
 
         # In local development, warn about OAuth limitations
-        if self.is_local_environment:
+        if self.config.is_local:
             print(
                 "⚠️  Note: OAuth may not work in local development without proper provider configuration"
             )
@@ -221,8 +214,8 @@ class SupabaseManager:
 
             # Reconfigure the existing client for PKCE flow
             supabase: Client = create_client(
-                self.url,
-                self.key,
+                self.config.url,
+                self.config.anon_key,
                 options=ClientOptions(
                     flow_type="pkce", storage=storage  # type: ignore
                 ),
@@ -381,7 +374,7 @@ class SupabaseManager:
             # Clear stored session
             self._session_storage.clear_session()
             # Recreate client to clear session
-            self._client = create_client(self.url, self.key)
+            self._client = create_client(self.config.url, self.config.anon_key)
 
     def get_session_data(self) -> Optional[Dict[str, Any]]:
         """Get current session data for persistence"""
@@ -455,28 +448,8 @@ class SupabaseManager:
 
 def validate_environment():
     """Validate that required environment variables are set"""
-    # Get environment variables directly for validation
-    url = os.getenv("SUPABASE_URL") or ""
-    key = os.getenv("SUPABASE_ANON_KEY") or ""
-    environment = os.getenv("ENVIRONMENT", "production").lower()
-    is_local_environment = environment == "local"
-    
-    if not url or not key:
-        if is_local_environment:
-            return False, (
-                "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
-                "For local development:\n"
-                "1. Run 'supabase start' to start local Supabase\n"
-                "2. Copy .env.local to .env to use local configuration"
-            )
-        else:
-            return False, (
-                "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
-                "Please set these in your .env file for production use."
-            )
-
-    env_type = "local development" if is_local_environment else "production"
-    return True, f"Environment validated for {env_type}"
+    config = EnvironmentConfig.from_environment()
+    return config.validate()
 
 
 # Singleton instance for app-wide access

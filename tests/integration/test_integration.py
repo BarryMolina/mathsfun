@@ -335,10 +335,10 @@ class TestLocalSupabaseEnvironment:
             manager = SupabaseManager()
             
             # Verify environment detection
-            assert manager.environment == "local"
-            assert manager.is_local_environment is True
-            assert manager.url == "http://127.0.0.1:54321"
-            assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" in manager.key
+            assert manager.config.environment == "local"
+            assert manager.config.is_local is True
+            assert manager.config.url == "http://127.0.0.1:54321"
+            assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" in manager.config.anon_key
             
             # Verify client creation doesn't raise errors
             client = manager.get_client()
@@ -364,10 +364,10 @@ class TestLocalSupabaseEnvironment:
             manager = SupabaseManager()
             
             # Verify environment detection
-            assert manager.environment == "production"
-            assert manager.is_local_environment is False
-            assert manager.url == "https://example.supabase.co"
-            assert manager.key == "prod-key-example"
+            assert manager.config.environment == "production"
+            assert manager.config.is_local is False
+            assert manager.config.url == "https://example.supabase.co"
+            assert manager.config.anon_key == "prod-key-example"
             
             # Verify environment validation
             is_valid, message = validate_environment()
@@ -387,7 +387,7 @@ class TestLocalSupabaseEnvironment:
             clear=False,
         ):
             manager1 = SupabaseManager()
-            assert manager1.is_local_environment is False
+            assert manager1.config.is_local is False
         
         # Switch to local environment and create new instance
         with patch.dict(
@@ -400,8 +400,8 @@ class TestLocalSupabaseEnvironment:
             clear=False,
         ):
             manager2 = SupabaseManager()
-            assert manager2.is_local_environment is True
-            assert manager2.url == "http://127.0.0.1:54321"
+            assert manager2.config.is_local is True
+            assert manager2.config.url == "http://127.0.0.1:54321"
     
     def test_missing_environment_variable_handling(self):
         """Test proper error handling when environment variables are missing."""
