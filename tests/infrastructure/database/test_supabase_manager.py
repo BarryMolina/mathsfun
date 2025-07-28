@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import threading
 import time
+import os
 from http.server import HTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -833,8 +834,9 @@ class TestValidateEnvironment:
     def test_validate_environment_missing_url(self):
         """Test validate_environment with missing URL."""
         with patch.dict(
-            "src.infrastructure.database.supabase_manager.__dict__",
-            {"url": "", "key": "test-key"},
+            os.environ,
+            {"SUPABASE_URL": "", "SUPABASE_ANON_KEY": "test-key"},
+            clear=False,
         ):
             valid, message = validate_environment()
 
@@ -844,8 +846,9 @@ class TestValidateEnvironment:
     def test_validate_environment_missing_key(self):
         """Test validate_environment with missing key."""
         with patch.dict(
-            "src.infrastructure.database.supabase_manager.__dict__",
-            {"url": "http://test.supabase.co", "key": ""},
+            os.environ,
+            {"SUPABASE_URL": "http://test.supabase.co", "SUPABASE_ANON_KEY": ""},
+            clear=False,
         ):
             valid, message = validate_environment()
 
@@ -855,8 +858,9 @@ class TestValidateEnvironment:
     def test_validate_environment_success(self):
         """Test validate_environment with valid environment."""
         with patch.dict(
-            "src.infrastructure.database.supabase_manager.__dict__",
-            {"url": "http://test.supabase.co", "key": "test-key"},
+            os.environ,
+            {"SUPABASE_URL": "http://test.supabase.co", "SUPABASE_ANON_KEY": "test-key"},
+            clear=False,
         ):
             valid, message = validate_environment()
 
