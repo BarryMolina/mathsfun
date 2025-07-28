@@ -2,7 +2,16 @@
 """Tests for UI layer functions using mocking strategy."""
 
 import pytest
-from src.presentation.cli.ui import print_welcome, print_main_menu, get_user_input
+from unittest.mock import patch, Mock
+from src.presentation.cli.ui import (
+    print_welcome,
+    print_main_menu,
+    get_user_input,
+    get_email_input,
+    get_password_input,
+    get_password_confirmation,
+    print_authentication_menu,
+)
 
 
 class TestPrintWelcome:
@@ -245,3 +254,341 @@ class TestUIInAddition:
         assert "❌ Please enter 0 for unlimited or a positive number" in output
         assert "❌ Please enter a valid number" in output
         assert mock_input.call_count == 3
+
+
+class TestPrintAuthenticationMenu:
+    """Test the print_authentication_menu function."""
+
+    def test_print_authentication_menu_output(self, capsys):
+        """Test that authentication menu includes email/password options."""
+        print_authentication_menu()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        # Check for authentication menu elements
+        assert "🔐 Authentication Required" in output
+        assert "1. Sign in with Google" in output
+        assert "2. Sign in with email/password" in output
+        assert "3. Sign up with email/password" in output
+        assert "Type 'exit' to quit the application" in output
+        assert "-" * 30 in output
+
+
+class TestGetEmailInput:
+    """Test the get_email_input function."""
+
+    def test_get_email_input_valid_email(self, mocker):
+        """Test get_email_input with valid email address."""
+        mock_input = mocker.patch("builtins.input", return_value="test@example.com")
+
+        result = get_email_input()
+
+        assert result == "test@example.com"
+        mock_input.assert_called_once_with("Email: ")
+
+    def test_get_email_input_empty_then_valid(self, mocker, capsys):
+        """Test get_email_input with empty input followed by valid email."""
+        mock_input = mocker.patch(
+            "builtins.input", side_effect=["", "test@example.com"]
+        )
+
+        result = get_email_input()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "test@example.com"
+        assert "❌ Email cannot be empty. Please try again." in output
+        assert mock_input.call_count == 2
+
+    def test_get_email_input_invalid_format_then_valid(self, mocker, capsys):
+        """Test get_email_input with invalid format followed by valid email."""
+        mock_input = mocker.patch(
+            "builtins.input", side_effect=["invalid-email", "test@example.com"]
+        )
+
+        result = get_email_input()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "test@example.com"
+        assert "❌ Please enter a valid email address" in output
+        assert mock_input.call_count == 2
+
+    def test_get_email_input_multiple_invalid_formats(self, mocker, capsys):
+        """Test get_email_input with multiple invalid formats."""
+        mock_input = mocker.patch(
+            "builtins.input",
+            side_effect=[
+                "plaintext",
+                "@example.com",
+                "test@",
+                "test@example",
+                "test@example.com",
+            ],
+        )
+
+        result = get_email_input()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "test@example.com"
+        assert output.count("❌ Please enter a valid email address") == 4
+        assert mock_input.call_count == 5
+
+    @pytest.mark.parametrize(
+        "email",
+        [
+            "user@example.com",
+            "test.email@domain.co.uk",
+            "user+tag@example.org",
+            "123@numbers.com",
+            "a@b.co",
+        ],
+    )
+    def test_get_email_input_valid_formats(self, mocker, email):
+        """Test get_email_input with various valid email formats."""
+        mock_input = mocker.patch("builtins.input", return_value=email)
+
+        result = get_email_input()
+
+        assert result == email
+        mock_input.assert_called_once_with("Email: ")
+
+    @pytest.mark.parametrize(
+        "email",
+        [
+            "@example.com",
+            "user@",
+            "user.example.com",
+            "user@example",
+            "",
+            "   ",
+        ],
+    )
+    def test_get_email_input_invalid_formats(self, mocker, email):
+        """Test get_email_input with various invalid email formats."""
+        mock_input = mocker.patch(
+            "builtins.input", side_effect=[email, "valid@example.com"]
+        )
+
+        result = get_email_input()
+
+        assert result == "valid@example.com"
+        assert mock_input.call_count == 2
+
+
+class TestGetPasswordInput:
+    """Test the get_password_input function."""
+
+    def test_get_password_input_valid_password(self, mocker):
+        """Test get_password_input with valid password."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass", return_value="password123"
+        )
+
+        result = get_password_input()
+
+        assert result == "password123"
+        mock_getpass.assert_called_once_with("Password: ")
+
+    def test_get_password_input_custom_prompt(self, mocker):
+        """Test get_password_input with custom prompt."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass", return_value="password123"
+        )
+
+        result = get_password_input("New password")
+
+        assert result == "password123"
+        mock_getpass.assert_called_once_with("New password: ")
+
+    def test_get_password_input_empty_then_valid(self, mocker, capsys):
+        """Test get_password_input with empty password followed by valid password."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass", side_effect=["", "password123"]
+        )
+
+        result = get_password_input()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "password123"
+        assert "❌ Password cannot be empty. Please try again." in output
+        assert mock_getpass.call_count == 2
+
+    def test_get_password_input_too_short_then_valid(self, mocker, capsys):
+        """Test get_password_input with password too short followed by valid password."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["123", "password123"],
+        )
+
+        result = get_password_input()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "password123"
+        assert (
+            "❌ Password must be at least 6 characters long. Please try again."
+            in output
+        )
+        assert mock_getpass.call_count == 2
+
+    def test_get_password_input_multiple_invalid_attempts(self, mocker, capsys):
+        """Test get_password_input with multiple invalid attempts."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["", "12345", "password123"],
+        )
+
+        result = get_password_input()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "password123"
+        assert "❌ Password cannot be empty. Please try again." in output
+        assert (
+            "❌ Password must be at least 6 characters long. Please try again."
+            in output
+        )
+        assert mock_getpass.call_count == 3
+
+
+class TestGetPasswordConfirmation:
+    """Test the get_password_confirmation function."""
+
+    def test_get_password_confirmation_matching_passwords(self, mocker):
+        """Test get_password_confirmation with matching passwords."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["password123", "password123"],
+        )
+
+        result = get_password_confirmation()
+
+        assert result == "password123"
+        assert mock_getpass.call_count == 2
+
+    def test_get_password_confirmation_mismatched_then_matching(self, mocker, capsys):
+        """Test get_password_confirmation with mismatched then matching passwords."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["password123", "different", "newpassword", "newpassword"],
+        )
+
+        result = get_password_confirmation()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "newpassword"
+        assert "❌ Passwords do not match. Please try again." in output
+        assert mock_getpass.call_count == 4
+
+    def test_get_password_confirmation_multiple_mismatches(self, mocker, capsys):
+        """Test get_password_confirmation with multiple password mismatches."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=[
+                "password1",
+                "password2",
+                "password3",
+                "password4",
+                "finalpass",
+                "finalpass",
+            ],
+        )
+
+        result = get_password_confirmation()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "finalpass"
+        assert output.count("❌ Passwords do not match. Please try again.") == 2
+        assert mock_getpass.call_count == 6
+
+    def test_get_password_confirmation_empty_password_validation(self, mocker, capsys):
+        """Test get_password_confirmation handles empty password validation."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=[
+                "",  # Empty password
+                "123456",  # Valid password
+                "123456",  # Matching confirmation
+            ],
+        )
+
+        result = get_password_confirmation()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "123456"
+        assert "❌ Password cannot be empty. Please try again." in output
+        assert mock_getpass.call_count == 3
+
+    def test_get_password_confirmation_short_password_validation(self, mocker, capsys):
+        """Test get_password_confirmation handles short password validation."""
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=[
+                "123",  # Too short
+                "123456",  # Valid password
+                "123456",  # Matching confirmation
+            ],
+        )
+
+        result = get_password_confirmation()
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert result == "123456"
+        assert (
+            "❌ Password must be at least 6 characters long. Please try again."
+            in output
+        )
+        assert mock_getpass.call_count == 3
+
+
+class TestEmailPasswordUIIntegration:
+    """Integration tests for email/password UI functions."""
+
+    def test_email_password_signup_flow(self, mocker, capsys):
+        """Test complete email/password signup UI flow."""
+        mock_input = mocker.patch("builtins.input", return_value="test@example.com")
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass",
+            side_effect=["password123", "password123"],
+        )
+
+        email = get_email_input()
+        password = get_password_confirmation()
+
+        assert email == "test@example.com"
+        assert password == "password123"
+        mock_input.assert_called_once()
+        assert mock_getpass.call_count == 2
+
+    def test_email_password_signin_flow(self, mocker):
+        """Test complete email/password signin UI flow."""
+        mock_input = mocker.patch("builtins.input", return_value="user@example.com")
+        mock_getpass = mocker.patch(
+            "src.presentation.cli.ui.getpass.getpass", return_value="mypassword"
+        )
+
+        email = get_email_input()
+        password = get_password_input()
+
+        assert email == "user@example.com"
+        assert password == "mypassword"
+        mock_input.assert_called_once()
+        mock_getpass.assert_called_once()

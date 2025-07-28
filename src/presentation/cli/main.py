@@ -5,6 +5,9 @@ from .ui import (
     print_authentication_menu,
     print_authentication_status,
     print_user_welcome,
+    get_email_input,
+    get_password_input,
+    get_password_confirmation,
 )
 from ..controllers.addition import addition_mode
 from ..controllers.addition_tables import addition_tables_mode
@@ -29,6 +32,7 @@ def authentication_flow(container):
         if choice == "exit":
             return False, None
         elif choice == "1":
+            # Google OAuth sign-in
             result = supabase_manager.sign_in_with_google()
 
             if result and result.get("success"):
@@ -55,6 +59,85 @@ def authentication_flow(container):
                 print_authentication_status(
                     f"Authentication failed: {error_msg}", False
                 )
+        elif choice == "2":
+            # Email/password sign-in
+            print("\n🔓 Sign in with email and password")
+            print("-" * 40)
+
+            try:
+                email = get_email_input()
+                password = get_password_input()
+
+                print("\n🔄 Signing in...")
+                result = supabase_manager.sign_in_with_email_password(email, password)
+
+                if result and result.get("success"):
+                    print_authentication_status("Authentication successful!")
+
+                    # Fetch fresh user data from UserService (force refresh for authentication)
+                    user = container.user_svc.get_current_user(force_refresh=True)
+                    if user:
+                        # Convert User model to dict for UI compatibility
+                        user_data = {
+                            "name": user.display_name,
+                            "email": user.email,
+                            "avatar_url": None,  # Not available from email auth
+                        }
+                        print_user_welcome(user_data)
+
+                    return True, user
+                else:
+                    error_msg = (
+                        result.get("error", "Unknown error")
+                        if result
+                        else "Sign in failed"
+                    )
+                    print_authentication_status(f"Sign in failed: {error_msg}", False)
+            except KeyboardInterrupt:
+                print("\n\n❌ Sign in cancelled by user.\n")
+            except Exception as e:
+                print_authentication_status(f"Sign in failed: {str(e)}", False)
+
+        elif choice == "3":
+            # Email/password sign-up
+            print("\n📝 Create a new account")
+            print("-" * 40)
+
+            try:
+                email = get_email_input()
+                password = get_password_confirmation()
+
+                print("\n🔄 Creating account...")
+                result = supabase_manager.sign_up_with_email_password(email, password)
+
+                if result and result.get("success"):
+                    print_authentication_status("Account created successfully!")
+
+                    # Fetch fresh user data from UserService (force refresh for authentication)
+                    user = container.user_svc.get_current_user(force_refresh=True)
+                    if user:
+                        # Convert User model to dict for UI compatibility
+                        user_data = {
+                            "name": user.display_name,
+                            "email": user.email,
+                            "avatar_url": None,  # Not available from email auth
+                        }
+                        print_user_welcome(user_data)
+
+                    return True, user
+                else:
+                    error_msg = (
+                        result.get("error", "Unknown error")
+                        if result
+                        else "Account creation failed"
+                    )
+                    print_authentication_status(
+                        f"Account creation failed: {error_msg}", False
+                    )
+            except KeyboardInterrupt:
+                print("\n\n❌ Account creation cancelled by user.\n")
+            except Exception as e:
+                print_authentication_status(f"Account creation failed: {str(e)}", False)
         else:
             print("❌ Invalid option. Please try again.\n")
 

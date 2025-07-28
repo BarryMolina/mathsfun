@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import re
+import getpass
 from typing import Optional
 
 
@@ -25,6 +27,8 @@ def print_authentication_menu():
     print("🔐 Authentication Required")
     print("Please sign in to access MathsFun")
     print("1. Sign in with Google")
+    print("2. Sign in with email/password")
+    print("3. Sign up with email/password")
     print("Type 'exit' to quit the application")
     print("-" * 30)
 
@@ -53,3 +57,51 @@ def get_user_input(prompt: str, default: Optional[str] = None) -> str:
         user_input = input(f"{prompt} (default: {default}): ").strip()
         return user_input if user_input else default
     return input(f"{prompt}: ").strip()
+
+
+def get_email_input() -> str:
+    """Get and validate email input from user"""
+    while True:
+        email = input("Email: ").strip()
+
+        if not email:
+            print("❌ Email cannot be empty. Please try again.")
+            continue
+
+        # Basic email validation using regex
+        email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        if not re.match(email_pattern, email):
+            print("❌ Please enter a valid email address (e.g., user@example.com)")
+            continue
+
+        return email
+
+
+def get_password_input(prompt: str = "Password") -> str:
+    """Get secure password input from user (input is hidden)"""
+    while True:
+        password = getpass.getpass(f"{prompt}: ")
+
+        if not password:
+            print("❌ Password cannot be empty. Please try again.")
+            continue
+
+        if len(password) < 6:
+            print("❌ Password must be at least 6 characters long. Please try again.")
+            continue
+
+        return password
+
+
+def get_password_confirmation() -> str:
+    """Get password confirmation for signup"""
+    password = get_password_input("Create password")
+
+    while True:
+        confirmation = getpass.getpass("Confirm password: ")
+
+        if password == confirmation:
+            return password
+
+        print("❌ Passwords do not match. Please try again.")
+        password = get_password_input("Create password")

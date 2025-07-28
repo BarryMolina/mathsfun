@@ -366,6 +366,137 @@ class SupabaseManager:
         finally:
             server.shutdown()
 
+    def sign_up_with_email_password(self, email: str, password: str) -> Dict[str, Any]:
+        """Sign up a new user with email and password"""
+        try:
+            response = self._client.auth.sign_up({"email": email, "password": password})
+
+            if response.user and response.session:
+                user = response.user
+                session = response.session
+
+                # Extract user data for email/password auth
+                user_data = {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": (
+                        user.email.split("@")[0] if user.email else "User"
+                    ),  # Use email prefix as default name
+                    "avatar_url": None,  # Not available for email auth
+                    "provider": "email",
+                    "last_sign_in": user.last_sign_in_at,
+                }
+
+                session_data = {
+                    "access_token": session.access_token,
+                    "refresh_token": session.refresh_token,
+                    "expires_at": session.expires_at,
+                    "provider_token": None,  # Not available for email auth
+                    "provider_refresh_token": None,  # Not available for email auth
+                }
+
+                # Store session data and mark as authenticated
+                with self._lock:
+                    self._authenticated = True
+                    self._session_data = session_data
+
+                # Save session to persistent storage
+                self.save_session()
+
+                return {
+                    "success": True,
+                    "user": user_data,
+                    "session": session_data,
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Failed to create user account",
+                }
+
+        except Exception as e:
+            error_msg = str(e)
+            # Provide user-friendly error messages
+            if "email" in error_msg.lower() and "already" in error_msg.lower():
+                return {
+                    "success": False,
+                    "error": "An account with this email already exists. Please try signing in instead.",
+                }
+            elif "password" in error_msg.lower():
+                return {
+                    "success": False,
+                    "error": "Password does not meet requirements. Please use at least 6 characters.",
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Unable to create account. Please try again.",
+                }
+
+    def sign_in_with_email_password(self, email: str, password: str) -> Dict[str, Any]:
+        """Sign in an existing user with email and password"""
+        try:
+            response = self._client.auth.sign_in_with_password(
+                {"email": email, "password": password}
+            )
+
+            if response.user and response.session:
+                user = response.user
+                session = response.session
+
+                # Extract user data for email/password auth
+                user_data = {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": (
+                        user.email.split("@")[0] if user.email else "User"
+                    ),  # Use email prefix as default name
+                    "avatar_url": None,  # Not available for email auth
+                    "provider": "email",
+                    "last_sign_in": user.last_sign_in_at,
+                }
+
+                session_data = {
+                    "access_token": session.access_token,
+                    "refresh_token": session.refresh_token,
+                    "expires_at": session.expires_at,
+                    "provider_token": None,  # Not available for email auth
+                    "provider_refresh_token": None,  # Not available for email auth
+                }
+
+                # Store session data and mark as authenticated
+                with self._lock:
+                    self._authenticated = True
+                    self._session_data = session_data
+
+                # Save session to persistent storage
+                self.save_session()
+
+                return {
+                    "success": True,
+                    "user": user_data,
+                    "session": session_data,
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Invalid email or password",
+                }
+
+        except Exception as e:
+            error_msg = str(e)
+            # Provide user-friendly error messages without revealing user existence
+            if "invalid" in error_msg.lower() or "not found" in error_msg.lower():
+                return {
+                    "success": False,
+                    "error": "Invalid email or password",
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Unable to sign in. Please try again.",
+                }
+
     def get_client(self) -> Client:
         """Get the Supabase client (always available)"""
         with self._lock:
