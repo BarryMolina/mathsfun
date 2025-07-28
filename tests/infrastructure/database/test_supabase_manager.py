@@ -913,6 +913,158 @@ class TestPKCEStorage:
 
 
 @pytest.mark.unit
+class TestSupabaseManagerEmailPasswordAuth:
+    """Test email/password authentication methods."""
+
+    def test_sign_up_with_email_password_success(self, supabase_manager, mock_session_storage):
+        """Test successful email/password signup."""
+        # Mock successful signup response
+        mock_user = Mock()
+        mock_user.id = "test-user-id"
+        mock_user.email = "test@example.com"
+        mock_user.last_sign_in_at = "2024-01-01T00:00:00Z"
+        
+        mock_session = Mock()
+        mock_session.access_token = "test-access-token"
+        mock_session.refresh_token = "test-refresh-token"
+        mock_session.expires_at = 1672531200
+        
+        mock_response = Mock()
+        mock_response.user = mock_user
+        mock_response.session = mock_session
+        
+        supabase_manager._client.auth.sign_up.return_value = mock_response
+        mock_session_storage.save_session.return_value = True
+        
+        result = supabase_manager.sign_up_with_email_password("test@example.com", "password123")
+        
+        # Verify the call was made with correct parameters
+        supabase_manager._client.auth.sign_up.assert_called_once_with({
+            "email": "test@example.com",
+            "password": "password123"
+        })
+        
+        # Verify successful result
+        assert result["success"] is True
+        assert result["user"]["id"] == "test-user-id"
+        assert result["user"]["email"] == "test@example.com"
+        assert result["user"]["name"] == "test"  # email prefix
+        assert result["user"]["avatar_url"] is None
+        assert result["user"]["provider"] == "email"
+        assert result["session"]["access_token"] == "test-access-token"
+        assert result["session"]["refresh_token"] == "test-refresh-token"
+        
+        # Verify authentication state was updated
+        assert supabase_manager._authenticated is True
+        assert supabase_manager._session_data is not None
+
+    def test_sign_up_with_email_password_failure(self, supabase_manager):
+        """Test failed email/password signup."""
+        mock_response = Mock()
+        mock_response.user = None
+        mock_response.session = None
+        
+        supabase_manager._client.auth.sign_up.return_value = mock_response
+        
+        result = supabase_manager.sign_up_with_email_password("test@example.com", "password123")
+        
+        assert result["success"] is False
+        assert result["error"] == "Failed to create user account"
+        assert supabase_manager._authenticated is False
+
+    def test_sign_up_with_email_password_email_exists_error(self, supabase_manager):
+        """Test signup with existing email address."""
+        supabase_manager._client.auth.sign_up.side_effect = Exception("Email already registered")
+        
+        result = supabase_manager.sign_up_with_email_password("test@example.com", "password123")
+        
+        assert result["success"] is False
+        assert "already exists" in result["error"]
+
+    def test_sign_up_with_email_password_weak_password_error(self, supabase_manager):
+        """Test signup with weak password."""
+        supabase_manager._client.auth.sign_up.side_effect = Exception("Password too weak")
+        
+        result = supabase_manager.sign_up_with_email_password("test@example.com", "123")
+        
+        assert result["success"] is False
+        assert "Password does not meet requirements" in result["error"]
+
+    def test_sign_in_with_email_password_success(self, supabase_manager, mock_session_storage):
+        """Test successful email/password signin."""
+        # Mock successful signin response
+        mock_user = Mock()
+        mock_user.id = "test-user-id"
+        mock_user.email = "test@example.com"
+        mock_user.last_sign_in_at = "2024-01-01T00:00:00Z"
+        
+        mock_session = Mock()
+        mock_session.access_token = "test-access-token"
+        mock_session.refresh_token = "test-refresh-token"
+        mock_session.expires_at = 1672531200
+        
+        mock_response = Mock()
+        mock_response.user = mock_user
+        mock_response.session = mock_session
+        
+        supabase_manager._client.auth.sign_in_with_password.return_value = mock_response
+        mock_session_storage.save_session.return_value = True
+        
+        result = supabase_manager.sign_in_with_email_password("test@example.com", "password123")
+        
+        # Verify the call was made with correct parameters
+        supabase_manager._client.auth.sign_in_with_password.assert_called_once_with({
+            "email": "test@example.com",
+            "password": "password123"
+        })
+        
+        # Verify successful result
+        assert result["success"] is True
+        assert result["user"]["id"] == "test-user-id"
+        assert result["user"]["email"] == "test@example.com"
+        assert result["user"]["name"] == "test"  # email prefix
+        assert result["user"]["avatar_url"] is None
+        assert result["user"]["provider"] == "email"
+        assert result["session"]["access_token"] == "test-access-token"
+        assert result["session"]["refresh_token"] == "test-refresh-token"
+        
+        # Verify authentication state was updated
+        assert supabase_manager._authenticated is True
+        assert supabase_manager._session_data is not None
+
+    def test_sign_in_with_email_password_failure(self, supabase_manager):
+        """Test failed email/password signin."""
+        mock_response = Mock()
+        mock_response.user = None
+        mock_response.session = None
+        
+        supabase_manager._client.auth.sign_in_with_password.return_value = mock_response
+        
+        result = supabase_manager.sign_in_with_email_password("test@example.com", "wrongpassword")
+        
+        assert result["success"] is False
+        assert result["error"] == "Invalid email or password"
+        assert supabase_manager._authenticated is False
+
+    def test_sign_in_with_email_password_invalid_credentials_error(self, supabase_manager):
+        """Test signin with invalid credentials."""
+        supabase_manager._client.auth.sign_in_with_password.side_effect = Exception("Invalid credentials")
+        
+        result = supabase_manager.sign_in_with_email_password("test@example.com", "wrongpassword")
+        
+        assert result["success"] is False
+        assert result["error"] == "Invalid email or password"
+
+    def test_sign_in_with_email_password_generic_error(self, supabase_manager):
+        """Test signin with generic error."""
+        supabase_manager._client.auth.sign_in_with_password.side_effect = Exception("Network error")
+        
+        result = supabase_manager.sign_in_with_email_password("test@example.com", "password123")
+        
+        assert result["success"] is False
+        assert result["error"] == "Unable to sign in. Please try again."
+
+
 class TestSupabaseManagerMarkings:
     """Test that all methods are properly covered by the test suite."""
 
@@ -927,11 +1079,13 @@ class TestSupabaseManagerMarkings:
             "load_persisted_session",
             "save_session",
             "sign_in_with_google",
+            "sign_up_with_email_password",
+            "sign_in_with_email_password",
         ]
 
         # This test serves as documentation of what should be tested
         # All methods listed above have corresponding test cases
-        assert len(public_methods) == 8
+        assert len(public_methods) == 10
 
 
 class TestSupabaseManagerEnvironmentSwitching:
