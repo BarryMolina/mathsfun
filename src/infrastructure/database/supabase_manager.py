@@ -10,13 +10,13 @@ from typing import Optional, Dict, Any
 from ..storage.session_storage import SessionStorage
 from .environment_config import EnvironmentConfig
 
-dotenv.load_dotenv()
-
 
 class OAuthServer(HTTPServer):
     """Custom HTTP server that stores OAuth callback results"""
 
-    def __init__(self, server_address, RequestHandlerClass):
+    def __init__(
+        self, server_address: tuple[str, int], RequestHandlerClass: type
+    ) -> None:
         super().__init__(server_address, RequestHandlerClass)
         self.auth_result: Optional[Dict[str, Any]] = None
 
@@ -24,7 +24,7 @@ class OAuthServer(HTTPServer):
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
     """HTTP request handler for OAuth callback"""
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         """Handle GET request from OAuth redirect"""
 
         # Type assertion to access our custom server attribute
@@ -51,7 +51,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         query_params = parse_qs(parsed_url.query)
 
         # Initialize auth_result as empty dict
-        result = {}
+        result: Dict[str, Any] = {}
 
         # Check for OAuth callback parameters
         if "code" in query_params:
@@ -132,7 +132,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             """
             )
 
-    def log_message(self, format, *args):
+    def log_message(self, format: str, *args: Any) -> None:
         """Override to suppress HTTP server logs"""
         return
 
@@ -165,14 +165,19 @@ def start_oauth_server(port: int = 8080) -> OAuthServer:
 class SupabaseManager:
     """Manages Supabase authentication and client access"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Use configuration object for environment settings
         self.config = EnvironmentConfig.from_environment()
 
-        # Validate configuration and warn about issues
+        # Validate configuration and handle validation failures
         is_valid, message = self.config.validate()
         if not is_valid:
-            print(f"⚠️  Configuration warning: {message}")
+            # For critical missing configuration, raise an exception
+            if not self.config.url or not self.config.anon_key:
+                raise ValueError(f"Critical configuration missing: {message}")
+            else:
+                # For service availability issues, warn but continue with graceful degradation
+                print(f"⚠️  Configuration warning: {message}")
 
         # Log environment information for development visibility
         print(self.config.get_console_message())
@@ -200,7 +205,7 @@ class SupabaseManager:
 
         # Custom storage to handle PKCE code verifier
         class PKCEStorage:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.storage: Dict[str, str] = {}
 
             def get_item(self, key: str) -> Optional[str]:

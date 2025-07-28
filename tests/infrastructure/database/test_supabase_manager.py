@@ -1006,3 +1006,31 @@ class TestSupabaseManagerEnvironmentSwitching:
             is_valid, message = validate_environment()
             assert is_valid is False
             assert "Local Supabase appears to be offline" in message
+
+    def test_supabase_manager_validation_enforcement(self):
+        """Test that SupabaseManager enforces critical configuration validation."""
+        # Test missing URL raises ValueError
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "production",
+                "SUPABASE_URL": "",  # Missing URL
+                "SUPABASE_ANON_KEY": "test-key",
+            },
+            clear=False,
+        ):
+            with pytest.raises(ValueError, match="Critical configuration missing"):
+                SupabaseManager()
+
+        # Test missing key raises ValueError
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "production",
+                "SUPABASE_URL": "https://test.supabase.co",
+                "SUPABASE_ANON_KEY": "",  # Missing key
+            },
+            clear=False,
+        ):
+            with pytest.raises(ValueError, match="Critical configuration missing"):
+                SupabaseManager()

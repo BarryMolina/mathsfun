@@ -228,9 +228,10 @@ class TestEnvironmentConfig:
             is_local=False,
         )
 
-        # Should return True without making any requests
-        result = config._is_local_supabase_running()
-        assert result is True
+        # Should return (True, "") without making any requests
+        is_running, error_details = config._is_local_supabase_running()
+        assert is_running is True
+        assert error_details == ""
 
     def test_runtime_environment_switching(self):
         """Test that multiple config instances can have different environments."""
