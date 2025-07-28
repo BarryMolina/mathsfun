@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import threading
 import time
+import os
 from http.server import HTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -833,8 +834,9 @@ class TestValidateEnvironment:
     def test_validate_environment_missing_url(self):
         """Test validate_environment with missing URL."""
         with patch.dict(
-            "src.infrastructure.database.supabase_manager.__dict__",
-            {"url": "", "key": "test-key"},
+            os.environ,
+            {"SUPABASE_URL": "", "SUPABASE_ANON_KEY": "test-key"},
+            clear=False,
         ):
             valid, message = validate_environment()
 
@@ -844,8 +846,9 @@ class TestValidateEnvironment:
     def test_validate_environment_missing_key(self):
         """Test validate_environment with missing key."""
         with patch.dict(
-            "src.infrastructure.database.supabase_manager.__dict__",
-            {"url": "http://test.supabase.co", "key": ""},
+            os.environ,
+            {"SUPABASE_URL": "http://test.supabase.co", "SUPABASE_ANON_KEY": ""},
+            clear=False,
         ):
             valid, message = validate_environment()
 
@@ -855,8 +858,12 @@ class TestValidateEnvironment:
     def test_validate_environment_success(self):
         """Test validate_environment with valid environment."""
         with patch.dict(
-            "src.infrastructure.database.supabase_manager.__dict__",
-            {"url": "http://test.supabase.co", "key": "test-key"},
+            os.environ,
+            {
+                "SUPABASE_URL": "http://test.supabase.co",
+                "SUPABASE_ANON_KEY": "test-key",
+            },
+            clear=False,
         ):
             valid, message = validate_environment()
 
@@ -925,3 +932,105 @@ class TestSupabaseManagerMarkings:
         # This test serves as documentation of what should be tested
         # All methods listed above have corresponding test cases
         assert len(public_methods) == 8
+
+
+class TestSupabaseManagerEnvironmentSwitching:
+    """Test SupabaseManager runtime environment switching capabilities."""
+
+    def test_runtime_environment_detection(self):
+        """Test that SupabaseManager instances can have different environments at runtime."""
+        # Create manager with production environment
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "production",
+                "SUPABASE_URL": "https://prod.supabase.co",
+                "SUPABASE_ANON_KEY": "prod-key",
+            },
+            clear=False,
+        ):
+            prod_manager = SupabaseManager()
+            assert prod_manager.config.environment == "production"
+            assert prod_manager.config.is_local is False
+            assert prod_manager.config.url == "https://prod.supabase.co"
+
+        # Create manager with local environment (simulating runtime switch)
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "local",
+                "SUPABASE_URL": "http://127.0.0.1:54321",
+                "SUPABASE_ANON_KEY": "local-key",
+            },
+            clear=False,
+        ):
+            local_manager = SupabaseManager()
+            assert local_manager.config.environment == "local"
+            assert local_manager.config.is_local is True
+            assert local_manager.config.url == "http://127.0.0.1:54321"
+
+        # Verify both managers maintain their configurations
+        assert prod_manager.config.environment == "production"
+        assert local_manager.config.environment == "local"
+
+        # Verify they have different clients pointing to different URLs
+        assert prod_manager.config.url != local_manager.config.url
+
+    def test_environment_validation_changes_with_environment(self):
+        """Test that validate_environment reflects current environment variables."""
+        # Test production validation
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "production",
+                "SUPABASE_URL": "https://prod.supabase.co",
+                "SUPABASE_ANON_KEY": "prod-key",
+            },
+            clear=False,
+        ):
+            is_valid, message = validate_environment()
+            assert is_valid is True
+            assert "production" in message
+
+        # Test local validation (will fail health check)
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "local",
+                "SUPABASE_URL": "http://127.0.0.1:54321",
+                "SUPABASE_ANON_KEY": "local-key",
+            },
+            clear=False,
+        ):
+            # This will fail because local Supabase isn't actually running
+            is_valid, message = validate_environment()
+            assert is_valid is False
+            assert "Local Supabase appears to be offline" in message
+
+    def test_supabase_manager_validation_enforcement(self):
+        """Test that SupabaseManager enforces critical configuration validation."""
+        # Test missing URL raises ValueError
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "production",
+                "SUPABASE_URL": "",  # Missing URL
+                "SUPABASE_ANON_KEY": "test-key",
+            },
+            clear=False,
+        ):
+            with pytest.raises(ValueError, match="Critical configuration error"):
+                SupabaseManager()
+
+        # Test missing key raises ValueError
+        with patch.dict(
+            os.environ,
+            {
+                "ENVIRONMENT": "production",
+                "SUPABASE_URL": "https://test.supabase.co",
+                "SUPABASE_ANON_KEY": "",  # Missing key
+            },
+            clear=False,
+        ):
+            with pytest.raises(ValueError, match="Critical configuration error"):
+                SupabaseManager()

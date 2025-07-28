@@ -8,27 +8,15 @@ from urllib.parse import urlparse, parse_qs
 from supabase import create_client, Client, ClientOptions
 from typing import Optional, Dict, Any
 from ..storage.session_storage import SessionStorage
-
-dotenv.load_dotenv()
-
-# Environment detection
-environment = os.getenv("ENVIRONMENT", "production").lower()
-is_local_environment = environment == "local"
-
-url = os.getenv("SUPABASE_URL") or ""
-key = os.getenv("SUPABASE_ANON_KEY") or ""
-
-# Log environment information for development visibility
-if is_local_environment:
-    print(f"🔧 Using local Supabase environment at {url}")
-else:
-    print("🌐 Using production Supabase environment")
+from .environment_config import EnvironmentConfig, ValidationLevel
 
 
 class OAuthServer(HTTPServer):
     """Custom HTTP server that stores OAuth callback results"""
 
-    def __init__(self, server_address, RequestHandlerClass):
+    def __init__(
+        self, server_address: tuple[str, int], RequestHandlerClass: type
+    ) -> None:
         super().__init__(server_address, RequestHandlerClass)
         self.auth_result: Optional[Dict[str, Any]] = None
 
@@ -36,7 +24,7 @@ class OAuthServer(HTTPServer):
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
     """HTTP request handler for OAuth callback"""
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         """Handle GET request from OAuth redirect"""
 
         # Type assertion to access our custom server attribute
@@ -63,7 +51,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         query_params = parse_qs(parsed_url.query)
 
         # Initialize auth_result as empty dict
-        result = {}
+        result: Dict[str, Any] = {}
 
         # Check for OAuth callback parameters
         if "code" in query_params:
@@ -144,19 +132,19 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
             """
             )
 
-    def log_message(self, format, *args):
+    def log_message(self, format: str, *args: Any) -> None:
         """Override to suppress HTTP server logs"""
         return
 
 
-def start_oauth_server(port=8080):
+def start_oauth_server(port: int = 8080) -> OAuthServer:
     """Start local HTTP server for OAuth callback"""
     server = OAuthServer(("localhost", port), OAuthCallbackHandler)
 
     # Use an event to signal when server is ready
     server_ready = threading.Event()
 
-    def server_runner():
+    def server_runner() -> None:
         server_ready.set()  # Signal that server is ready
         server.serve_forever()
 
@@ -177,8 +165,25 @@ def start_oauth_server(port=8080):
 class SupabaseManager:
     """Manages Supabase authentication and client access"""
 
-    def __init__(self):
-        self._client: Client = create_client(url, key)
+    def __init__(self) -> None:
+        # Use configuration object for environment settings
+        self.config = EnvironmentConfig.from_environment()
+
+        # Validate configuration and handle validation failures based on severity
+        is_valid, message, level = self.config.validate()
+        if not is_valid:
+            if level == ValidationLevel.CRITICAL:
+                # Critical errors prevent application startup
+                raise ValueError(f"Critical configuration error: {message}")
+            elif level == ValidationLevel.WARNING:
+                # Warnings allow continuation with graceful degradation
+                print(f"⚠️  Configuration warning: {message}")
+            # INFO level messages are handled in successful validation path
+
+        # Log environment information for development visibility
+        print(self.config.get_console_message())
+
+        self._client: Client = create_client(self.config.url, self.config.anon_key)
         self._authenticated = False
         self._lock = threading.Lock()
         self._session_data: Optional[Dict[str, Any]] = None
@@ -188,7 +193,7 @@ class SupabaseManager:
         """Authenticate user with Google OAuth and store client"""
 
         # In local development, warn about OAuth limitations
-        if is_local_environment:
+        if self.config.is_local:
             print(
                 "⚠️  Note: OAuth may not work in local development without proper provider configuration"
             )
@@ -201,7 +206,7 @@ class SupabaseManager:
 
         # Custom storage to handle PKCE code verifier
         class PKCEStorage:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.storage: Dict[str, str] = {}
 
             def get_item(self, key: str) -> Optional[str]:
@@ -219,8 +224,8 @@ class SupabaseManager:
 
             # Reconfigure the existing client for PKCE flow
             supabase: Client = create_client(
-                url,
-                key,
+                self.config.url,
+                self.config.anon_key,
                 options=ClientOptions(
                     flow_type="pkce", storage=storage  # type: ignore
                 ),
@@ -379,7 +384,7 @@ class SupabaseManager:
             # Clear stored session
             self._session_storage.clear_session()
             # Recreate client to clear session
-            self._client = create_client(url, key)
+            self._client = create_client(self.config.url, self.config.anon_key)
 
     def get_session_data(self) -> Optional[Dict[str, Any]]:
         """Get current session data for persistence"""
@@ -451,24 +456,11 @@ class SupabaseManager:
             return False
 
 
-def validate_environment():
+def validate_environment() -> tuple[bool, str]:
     """Validate that required environment variables are set"""
-    if not url or not key:
-        if is_local_environment:
-            return False, (
-                "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
-                "For local development:\n"
-                "1. Run 'supabase start' to start local Supabase\n"
-                "2. Copy .env.local to .env to use local configuration"
-            )
-        else:
-            return False, (
-                "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.\n"
-                "Please set these in your .env file for production use."
-            )
-
-    env_type = "local development" if is_local_environment else "production"
-    return True, f"Environment validated for {env_type}"
+    config = EnvironmentConfig.from_environment()
+    is_valid, message, level = config.validate()
+    return is_valid, message
 
 
 # Singleton instance for app-wide access

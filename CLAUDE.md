@@ -245,6 +245,24 @@ The application includes a comprehensive fact tracking system for addition table
 
 - This project uses supabase but the local docker environment isn't set up up. However, you have access to the supabase MCP server so use that for anything db-related.
 
+### Health Check Configuration
+
+The SupabaseManager includes configurable health check functionality for local Supabase validation:
+
+- **Health Endpoint**: Configurable via `SUPABASE_HEALTH_ENDPOINT` environment variable (default: `/health`)
+- **Health Timeout**: Configurable via `SUPABASE_HEALTH_TIMEOUT` environment variable (default: `5` seconds)
+- **Automatic Validation**: When `ENVIRONMENT=local`, the system automatically validates that local Supabase is running
+- **Runtime Detection**: Environment configuration is loaded at runtime, enabling dynamic switching between local/production
+
+Example configuration:
+```bash
+# Optional: Customize health check behavior
+export SUPABASE_HEALTH_ENDPOINT="/api/health"
+export SUPABASE_HEALTH_TIMEOUT="10"
+```
+
+The health check helps ensure local development environments are properly configured and prevents silent failures when local Supabase services are offline.
+
 ## Development Workflow Guidelines
 
 - Use git flow best practices when implementing changes:
