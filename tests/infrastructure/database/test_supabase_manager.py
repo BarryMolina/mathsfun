@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch, MagicMock
 import threading
 import time
 import os
+import requests
 from http.server import HTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -1156,7 +1157,8 @@ class TestSupabaseManagerEnvironmentSwitching:
         # Verify they have different clients pointing to different URLs
         assert prod_manager.config.url != local_manager.config.url
 
-    def test_environment_validation_changes_with_environment(self):
+    @patch("requests.get")
+    def test_environment_validation_changes_with_environment(self, mock_get):
         """Test that validate_environment reflects current environment variables."""
         # Test production validation
         with patch.dict(
@@ -1173,6 +1175,9 @@ class TestSupabaseManagerEnvironmentSwitching:
             assert "production" in message
 
         # Test local validation (will fail health check)
+        # Mock failed health check
+        mock_get.side_effect = requests.exceptions.ConnectionError("Connection refused")
+
         with patch.dict(
             os.environ,
             {
