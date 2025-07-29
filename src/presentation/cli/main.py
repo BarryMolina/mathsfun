@@ -148,7 +148,7 @@ def main(use_local: bool = False):
     # Set environment based on command-line flag before any environment detection
     if use_local:
         os.environ["ENVIRONMENT"] = "local"
-    
+
     print_welcome()
 
     while True:  # Outer loop for authentication flow
