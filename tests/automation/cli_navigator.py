@@ -94,10 +94,25 @@ class AutomatedNavigator:
                 original_dir = Path.cwd()
                 Path(working_dir).mkdir(parents=True, exist_ok=True)
 
-            # Launch the main application
+            # Launch the main application with explicit environment
+            import os
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'
+            env['MATHSFUN_TEST_MODE'] = '1'  # Enable test mode for password input
+            
+            # Use local Supabase environment for automation testing
+            env['ENVIRONMENT'] = 'local'
+            env['SUPABASE_URL'] = 'http://127.0.0.1:54321'
+            env['SUPABASE_ANON_KEY'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+            env['SUPABASE_HEALTH_ENDPOINT'] = '/rest/v1/'  # Use REST API endpoint for health check
+            
             cmd = f"{sys.executable} main.py"
             self.process = pexpect.spawn(
-                cmd, timeout=self.timeout, encoding=self.encoding
+                cmd, 
+                timeout=self.timeout, 
+                encoding=self.encoding,
+                env=env,
+                dimensions=(24, 80)  # Set terminal dimensions
             )
 
             # Enable logging for debugging

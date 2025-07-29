@@ -26,7 +26,7 @@ def test_users() -> Dict[str, Dict[str, str]]:
     """
     return {
         "primary": {
-            "email": "automation.test.primary@mathsfun.local",
+            "email": "automation.test.fresh@mathsfun.local",
             "password": "TestPass123!",
             "display_name": "Automation Primary",
         },
@@ -102,16 +102,33 @@ def launched_navigator(navigator: AutomatedNavigator) -> AutomatedNavigator:
     return navigator
 
 
+@pytest.fixture(scope="session")
+def ensure_test_users_exist(test_users: Dict[str, Dict[str, str]]) -> None:
+    """
+    Ensure test users exist in the database by attempting signup.
+    This runs once per test session.
+    
+    Note: This fixture will attempt to create users but will not fail
+    if users already exist, since signup attempts may be cancelled
+    due to getpass limitations with pexpect.
+    """
+    # This is a marker fixture - the actual user creation happens
+    # in individual tests as needed since pexpect has limitations
+    # with getpass-based signup flows
+    pass
+
+
 @pytest.fixture(scope="function")
 def authenticated_navigator(
-    launched_navigator: AutomatedNavigator, test_users: Dict[str, Dict[str, str]]
+    launched_navigator: AutomatedNavigator, 
+    automation_test_users: Dict[str, Dict[str, str]]
 ) -> AutomatedNavigator:
     """
-    Create a navigator that is already authenticated.
+    Create a navigator that is already authenticated using managed test users.
 
     Args:
         launched_navigator: Navigator with launched application
-        test_users: Test user credentials
+        automation_test_users: Managed automation test user credentials
 
     Returns:
         Navigator with authenticated user session
@@ -119,13 +136,18 @@ def authenticated_navigator(
     Raises:
         pytest.skip: If authentication fails
     """
-    primary_user = test_users["primary"]
+    primary_user = automation_test_users["primary"]
+    
+    if not primary_user:
+        pytest.skip("Primary automation test user not available")
 
-    # Attempt authentication
+    # Attempt authentication with managed user (should exist)
     if not launched_navigator.authenticate_with_email(
-        email=primary_user["email"], password=primary_user["password"], is_signup=False
+        email=primary_user["email"], 
+        password=primary_user["password"], 
+        is_signup=False
     ):
-        pytest.skip("Failed to authenticate test user")
+        pytest.skip(f"Failed to authenticate with managed user: {primary_user['email']}")
 
     return launched_navigator
 

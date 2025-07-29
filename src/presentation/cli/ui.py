@@ -79,8 +79,14 @@ def get_email_input() -> str:
 
 def get_password_input(prompt: str = "Password") -> str:
     """Get secure password input from user (input is hidden)"""
+    import os
+    
     while True:
-        password = getpass.getpass(f"{prompt}: ")
+        # Use regular input for automation testing to avoid getpass/pexpect issues
+        if os.getenv('MATHSFUN_TEST_MODE'):
+            password = input(f"{prompt}: ")
+        else:
+            password = getpass.getpass(f"{prompt}: ")
 
         if not password:
             print("❌ Password cannot be empty. Please try again.")
@@ -95,10 +101,16 @@ def get_password_input(prompt: str = "Password") -> str:
 
 def get_password_confirmation() -> str:
     """Get password confirmation for signup"""
+    import os
+    
     password = get_password_input("Create password")
 
     while True:
-        confirmation = getpass.getpass("Confirm password: ")
+        # Use regular input for automation testing to avoid getpass/pexpect issues
+        if os.getenv('MATHSFUN_TEST_MODE'):
+            confirmation = input("Confirm password: ")
+        else:
+            confirmation = getpass.getpass("Confirm password: ")
 
         if password == confirmation:
             return password
