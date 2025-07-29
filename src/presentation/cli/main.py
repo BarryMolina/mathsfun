@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 from .ui import (
     print_welcome,
     print_main_menu,
@@ -142,8 +143,12 @@ def authentication_flow(container):
             print("❌ Invalid option. Please try again.\n")
 
 
-def main():
+def main(use_local: bool = False):
     """Main application loop"""
+    # Set environment based on command-line flag before any environment detection
+    if use_local:
+        os.environ["ENVIRONMENT"] = "local"
+    
     print_welcome()
 
     while True:  # Outer loop for authentication flow
