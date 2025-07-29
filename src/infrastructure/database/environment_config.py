@@ -100,9 +100,14 @@ class EnvironmentConfig:
         dotenv.load_dotenv()
 
         environment = (os.getenv("ENVIRONMENT") or "production").lower()
+        is_local = environment == "local"
+        
+        # If local environment is requested, load from .env.local (override=True to replace existing values)
+        if is_local:
+            dotenv.load_dotenv(".env.local", override=True)
+        
         url = os.getenv("SUPABASE_URL") or ""
         anon_key = os.getenv("SUPABASE_ANON_KEY") or ""
-        is_local = environment == "local"
 
         return cls(
             environment=environment, url=url, anon_key=anon_key, is_local=is_local
