@@ -424,12 +424,14 @@ class TestLocalSupabaseEnvironment:
             },
             clear=False,
         ):
-            is_valid, message = validate_environment()
-            assert is_valid is False
-            assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
-            assert (
-                "supabase start" in message
-            )  # Local environment specific instructions
+            # Mock dotenv.load_dotenv to prevent loading from .env.local file
+            with patch("src.infrastructure.database.environment_config.dotenv.load_dotenv"):
+                is_valid, message = validate_environment()
+                assert is_valid is False
+                assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
+                assert (
+                    "supabase start" in message
+                )  # Local environment specific instructions
 
         # Test missing key
         with patch.dict(

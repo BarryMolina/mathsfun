@@ -24,12 +24,14 @@ class TestEnvironmentConfig:
             },
             clear=False,
         ):
-            config = EnvironmentConfig.from_environment()
+            # Mock dotenv.load_dotenv to prevent loading from .env.local file
+            with patch("src.infrastructure.database.environment_config.dotenv.load_dotenv"):
+                config = EnvironmentConfig.from_environment()
 
-            assert config.environment == "local"
-            assert config.url == "http://127.0.0.1:54321"
-            assert config.anon_key == "local-key"
-            assert config.is_local is True
+                assert config.environment == "local"
+                assert config.url == "http://127.0.0.1:54321"
+                assert config.anon_key == "local-key"
+                assert config.is_local is True
 
     def test_from_environment_production(self):
         """Test creating config from production environment variables."""
