@@ -25,7 +25,9 @@ class TestEnvironmentConfig:
             clear=False,
         ):
             # Mock dotenv.load_dotenv to prevent loading from .env.local file
-            with patch("src.infrastructure.database.environment_config.dotenv.load_dotenv"):
+            with patch(
+                "src.infrastructure.database.environment_config.dotenv.load_dotenv"
+            ):
                 config = EnvironmentConfig.from_environment()
 
                 assert config.environment == "local"

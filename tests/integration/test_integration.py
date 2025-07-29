@@ -425,7 +425,9 @@ class TestLocalSupabaseEnvironment:
             clear=False,
         ):
             # Mock dotenv.load_dotenv to prevent loading from .env.local file
-            with patch("src.infrastructure.database.environment_config.dotenv.load_dotenv"):
+            with patch(
+                "src.infrastructure.database.environment_config.dotenv.load_dotenv"
+            ):
                 is_valid, message = validate_environment()
                 assert is_valid is False
                 assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
