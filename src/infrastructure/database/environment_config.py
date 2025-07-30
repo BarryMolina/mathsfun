@@ -33,11 +33,8 @@ class EnvironmentConfig:
         is_local: Boolean indicating if running in local development mode
 
     Environment Variables:
-        ENVIRONMENT: Set to 'local' for local development, 'production' or unset for production
         SUPABASE_URL: Supabase API URL
         SUPABASE_ANON_KEY: Supabase anonymous API key
-        SUPABASE_HEALTH_ENDPOINT: Custom health check endpoint (default: '/health')
-        SUPABASE_HEALTH_TIMEOUT: Health check timeout in seconds (default: 5)
 
     Examples:
         Basic usage:
@@ -70,22 +67,17 @@ class EnvironmentConfig:
         >>> prod_config = EnvironmentConfig.from_environment()
         >>> print(prod_config.get_display_name())  # 'production'
 
-        Health check configuration:
-        >>> import os
-        >>> # Use custom health endpoint with longer timeout
-        >>> os.environ["SUPABASE_HEALTH_ENDPOINT"] = "/rest/v1/"
-        >>> os.environ["SUPABASE_HEALTH_TIMEOUT"] = "15"
-        >>> config = EnvironmentConfig.from_environment()
+        Health check for local environments:
+        >>> config = EnvironmentConfig.from_environment(use_local=True)
         >>> is_valid, message, level = config.validate()
-        >>> # Health check will use /rest/v1/ endpoint with 15s timeout
+        >>> # Health check will use the standard /rest/v1/ endpoint
 
     Health Check Behavior:
         - Only performed for local environments (is_local=True)
-        - Attempts HTTP GET request to configured health endpoint
+        - Uses the standard Supabase /rest/v1/ endpoint for validation
         - Differentiates between connection, timeout, and HTTP response errors
         - Provides contextual troubleshooting suggestions based on error type
         - Returns ValidationLevel.WARNING for health check failures (allows graceful degradation)
-        - Configurable endpoint and timeout for different Supabase deployments
     """
 
     environment: str
@@ -192,17 +184,15 @@ class EnvironmentConfig:
             return True, ""  # Skip check for non-local environments
 
         try:
-            # Try to reach the Supabase health endpoint (configurable)
-            health_endpoint = os.getenv("SUPABASE_HEALTH_ENDPOINT", "/health")
-            health_timeout = int(os.getenv("SUPABASE_HEALTH_TIMEOUT", "5"))
-            health_url = f"{self.url}{health_endpoint}"
-            response = requests.get(health_url, timeout=health_timeout)
+            # Use the standard Supabase REST API endpoint for health checking
+            health_url = f"{self.url}/rest/v1/"
+            response = requests.get(health_url, timeout=5)
             if response.status_code == 200:
                 return True, ""
             elif response.status_code == 404:
                 return (
                     False,
-                    f"Health endpoint not found (HTTP 404). The '{health_endpoint}' endpoint may not exist on this Supabase deployment",
+                    "REST API endpoint not found (HTTP 404). Supabase may not be fully initialized",
                 )
             elif response.status_code == 503:
                 return (
@@ -217,7 +207,7 @@ class EnvironmentConfig:
             elif response.status_code >= 400:
                 return (
                     False,
-                    f"Client error (HTTP {response.status_code}). Check health endpoint configuration",
+                    f"Client error (HTTP {response.status_code}). Supabase API may have issues",
                 )
             else:
                 return (
@@ -240,7 +230,7 @@ class EnvironmentConfig:
         except requests.exceptions.Timeout:
             return (
                 False,
-                f"Health check timed out after {health_timeout}s - Service may be slow to respond or unreachable",
+                "Health check timed out after 5s - Service may be slow to respond or unreachable",
             )
         except requests.exceptions.RequestException as e:
             return False, f"Network request failed: {str(e)}"
@@ -272,19 +262,19 @@ class EnvironmentConfig:
         elif "timed out" in error_details:
             return textwrap.dedent(
                 f"""
-                1. Increase health check timeout: SUPABASE_HEALTH_TIMEOUT=15
-                2. Check system resources (CPU/Memory usage)
-                3. Verify services are starting: curl -v {self.url}/health
+                1. Check system resources (CPU/Memory usage)
+                2. Verify services are starting: curl -v {self.url}/rest/v1/
+                3. Wait for services to fully initialize
                 4. Fallback: Skip health check by switching to production environment
             """
             ).strip()
         elif "404" in error_details:
             return textwrap.dedent(
                 """
-                1. Try alternative health endpoints: SUPABASE_HEALTH_ENDPOINT=/rest/v1/
-                2. Use direct API endpoint test: curl <url>/rest/v1/
+                1. Check if Supabase is fully initialized
+                2. Verify all services are running: supabase status
                 3. Check Supabase version compatibility
-                4. Fallback: Disable health check by setting ENVIRONMENT=production
+                4. Fallback: Use production environment
             """
             ).strip()
         elif "503" in error_details or "Server error" in error_details:
@@ -300,8 +290,8 @@ class EnvironmentConfig:
             return textwrap.dedent(
                 """
                 1. Check Supabase service logs: supabase logs
-                2. Try alternative health endpoint: SUPABASE_HEALTH_ENDPOINT=/status
-                3. Restart Supabase: supabase stop && supabase start
+                2. Restart Supabase: supabase stop && supabase start
+                3. Verify all services are healthy: supabase status
                 4. Fallback: Continue with production environment
             """
             ).strip()
@@ -311,7 +301,7 @@ class EnvironmentConfig:
                 1. Run 'supabase start' to start local Supabase services
                 2. Verify Docker and all dependencies are installed
                 3. Check system logs for additional error details
-                4. Fallback: Switch to production environment: ENVIRONMENT=production
+                4. Fallback: Switch to production environment
             """
             ).strip()
 

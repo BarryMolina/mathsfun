@@ -73,29 +73,20 @@ class TestEnvironmentConfig:
         mock_response.status_code = 200
         mock_get.return_value = mock_response
 
-        # Mock environment variables to ensure default health endpoint is used
-        with patch.dict(
-            os.environ,
-            {
-                "SUPABASE_HEALTH_ENDPOINT": "/health",  # Use default for test
-                "SUPABASE_HEALTH_TIMEOUT": "5",
-            },
-            clear=False,
-        ):
-            config = EnvironmentConfig(
-                environment="local",
-                url="http://127.0.0.1:54321",
-                anon_key="test-key",
-                is_local=True,
-            )
+        config = EnvironmentConfig(
+            environment="local",
+            url="http://127.0.0.1:54321",
+            anon_key="test-key",
+            is_local=True,
+        )
 
-            is_valid, message, level = config.validate()
+        is_valid, message, level = config.validate()
 
-            assert is_valid is True
-            assert "local development" in message
-            assert level == ValidationLevel.INFO
-            assert "validated" in message
-            mock_get.assert_called_once_with("http://127.0.0.1:54321/health", timeout=5)
+        assert is_valid is True
+        assert "local development" in message
+        assert level == ValidationLevel.INFO
+        assert "validated" in message
+        mock_get.assert_called_once_with("http://127.0.0.1:54321/rest/v1/", timeout=5)
 
     def test_validate_success_production(self):
         """Test validation with valid production configuration."""
