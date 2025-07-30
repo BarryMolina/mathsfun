@@ -165,9 +165,9 @@ def start_oauth_server(port: int = 8080) -> OAuthServer:
 class SupabaseManager:
     """Manages Supabase authentication and client access"""
 
-    def __init__(self) -> None:
+    def __init__(self, use_local: bool = False) -> None:
         # Use configuration object for environment settings
-        self.config = EnvironmentConfig.from_environment()
+        self.config = EnvironmentConfig.from_environment(use_local=use_local)
 
         # Validate configuration and handle validation failures based on severity
         is_valid, message, level = self.config.validate()
@@ -587,12 +587,25 @@ class SupabaseManager:
             return False
 
 
-def validate_environment() -> tuple[bool, str]:
+def validate_environment(use_local: bool = False) -> tuple[bool, str]:
     """Validate that required environment variables are set"""
-    config = EnvironmentConfig.from_environment()
+    config = EnvironmentConfig.from_environment(use_local=use_local)
     is_valid, message, level = config.validate()
     return is_valid, message
 
 
-# Singleton instance for app-wide access
-supabase_manager = SupabaseManager()
+def create_supabase_manager(use_local: bool = False) -> SupabaseManager:
+    """Create a SupabaseManager instance with the specified configuration.
+
+    Args:
+        use_local: If True, configure for local development (.env.local).
+                  If False, configure for production (.env).
+
+    Returns:
+        Configured SupabaseManager instance
+    """
+    return SupabaseManager(use_local=use_local)
+
+
+# TODO: Singleton removed - all code should use create_supabase_manager()
+# supabase_manager = SupabaseManager()

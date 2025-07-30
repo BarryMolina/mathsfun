@@ -18,31 +18,33 @@ class TestEnvironmentConfig:
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
                 "SUPABASE_ANON_KEY": "local-key",
             },
             clear=False,
         ):
-            config = EnvironmentConfig.from_environment()
+            # Mock dotenv.load_dotenv to prevent loading from .env.local file
+            with patch(
+                "src.infrastructure.database.environment_config.dotenv.load_dotenv"
+            ):
+                config = EnvironmentConfig.from_environment(use_local=True)
 
-            assert config.environment == "local"
-            assert config.url == "http://127.0.0.1:54321"
-            assert config.anon_key == "local-key"
-            assert config.is_local is True
+                assert config.environment == "local"
+                assert config.url == "http://127.0.0.1:54321"
+                assert config.anon_key == "local-key"
+                assert config.is_local is True
 
     def test_from_environment_production(self):
         """Test creating config from production environment variables."""
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://prod.supabase.co",
                 "SUPABASE_ANON_KEY": "prod-key",
             },
             clear=False,
         ):
-            config = EnvironmentConfig.from_environment()
+            config = EnvironmentConfig.from_environment(use_local=False)
 
             assert config.environment == "production"
             assert config.url == "https://prod.supabase.co"
@@ -71,29 +73,20 @@ class TestEnvironmentConfig:
         mock_response.status_code = 200
         mock_get.return_value = mock_response
 
-        # Mock environment variables to ensure default health endpoint is used
-        with patch.dict(
-            os.environ,
-            {
-                "SUPABASE_HEALTH_ENDPOINT": "/health",  # Use default for test
-                "SUPABASE_HEALTH_TIMEOUT": "5",
-            },
-            clear=False,
-        ):
-            config = EnvironmentConfig(
-                environment="local",
-                url="http://127.0.0.1:54321",
-                anon_key="test-key",
-                is_local=True,
-            )
+        config = EnvironmentConfig(
+            environment="local",
+            url="http://127.0.0.1:54321",
+            anon_key="test-key",
+            is_local=True,
+        )
 
-            is_valid, message, level = config.validate()
+        is_valid, message, level = config.validate()
 
-            assert is_valid is True
-            assert "local development" in message
-            assert level == ValidationLevel.INFO
-            assert "validated" in message
-            mock_get.assert_called_once_with("http://127.0.0.1:54321/health", timeout=5)
+        assert is_valid is True
+        assert "local development" in message
+        assert level == ValidationLevel.INFO
+        assert "validated" in message
+        mock_get.assert_called_once_with("http://127.0.0.1:54321/rest/v1/", timeout=5)
 
     def test_validate_success_production(self):
         """Test validation with valid production configuration."""
@@ -215,21 +208,25 @@ class TestEnvironmentConfig:
         assert "http://127.0.0.1:54321" in local_message
         assert "🌐 Using production Supabase environment" in prod_message
 
-    def test_case_insensitive_environment(self):
-        """Test that environment variable is case insensitive."""
+    def test_use_local_parameter_behavior(self):
+        """Test that use_local parameter correctly sets environment."""
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "LOCAL",  # Uppercase
                 "SUPABASE_URL": "http://127.0.0.1:54321",
                 "SUPABASE_ANON_KEY": "key",
             },
             clear=False,
         ):
-            config = EnvironmentConfig.from_environment()
+            # Test local configuration
+            local_config = EnvironmentConfig.from_environment(use_local=True)
+            assert local_config.environment == "local"
+            assert local_config.is_local is True
 
-            assert config.environment == "local"  # Should be lowercase
-            assert config.is_local is True
+            # Test production configuration
+            prod_config = EnvironmentConfig.from_environment(use_local=False)
+            assert prod_config.environment == "production"
+            assert prod_config.is_local is False
 
     @patch("requests.get")
     def test_validate_local_supabase_not_running(self, mock_get):
@@ -307,32 +304,30 @@ class TestEnvironmentConfig:
         assert error_details == ""
 
     def test_runtime_environment_switching(self):
-        """Test that multiple config instances can have different environments."""
+        """Test that multiple config instances can have different environments using use_local parameter."""
         # Create config with production environment
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://prod.supabase.co",
                 "SUPABASE_ANON_KEY": "prod-key",
             },
             clear=False,
         ):
-            prod_config = EnvironmentConfig.from_environment()
+            prod_config = EnvironmentConfig.from_environment(use_local=False)
             assert prod_config.environment == "production"
             assert prod_config.is_local is False
 
-        # Switch environment variables and create new config
+        # Create config with local environment using same environment variables
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
                 "SUPABASE_ANON_KEY": "local-key",
             },
             clear=False,
         ):
-            local_config = EnvironmentConfig.from_environment()
+            local_config = EnvironmentConfig.from_environment(use_local=True)
             assert local_config.environment == "local"
             assert local_config.is_local is True
             assert local_config.url == "http://127.0.0.1:54321"

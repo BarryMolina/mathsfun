@@ -16,10 +16,12 @@ class TestMain:
         # Mock print functions to avoid actual output during test
         mock_print_welcome = mocker.patch("src.presentation.cli.main.print_welcome")
         mock_container = mocker.patch("src.presentation.cli.main.Container")
-        mock_supabase_manager = mocker.patch(
-            "src.presentation.cli.main.supabase_manager"
+        mock_supabase_manager_instance = mocker.Mock()
+        mock_supabase_manager_instance.load_persisted_session.return_value = False
+        mock_create_supabase_manager = mocker.patch(
+            "src.presentation.cli.main.create_supabase_manager",
+            return_value=mock_supabase_manager_instance,
         )
-        mock_supabase_manager.load_persisted_session.return_value = False
         mock_authentication_flow = mocker.patch(
             "src.presentation.cli.main.authentication_flow", return_value=(False, None)
         )
@@ -60,11 +62,13 @@ class TestMain:
         mock_container = mocker.patch(
             "src.presentation.cli.main.Container", return_value=mock_container_instance
         )
-        mock_supabase_manager = mocker.patch(
-            "src.presentation.cli.main.supabase_manager"
+        mock_supabase_manager_instance = mocker.Mock()
+        mock_supabase_manager_instance.load_persisted_session.return_value = False
+        mock_create_supabase_manager = mocker.patch(
+            "src.presentation.cli.main.create_supabase_manager",
+            return_value=mock_supabase_manager_instance,
         )
-        mock_supabase_manager.load_persisted_session.return_value = False
-        mock_supabase_manager.is_authenticated.return_value = True
+        mock_supabase_manager_instance.is_authenticated.return_value = True
 
         # Mock input to select addition mode then exit
         mock_input = mocker.patch("builtins.input", side_effect=["1", "exit"])
@@ -112,11 +116,13 @@ class TestMain:
         mock_container = mocker.patch(
             "src.presentation.cli.main.Container", return_value=mock_container_instance
         )
-        mock_supabase_manager = mocker.patch(
-            "src.presentation.cli.main.supabase_manager"
+        mock_supabase_manager_instance = mocker.Mock()
+        mock_supabase_manager_instance.load_persisted_session.return_value = False
+        mock_create_supabase_manager = mocker.patch(
+            "src.presentation.cli.main.create_supabase_manager",
+            return_value=mock_supabase_manager_instance,
         )
-        mock_supabase_manager.load_persisted_session.return_value = False
-        mock_supabase_manager.is_authenticated.return_value = True
+        mock_supabase_manager_instance.is_authenticated.return_value = True
 
         # Mock input to provide invalid option then exit
         mock_input = mocker.patch("builtins.input", side_effect=["invalid", "exit"])
@@ -168,11 +174,13 @@ class TestMain:
         mock_container = mocker.patch(
             "src.presentation.cli.main.Container", return_value=mock_container_instance
         )
-        mock_supabase_manager = mocker.patch(
-            "src.presentation.cli.main.supabase_manager"
+        mock_supabase_manager_instance = mocker.Mock()
+        mock_supabase_manager_instance.load_persisted_session.return_value = False
+        mock_create_supabase_manager = mocker.patch(
+            "src.presentation.cli.main.create_supabase_manager",
+            return_value=mock_supabase_manager_instance,
         )
-        mock_supabase_manager.load_persisted_session.return_value = False
-        mock_supabase_manager.is_authenticated.return_value = True
+        mock_supabase_manager_instance.is_authenticated.return_value = True
 
         # Mock input sequence: invalid options, then valid selection, then exit
         mock_input = mocker.patch(
