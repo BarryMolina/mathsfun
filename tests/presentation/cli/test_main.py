@@ -20,7 +20,7 @@ class TestMain:
         mock_supabase_manager_instance.load_persisted_session.return_value = False
         mock_create_supabase_manager = mocker.patch(
             "src.presentation.cli.main.create_supabase_manager",
-            return_value=mock_supabase_manager_instance
+            return_value=mock_supabase_manager_instance,
         )
         mock_authentication_flow = mocker.patch(
             "src.presentation.cli.main.authentication_flow", return_value=(False, None)
@@ -66,7 +66,7 @@ class TestMain:
         mock_supabase_manager_instance.load_persisted_session.return_value = False
         mock_create_supabase_manager = mocker.patch(
             "src.presentation.cli.main.create_supabase_manager",
-            return_value=mock_supabase_manager_instance
+            return_value=mock_supabase_manager_instance,
         )
         mock_supabase_manager_instance.is_authenticated.return_value = True
 
@@ -120,7 +120,7 @@ class TestMain:
         mock_supabase_manager_instance.load_persisted_session.return_value = False
         mock_create_supabase_manager = mocker.patch(
             "src.presentation.cli.main.create_supabase_manager",
-            return_value=mock_supabase_manager_instance
+            return_value=mock_supabase_manager_instance,
         )
         mock_supabase_manager_instance.is_authenticated.return_value = True
 
@@ -178,7 +178,7 @@ class TestMain:
         mock_supabase_manager_instance.load_persisted_session.return_value = False
         mock_create_supabase_manager = mocker.patch(
             "src.presentation.cli.main.create_supabase_manager",
-            return_value=mock_supabase_manager_instance
+            return_value=mock_supabase_manager_instance,
         )
         mock_supabase_manager_instance.is_authenticated.return_value = True
 
