@@ -334,14 +334,13 @@ class TestLocalSupabaseEnvironment:
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
                 "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
             },
             clear=False,
         ):
-            # Create SupabaseManager instance
-            manager = SupabaseManager()
+            # Create SupabaseManager instance with local configuration
+            manager = SupabaseManager(use_local=True)
 
             # Verify environment detection
             assert manager.config.environment == "local"
@@ -354,7 +353,7 @@ class TestLocalSupabaseEnvironment:
             assert client is not None
 
             # Verify environment validation
-            is_valid, message = validate_environment()
+            is_valid, message = validate_environment(use_local=True)
             assert is_valid is True
             assert "local development" in message
 
@@ -364,13 +363,12 @@ class TestLocalSupabaseEnvironment:
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://example.supabase.co",
                 "SUPABASE_ANON_KEY": "prod-key-example",
             },
             clear=False,
         ):
-            manager = SupabaseManager()
+            manager = SupabaseManager(use_local=False)
 
             # Verify environment detection
             assert manager.config.environment == "production"
@@ -379,7 +377,7 @@ class TestLocalSupabaseEnvironment:
             assert manager.config.anon_key == "prod-key-example"
 
             # Verify environment validation
-            is_valid, message = validate_environment()
+            is_valid, message = validate_environment(use_local=False)
             assert is_valid is True
             assert "production" in message
 
@@ -389,36 +387,33 @@ class TestLocalSupabaseEnvironment:
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://prod.supabase.co",
                 "SUPABASE_ANON_KEY": "prod-key",
             },
             clear=False,
         ):
-            manager1 = SupabaseManager()
+            manager1 = SupabaseManager(use_local=False)
             assert manager1.config.is_local is False
 
         # Switch to local environment and create new instance
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
                 "SUPABASE_ANON_KEY": "local-key",
             },
             clear=False,
         ):
-            manager2 = SupabaseManager()
+            manager2 = SupabaseManager(use_local=True)
             assert manager2.config.is_local is True
             assert manager2.config.url == "http://127.0.0.1:54321"
 
     def test_missing_environment_variable_handling(self):
         """Test proper error handling when environment variables are missing."""
-        # Test missing URL
+        # Test missing URL for local environment
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "local",
                 "SUPABASE_URL": "",
                 "SUPABASE_ANON_KEY": "test-key",
             },
@@ -428,24 +423,23 @@ class TestLocalSupabaseEnvironment:
             with patch(
                 "src.infrastructure.database.environment_config.dotenv.load_dotenv"
             ):
-                is_valid, message = validate_environment()
+                is_valid, message = validate_environment(use_local=True)
                 assert is_valid is False
                 assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
                 assert (
                     "supabase start" in message
                 )  # Local environment specific instructions
 
-        # Test missing key
+        # Test missing key for production environment
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://test.supabase.co",
                 "SUPABASE_ANON_KEY": "",
             },
             clear=False,
         ):
-            is_valid, message = validate_environment()
+            is_valid, message = validate_environment(use_local=False)
             assert is_valid is False
             assert "Missing SUPABASE_URL or SUPABASE_ANON_KEY" in message
             assert (
