@@ -239,6 +239,9 @@ class TestShowResults:
         mock_progress.recent_sessions = []  # No recent sessions
         mock_quiz_service.get_user_progress.return_value = mock_progress
         
+        # Configure mock generator to return 9 problems presented
+        mock_generator.get_total_generated.return_value = 9
+        
         show_results(7, 9, 105.0, mock_generator, container=mock_container, user_id="test_user", skipped_count=1)
         
         captured = capsys.readouterr()

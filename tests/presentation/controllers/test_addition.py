@@ -494,8 +494,8 @@ class TestAdditionModeQuizSession:
             
             # Verify skipped attempt was recorded (covers lines 243-244)
             mock_quiz_service.record_answer.assert_called_once()
-            record_args = mock_quiz_service.record_answer.call_args[1]
-            assert record_args["user_answer"] is None  # None indicates skipped
+            record_args = mock_quiz_service.record_answer.call_args[0]  # positional args
+            assert record_args[2] is None  # Third argument (user_answer) is None for skipped
             
             # Verify session was completed when all problems done (covers line 280)
             mock_quiz_service.complete_session.assert_called_with("session123")
@@ -512,8 +512,8 @@ class TestAdditionModeQuizSession:
         generator = ProblemGenerator(1, 1, 1)  # Single easy problem
         
         # Mock time and input
-        with patch("time.time", side_effect=[0, 1, 2, 3]), \
-             patch("builtins.input", side_effect=["", "1"]):  # Enter to start, then correct answer
+        with patch("time.time", side_effect=[0, 1, 2, 3, 4, 5]), \
+             patch("builtins.input", side_effect=["", "9", "stop"]):  # Enter to start, correct answer (9+0=9), then stop
             
             correct, total, duration = run_addition_quiz(generator, None, None)
             

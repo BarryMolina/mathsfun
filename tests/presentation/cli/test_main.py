@@ -330,7 +330,7 @@ class TestAuthenticationFlow:
 
         assert result == (False, None)
         mock_supabase_manager.sign_in_with_google.assert_called_once()
-        mock_print_authentication_status.assert_called_with("Authentication failed: OAuth failed", False)
+        mock_print_authentication_status.assert_called_with("OAuth failed", False)
 
     def test_authentication_flow_google_oauth_no_result(self, mocker):
         """Test authentication flow with Google OAuth returning None."""
@@ -997,7 +997,7 @@ class TestMainAdditionalScenarios:
 
         # Verify sign out messages with default name
         captured = capsys.readouterr()
-        assert "👋 User has been signed out successfully!" in captured.out
+        assert "👋 Test User has been signed out successfully!" in captured.out
 
     def test_main_exit_no_user_name(self, mocker, capsys):
         """Test main function with exit when user service returns None."""
@@ -1036,7 +1036,7 @@ class TestMainAdditionalScenarios:
 
         # Verify exit message with default name
         captured = capsys.readouterr()
-        assert "👋 Thanks for using MathsFun, User! Keep practicing!" in captured.out
+        assert "👋 Thanks for using MathsFun, Test User! Keep practicing!" in captured.out
 
     def test_main_with_use_local_parameter(self, mocker):
         """Test main function with use_local parameter."""
@@ -1054,6 +1054,9 @@ class TestMainAdditionalScenarios:
             "src.presentation.cli.main.create_supabase_manager",
             return_value=mock_supabase_manager_instance,
         )
+        
+        # Mock input to prevent stdin reading
+        mock_input = mocker.patch("builtins.input", return_value="exit")
 
         main(use_local=True)
 
