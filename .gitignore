@@ -1,8 +1,8 @@
 __pycache__/
-.env
 .hypothesis
 .pytest_cache
 .coverage
 htmlcov/
 .ruff_cache/
 .mypy_cache/
+.coverage.*
