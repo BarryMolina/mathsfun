@@ -511,15 +511,15 @@ class TestAdditionModeQuizSession:
         # Create a limited generator
         generator = ProblemGenerator(1, 1, 1)  # Single easy problem
         
-        # Mock time and input
-        with patch("time.time", side_effect=[0, 1, 2, 3, 4, 5]), \
-             patch("builtins.input", side_effect=["", "9", "stop"]):  # Enter to start, correct answer (9+0=9), then stop
+        # Mock time and input - use 'next' to skip the problem instead of guessing
+        with patch("time.time", side_effect=[0, 1, 2, 3]), \
+             patch("builtins.input", side_effect=["", "next", "stop"]):  # Enter to start, skip problem, then stop
             
             correct, total, duration = run_addition_quiz(generator, None, None)
             
-            # Should work without error despite no container
-            assert correct == 1
-            assert total == 1
+            # Should work without error despite no container - problem was skipped so 0 correct, 0 total
+            assert correct == 0
+            assert total == 0
 
     def test_addition_mode_with_container_and_user(self):
         """Test addition_mode with container and user for session management."""
