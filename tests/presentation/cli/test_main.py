@@ -606,29 +606,42 @@ class TestAuthenticationFlow:
         """Test email signup when account creation fails with error message."""
         from src.presentation.cli.main import authentication_flow
         
-        # Create mock objects
-        mock_supabase_manager = mocker.Mock()
-        mock_container = mocker.Mock()
-        mock_container.supabase_manager = mock_supabase_manager
+        # Mock dependencies
+        mock_validate_environment = mocker.patch(
+            "src.presentation.cli.main.validate_environment",
+            return_value=(True, "Valid environment")
+        )
+        mock_print_authentication_menu = mocker.patch(
+            "src.presentation.cli.main.print_authentication_menu"
+        )
+        mock_print_authentication_status = mocker.patch(
+            "src.presentation.cli.main.print_authentication_status"
+        )
+        mock_get_email_input = mocker.patch(
+            "src.presentation.cli.main.get_email_input",
+            return_value="test@example.com"
+        )
+        mock_get_password_confirmation = mocker.patch(
+            "src.presentation.cli.main.get_password_confirmation",
+            return_value="password123"
+        )
+        mock_input = mocker.patch("builtins.input", side_effect=["3", "exit"])
+        mock_print = mocker.patch("builtins.print")
         
-        # Mock the signup to fail with error result
-        mock_supabase_manager.sign_up_with_email.return_value = {
+        mock_container = mocker.Mock()
+        mock_supabase_manager = mocker.Mock()
+        mock_supabase_manager.config.is_local = True
+        # Mock signup to fail with error result
+        mock_supabase_manager.sign_up_with_email_password.return_value = {
             "success": False,
             "error": "Email already registered"
         }
         
-        # Mock user inputs and UI functions
-        mocker.patch('builtins.input', side_effect=['3', 'exit'])  # Sign up option, then exit
-        mocker.patch('src.presentation.cli.main.get_email_input', return_value='test@example.com')
-        mocker.patch('src.presentation.cli.main.get_password_confirmation', return_value='password123')
-        mock_print_auth_status = mocker.patch('src.presentation.cli.main.print_authentication_status')
-        
-        success, user = authentication_flow(mock_container, mock_supabase_manager)
+        result = authentication_flow(mock_container, mock_supabase_manager)
         
         # Should fail to authenticate (covers lines 130-135)
-        assert success is False
-        assert user is None
-        mock_print_auth_status.assert_called_with(
+        assert result == (False, None)
+        mock_print_authentication_status.assert_called_with(
             "Account creation failed: Email already registered", False
         )
 
@@ -636,26 +649,39 @@ class TestAuthenticationFlow:
         """Test email signup when account creation fails with no result."""
         from src.presentation.cli.main import authentication_flow
         
-        # Create mock objects
-        mock_supabase_manager = mocker.Mock()
+        # Mock dependencies
+        mock_validate_environment = mocker.patch(
+            "src.presentation.cli.main.validate_environment",
+            return_value=(True, "Valid environment")
+        )
+        mock_print_authentication_menu = mocker.patch(
+            "src.presentation.cli.main.print_authentication_menu"
+        )
+        mock_print_authentication_status = mocker.patch(
+            "src.presentation.cli.main.print_authentication_status"
+        )
+        mock_get_email_input = mocker.patch(
+            "src.presentation.cli.main.get_email_input",
+            return_value="test@example.com"
+        )
+        mock_get_password_confirmation = mocker.patch(
+            "src.presentation.cli.main.get_password_confirmation",
+            return_value="password123"
+        )
+        mock_input = mocker.patch("builtins.input", side_effect=["3", "exit"])
+        mock_print = mocker.patch("builtins.print")
+        
         mock_container = mocker.Mock()
-        mock_container.supabase_manager = mock_supabase_manager
+        mock_supabase_manager = mocker.Mock()
+        mock_supabase_manager.config.is_local = True
+        # Mock signup to return None
+        mock_supabase_manager.sign_up_with_email_password.return_value = None
         
-        # Mock the signup to return None
-        mock_supabase_manager.sign_up_with_email.return_value = None
-        
-        # Mock user inputs and UI functions
-        mocker.patch('builtins.input', side_effect=['3', 'exit'])  # Sign up option, then exit
-        mocker.patch('src.presentation.cli.main.get_email_input', return_value='test@example.com')
-        mocker.patch('src.presentation.cli.main.get_password_confirmation', return_value='password123')
-        mock_print_auth_status = mocker.patch('src.presentation.cli.main.print_authentication_status')
-        
-        success, user = authentication_flow(mock_container, mock_supabase_manager)
+        result = authentication_flow(mock_container, mock_supabase_manager)
         
         # Should fail to authenticate (covers lines 130-135)
-        assert success is False
-        assert user is None
-        mock_print_auth_status.assert_called_with(
+        assert result == (False, None)
+        mock_print_authentication_status.assert_called_with(
             "Account creation failed: Account creation failed", False
         )
 
@@ -663,26 +689,39 @@ class TestAuthenticationFlow:
         """Test email signup when exception occurs during creation."""
         from src.presentation.cli.main import authentication_flow
         
-        # Create mock objects
-        mock_supabase_manager = mocker.Mock()
+        # Mock dependencies
+        mock_validate_environment = mocker.patch(
+            "src.presentation.cli.main.validate_environment",
+            return_value=(True, "Valid environment")
+        )
+        mock_print_authentication_menu = mocker.patch(
+            "src.presentation.cli.main.print_authentication_menu"
+        )
+        mock_print_authentication_status = mocker.patch(
+            "src.presentation.cli.main.print_authentication_status"
+        )
+        mock_get_email_input = mocker.patch(
+            "src.presentation.cli.main.get_email_input",
+            return_value="test@example.com"
+        )
+        mock_get_password_confirmation = mocker.patch(
+            "src.presentation.cli.main.get_password_confirmation",
+            return_value="password123"
+        )
+        mock_input = mocker.patch("builtins.input", side_effect=["3", "exit"])
+        mock_print = mocker.patch("builtins.print")
+        
         mock_container = mocker.Mock()
-        mock_container.supabase_manager = mock_supabase_manager
+        mock_supabase_manager = mocker.Mock()
+        mock_supabase_manager.config.is_local = True
+        # Mock signup to raise an exception
+        mock_supabase_manager.sign_up_with_email_password.side_effect = Exception("Network error")
         
-        # Mock the signup to raise an exception
-        mock_supabase_manager.sign_up_with_email.side_effect = Exception("Network error")
-        
-        # Mock user inputs and UI functions
-        mocker.patch('builtins.input', side_effect=['3', 'exit'])  # Sign up option, then exit
-        mocker.patch('src.presentation.cli.main.get_email_input', return_value='test@example.com')
-        mocker.patch('src.presentation.cli.main.get_password_confirmation', return_value='password123')
-        mock_print_auth_status = mocker.patch('src.presentation.cli.main.print_authentication_status')
-        
-        success, user = authentication_flow(mock_container, mock_supabase_manager)
+        result = authentication_flow(mock_container, mock_supabase_manager)
         
         # Should fail to authenticate (covers lines 140-141)
-        assert success is False
-        assert user is None
-        mock_print_auth_status.assert_called_with(
+        assert result == (False, None)
+        mock_print_authentication_status.assert_called_with(
             "Account creation failed: Network error", False
         )
 
@@ -774,15 +813,17 @@ class TestMainAdditionalScenarios:
         mock_print_welcome = mocker.patch("src.presentation.cli.main.print_welcome")
         
         user = User(id="test_user", email="test@example.com", display_name="Test User")
+        # Authentication succeeds but returns user=None, then exit on retry
         mock_authentication_flow = mocker.patch(
             "src.presentation.cli.main.authentication_flow", 
-            side_effect=[(True, user), (False, None)]  # First success, then exit
+            side_effect=[(True, None), (False, None)]  # Success but no user returned, then exit
         )
 
-        # Mock container with user service that returns None on second call
+        # Mock container with user service that returns None for user data fetch
         mock_container_instance = MagicMock()
         mock_user_service = MagicMock()
-        mock_user_service.get_current_user.side_effect = [None, user]  # Fail first, succeed second
+        # Return None to simulate user data fetch failure (covers lines 179-182)
+        mock_user_service.get_current_user.return_value = None
         mock_container_instance.user_svc = mock_user_service
         mock_container = mocker.patch(
             "src.presentation.cli.main.Container", return_value=mock_container_instance
@@ -797,7 +838,7 @@ class TestMainAdditionalScenarios:
 
         main()
 
-        # Verify error message was printed
+        # Verify error message was printed (covers lines 179-182)
         captured = capsys.readouterr()
         assert "❌ Unable to fetch user data. Please try again." in captured.out
 
@@ -1019,36 +1060,40 @@ class TestMainAdditionalScenarios:
         # Verify create_supabase_manager was called with use_local=True
         mock_create_supabase_manager.assert_called_once_with(use_local=True)
 
-    def test_main_user_fetch_failure_after_auth(self, mocker):
+    def test_main_user_fetch_failure_after_auth(self, mocker, capsys):
         """Test main when user data fetch fails after successful authentication."""
         from src.presentation.cli.main import main
-        from unittest.mock import Mock
         
-        # Create mock container
-        mock_container = Mock()
-        mock_supabase_manager = mock_container.supabase_manager
-        mock_user_service = mock_container.user_svc
+        # Mock dependencies
+        mock_print_welcome = mocker.patch("src.presentation.cli.main.print_welcome")
         
-        # Mock authentication states
-        mock_supabase_manager.is_authenticated.side_effect = [False, True, False]  # Auth succeeds then fails
+        user = User(id="test_user", email="test@example.com", display_name="Test User")
+        mock_authentication_flow = mocker.patch(
+            "src.presentation.cli.main.authentication_flow", 
+            side_effect=[(True, None), (False, None)]  # Success but no user returned, then exit
+        )
         
-        # Mock user service to return None (user fetch failure)
-        mock_user_service.get_current_user.return_value = None
+        # Mock container with user service that returns None (user fetch failure)
+        mock_container_instance = MagicMock()
+        mock_user_service = MagicMock()
+        mock_user_service.get_current_user.return_value = None  # Simulate fetch failure
+        mock_container_instance.user_svc = mock_user_service
+        mock_container = mocker.patch(
+            "src.presentation.cli.main.Container", return_value=mock_container_instance
+        )
         
-        # Mock authentication flow to succeed initially but no user data
-        def mock_auth_flow(container, supabase_manager):
-            return True, None  # Success but no user returned
-            
-        mocker.patch('src.presentation.cli.main.Container', return_value=mock_container)
-        mocker.patch('src.presentation.cli.main.print_welcome')
-        mocker.patch('src.presentation.cli.main.authentication_flow', side_effect=mock_auth_flow)
-        mocker.patch('builtins.input', side_effect=['exit'])  # Exit after auth failure
-        mock_print = mocker.patch('builtins.print')
+        mock_supabase_manager_instance = mocker.Mock()
+        mock_supabase_manager_instance.load_persisted_session.return_value = False
+        mock_create_supabase_manager = mocker.patch(
+            "src.presentation.cli.main.create_supabase_manager",
+            return_value=mock_supabase_manager_instance,
+        )
         
         main()
         
         # Verify error message was printed (covers lines 179-182)
-        mock_print.assert_any_call("❌ Unable to fetch user data. Please try again.")
+        captured = capsys.readouterr()
+        assert "❌ Unable to fetch user data. Please try again." in captured.out
 
 
 class TestMainIfName:
@@ -1066,23 +1111,34 @@ class TestMainIfName:
         # without actually running the script, so we just verify the structure is correct
         # The main functionality is tested in the other test methods
 
-    def test_main_call_execution(self):
+    def test_main_call_execution(self, mocker):
         """Test that main() can be called directly (covers line 217)."""
         from src.presentation.cli.main import main
-        from unittest.mock import patch
         
         # Mock all the dependencies to prevent actual execution
-        with patch('src.presentation.cli.main.Container') as mock_container_class, \
-             patch('src.presentation.cli.main.print_welcome'), \
-             patch('builtins.input', return_value='exit'):
-            
-            mock_container = mock_container_class.return_value
-            mock_supabase_manager = mock_container.supabase_manager
-            mock_supabase_manager.is_authenticated.return_value = False
-            
-            # This should execute without error (covers line 217)
-            main()
-            
-            # Verify Container was instantiated
-            mock_container_class.assert_called_once()
+        mock_print_welcome = mocker.patch("src.presentation.cli.main.print_welcome")
+        mock_authentication_flow = mocker.patch(
+            "src.presentation.cli.main.authentication_flow", return_value=(False, None)
+        )
+        
+        mock_container_instance = MagicMock()
+        mock_user_service = MagicMock()
+        mock_container_instance.user_svc = mock_user_service
+        mock_container = mocker.patch(
+            "src.presentation.cli.main.Container", return_value=mock_container_instance
+        )
+        
+        mock_supabase_manager_instance = mocker.Mock()
+        mock_supabase_manager_instance.load_persisted_session.return_value = False
+        mock_create_supabase_manager = mocker.patch(
+            "src.presentation.cli.main.create_supabase_manager",
+            return_value=mock_supabase_manager_instance,
+        )
+        
+        # This should execute without error (covers line 217)
+        main()
+        
+        # Verify main components were called
+        mock_print_welcome.assert_called_once()
+        mock_authentication_flow.assert_called_once()
 

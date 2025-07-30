@@ -372,7 +372,7 @@ class TestAdditionModeQuizSession:
 
     def test_run_quiz_with_container_and_user_id(self):
         """Test run_quiz with container and user_id for session management."""
-        from src.presentation.controllers.addition import run_quiz
+        from src.presentation.controllers.addition import run_addition_quiz
         from unittest.mock import Mock, patch
         
         # Create mock container and services
@@ -388,11 +388,13 @@ class TestAdditionModeQuizSession:
         # Create a limited generator
         generator = ProblemGenerator(1, 1, 1)  # Single easy problem
         
-        # Mock time and input
-        with patch("time.time", side_effect=[0, 1, 2, 3]), \
-             patch("builtins.input", side_effect=["", "1"]):  # Enter to start, then correct answer
+        # Mock the problem generation to return a predictable problem and control flow
+        with patch.object(generator, 'get_next_problem', return_value=("1 + 1", 2)), \
+             patch.object(generator, 'has_more_problems', side_effect=[True, False]), \
+             patch("time.time", side_effect=[0, 1, 2, 3]), \
+             patch("builtins.input", side_effect=["", "2"]):  # Enter to start, then correct answer
             
-            correct, total, duration = run_quiz(generator, mock_container, "user123")
+            correct, total, duration = run_addition_quiz(generator, mock_container, "user123")
             
             # Verify quiz session was started (covers line 197)
             mock_quiz_service.start_quiz_session.assert_called_once_with("user123", "addition", 1)
@@ -408,7 +410,7 @@ class TestAdditionModeQuizSession:
 
     def test_run_quiz_exit_with_session_completion(self):
         """Test run_quiz exit command completes session."""
-        from src.presentation.controllers.addition import run_quiz
+        from src.presentation.controllers.addition import run_addition_quiz
         from unittest.mock import Mock, patch
         
         # Create mock container and services
@@ -422,13 +424,13 @@ class TestAdditionModeQuizSession:
         mock_quiz_service.start_quiz_session.return_value = mock_quiz_session
         
         # Create an unlimited generator
-        generator = ProblemGenerator(1, 1, is_unlimited=True)
+        generator = ProblemGenerator(1, 1, 0)  # 0 means unlimited
         
         # Mock time and input - exit immediately
         with patch("time.time", side_effect=[0, 1, 2]), \
              patch("builtins.input", side_effect=["", "exit"]):  # Enter to start, then exit
             
-            correct, total, duration = run_quiz(generator, mock_container, "user123")
+            correct, total, duration = run_addition_quiz(generator, mock_container, "user123")
             
             # Verify session was completed on exit (covers line 229)
             mock_quiz_service.complete_session.assert_called_with("session123")
@@ -438,7 +440,7 @@ class TestAdditionModeQuizSession:
 
     def test_run_quiz_stop_with_session_completion(self):
         """Test run_quiz stop command completes session."""
-        from src.presentation.controllers.addition import run_quiz
+        from src.presentation.controllers.addition import run_addition_quiz
         from unittest.mock import Mock, patch
         
         # Create mock container and services
@@ -452,13 +454,13 @@ class TestAdditionModeQuizSession:
         mock_quiz_service.start_quiz_session.return_value = mock_quiz_session
         
         # Create an unlimited generator
-        generator = ProblemGenerator(1, 1, is_unlimited=True)
+        generator = ProblemGenerator(1, 1, 0)  # 0 means unlimited
         
         # Mock time and input - stop immediately
         with patch("time.time", side_effect=[0, 1, 2]), \
              patch("builtins.input", side_effect=["", "stop"]):  # Enter to start, then stop
             
-            correct, total, duration = run_quiz(generator, mock_container, "user123")
+            correct, total, duration = run_addition_quiz(generator, mock_container, "user123")
             
             # Verify session was completed on stop (covers line 236)
             mock_quiz_service.complete_session.assert_called_with("session123")
@@ -468,7 +470,7 @@ class TestAdditionModeQuizSession:
 
     def test_run_quiz_next_records_skipped_attempt(self):
         """Test run_quiz next command records skipped attempt."""
-        from src.presentation.controllers.addition import run_quiz
+        from src.presentation.controllers.addition import run_addition_quiz
         from unittest.mock import Mock, patch
         
         # Create mock container and services
@@ -488,7 +490,7 @@ class TestAdditionModeQuizSession:
         with patch("time.time", side_effect=[0, 1, 2, 3]), \
              patch("builtins.input", side_effect=["", "next"]):  # Enter to start, then skip
             
-            correct, total, duration = run_quiz(generator, mock_container, "user123")
+            correct, total, duration = run_addition_quiz(generator, mock_container, "user123")
             
             # Verify skipped attempt was recorded (covers lines 243-244)
             mock_quiz_service.record_answer.assert_called_once()
@@ -503,7 +505,7 @@ class TestAdditionModeQuizSession:
 
     def test_run_quiz_without_container_no_session_management(self):
         """Test run_quiz without container doesn't try session management."""
-        from src.presentation.controllers.addition import run_quiz
+        from src.presentation.controllers.addition import run_addition_quiz
         from unittest.mock import patch
         
         # Create a limited generator
@@ -513,7 +515,7 @@ class TestAdditionModeQuizSession:
         with patch("time.time", side_effect=[0, 1, 2, 3]), \
              patch("builtins.input", side_effect=["", "1"]):  # Enter to start, then correct answer
             
-            correct, total, duration = run_quiz(generator, None, None)
+            correct, total, duration = run_addition_quiz(generator, None, None)
             
             # Should work without error despite no container
             assert correct == 1
@@ -536,8 +538,8 @@ class TestAdditionModeQuizSession:
         
         # Mock all the dependencies
         with patch("src.presentation.controllers.addition.get_difficulty_range") as mock_get_difficulty, \
-             patch("src.presentation.controllers.addition.get_problem_count") as mock_get_count, \
-             patch("src.presentation.controllers.addition.run_quiz") as mock_run_quiz, \
+             patch("src.presentation.controllers.addition.get_num_problems") as mock_get_count, \
+             patch("src.presentation.controllers.addition.run_addition_quiz") as mock_run_quiz, \
              patch("src.presentation.controllers.addition.show_results") as mock_show_results, \
              patch("builtins.print") as mock_print:
             
