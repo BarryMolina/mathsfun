@@ -229,6 +229,31 @@ class TestUserRepositoryErrorHandling:
         captured = capsys.readouterr()
         assert "Error updating last active: Network timeout" in captured.out
 
+    def test_update_user_profile_database_error(self, sample_user, capsys):
+        """Test handling of database errors during user profile update."""
+        # Setup
+        mock_client = Mock()
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.side_effect = Exception(
+            "Database connection failed"
+        )
+
+        # Create mock SupabaseManager
+        mock_supabase_manager = Mock()
+        mock_supabase_manager.is_authenticated.return_value = True
+        mock_supabase_manager.get_client.return_value = mock_client
+
+        repository = UserRepository(mock_supabase_manager)
+
+        # Execute
+        result = repository.update_user_profile(sample_user)
+
+        # Verify (covers lines 57-59)
+        assert result is None
+
+        # Check error was logged
+        captured = capsys.readouterr()
+        assert "Error updating user profile: Database connection failed" in captured.out
+
 
 class TestUserRepositoryDataHandling:
     """Test data handling and edge cases in UserRepository."""

@@ -345,6 +345,30 @@ class TestLoadSession:
         result = session_storage.load_session()
         assert result is None
 
+    def test_load_session_empty_session_data(self, session_storage):
+        """Test loading with empty session data."""
+        # Write data with empty session value (covers line 96)
+        storage_data = {"session": None, "stored_at": time.time()}
+        session_storage._session_file.write_text(json.dumps(storage_data))
+        # Set secure permissions to avoid permission check failure
+        if os.name != "nt":
+            session_storage._session_file.chmod(0o600)
+
+        result = session_storage.load_session()
+        assert result is None
+
+    def test_load_session_false_session_data(self, session_storage):
+        """Test loading with false session data."""
+        # Write data with False session value (covers line 96)
+        storage_data = {"session": False, "stored_at": time.time()}
+        session_storage._session_file.write_text(json.dumps(storage_data))
+        # Set secure permissions to avoid permission check failure
+        if os.name != "nt":
+            session_storage._session_file.chmod(0o600)
+
+        result = session_storage.load_session()
+        assert result is None
+
     def test_load_session_invalid_structure(self, session_storage):
         """Test loading with invalid session structure."""
         # Write session data missing required fields

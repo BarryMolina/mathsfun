@@ -57,9 +57,7 @@ def authentication_flow(container, supabase_manager):
                     if result
                     else "Authentication failed"
                 )
-                print_authentication_status(
-                    f"Authentication failed: {error_msg}", False
-                )
+                print_authentication_status(error_msg, False)
         elif choice == "2":
             # Email/password sign-in
             print("\n🔓 Sign in with email and password")
