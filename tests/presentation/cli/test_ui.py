@@ -635,7 +635,7 @@ class TestPrintUserWelcome:
         user_data = {
             "name": "John Doe",
             "email": "john@example.com",
-            "avatar_url": "https://example.com/avatar.jpg"
+            "avatar_url": "https://example.com/avatar.jpg",
         }
 
         print_user_welcome(user_data)
@@ -650,9 +650,7 @@ class TestPrintUserWelcome:
 
     def test_print_user_welcome_minimal_data(self, capsys):
         """Test print_user_welcome with minimal user data."""
-        user_data = {
-            "email": "test@example.com"
-        }
+        user_data = {"email": "test@example.com"}
 
         print_user_welcome(user_data)
 
@@ -680,10 +678,7 @@ class TestPrintUserWelcome:
 
     def test_print_user_welcome_no_avatar(self, capsys):
         """Test print_user_welcome with name and email but no avatar."""
-        user_data = {
-            "name": "Jane Smith",
-            "email": "jane@example.com"
-        }
+        user_data = {"name": "Jane Smith", "email": "jane@example.com"}
 
         print_user_welcome(user_data)
 

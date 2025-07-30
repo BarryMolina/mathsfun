@@ -1127,54 +1127,69 @@ class TestAdditionTablesModeEdgeCases:
         """Test addition_tables_mode with container and user provided."""
         from src.presentation.controllers.addition_tables import addition_tables_mode
         from src.domain.models.user import User
-        
+
         # Mock dependencies
-        with patch("src.presentation.controllers.addition_tables.get_table_range") as mock_get_range, \
-             patch("src.presentation.controllers.addition_tables.get_order_preference") as mock_get_order, \
-             patch("src.presentation.controllers.addition_tables.run_addition_table_quiz") as mock_run_quiz, \
-             patch("src.presentation.controllers.addition_tables.show_results_with_fact_insights") as mock_show_results, \
-             patch("builtins.print") as mock_print:
-            
+        with patch(
+            "src.presentation.controllers.addition_tables.get_table_range"
+        ) as mock_get_range, patch(
+            "src.presentation.controllers.addition_tables.get_order_preference"
+        ) as mock_get_order, patch(
+            "src.presentation.controllers.addition_tables.run_addition_table_quiz"
+        ) as mock_run_quiz, patch(
+            "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
+        ) as mock_show_results, patch(
+            "builtins.print"
+        ) as mock_print:
+
             mock_get_range.return_value = (3, 5)
             mock_get_order.return_value = True
             mock_run_quiz.return_value = (8, 10, 2, 120.0, [(3, 4, True, 2000)])
-            
+
             # Mock container and user
             mock_container = Mock()
             mock_addition_fact_service = Mock()
             mock_container.addition_fact_svc = mock_addition_fact_service
-            
-            mock_user = User(id="test_user", email="test@example.com", display_name="Test User")
-            
+
+            mock_user = User(
+                id="test_user", email="test@example.com", display_name="Test User"
+            )
+
             addition_tables_mode(mock_container, mock_user)
-            
+
             # Verify that container and user were used (covers lines 232-233)
             mock_run_quiz.assert_called_once()
             run_quiz_args = mock_run_quiz.call_args[0]
             assert len(run_quiz_args) == 3
-            assert run_quiz_args[1] == mock_addition_fact_service  # addition_fact_service
+            assert (
+                run_quiz_args[1] == mock_addition_fact_service
+            )  # addition_fact_service
             assert run_quiz_args[2] == "test_user"  # user_id
-            
+
             # Verify show_results was called with fact service and user_id
             mock_show_results.assert_called_once()
             show_results_args = mock_show_results.call_args[0]
             assert len(show_results_args) == 8
-            assert show_results_args[6] == mock_addition_fact_service  # addition_fact_service
+            assert (
+                show_results_args[6] == mock_addition_fact_service
+            )  # addition_fact_service
             assert show_results_args[7] == "test_user"  # user_id
 
     def test_show_results_with_fact_insights_mastery_improvements(self):
         """Test show_results_with_fact_insights with mastery improvements."""
-        from src.presentation.controllers.addition_tables import show_results_with_fact_insights
-        
-        with patch("builtins.print") as mock_print, \
-             patch("src.presentation.controllers.addition_tables.show_results") as mock_show_results:
-            
+        from src.presentation.controllers.addition_tables import (
+            show_results_with_fact_insights,
+        )
+
+        with patch("builtins.print") as mock_print, patch(
+            "src.presentation.controllers.addition_tables.show_results"
+        ) as mock_show_results:
+
             mock_generator = Mock()
             mock_generator.low = 3
             mock_generator.high = 5
-            
+
             mock_addition_fact_service = Mock()
-            
+
             # Mock analysis with mastery improvements
             mock_analysis = {
                 "session_accuracy": 85.0,
@@ -1182,42 +1197,55 @@ class TestAdditionTablesModeEdgeCases:
                 "correct_attempts": 8,
                 "facts_practiced": 5,
                 "mastery_improvements": ["3+4", "4+5"],
-                "facts_needing_practice": []
+                "facts_needing_practice": [],
             }
-            mock_addition_fact_service.analyze_session_performance.return_value = mock_analysis
-            
+            mock_addition_fact_service.analyze_session_performance.return_value = (
+                mock_analysis
+            )
+
             # Mock recommendations
             mock_recommendations = {
                 "recommendation": "Great job!",
                 "weak_facts": [],
                 "mastered_facts_count": 8,
-                "total_possible_facts": 9
+                "total_possible_facts": 9,
             }
-            mock_addition_fact_service.get_practice_recommendations.return_value = mock_recommendations
-            
-            session_attempts = [(3, 4, True, 2000), (4, 5, True, 1800)]
-            
-            show_results_with_fact_insights(
-                8, 10, 120.0, mock_generator, 2, session_attempts, 
-                mock_addition_fact_service, "test_user"
+            mock_addition_fact_service.get_practice_recommendations.return_value = (
+                mock_recommendations
             )
-            
+
+            session_attempts = [(3, 4, True, 2000), (4, 5, True, 1800)]
+
+            show_results_with_fact_insights(
+                8,
+                10,
+                120.0,
+                mock_generator,
+                2,
+                session_attempts,
+                mock_addition_fact_service,
+                "test_user",
+            )
+
             # Verify mastery improvements message (covers line 291)
             mock_print.assert_any_call("\n🎉 MASTERED: 3+4, 4+5")
 
     def test_show_results_with_fact_insights_facts_needing_practice(self):
         """Test show_results_with_fact_insights with facts needing practice."""
-        from src.presentation.controllers.addition_tables import show_results_with_fact_insights
-        
-        with patch("builtins.print") as mock_print, \
-             patch("src.presentation.controllers.addition_tables.show_results") as mock_show_results:
-            
+        from src.presentation.controllers.addition_tables import (
+            show_results_with_fact_insights,
+        )
+
+        with patch("builtins.print") as mock_print, patch(
+            "src.presentation.controllers.addition_tables.show_results"
+        ) as mock_show_results:
+
             mock_generator = Mock()
             mock_generator.low = 3
             mock_generator.high = 5
-            
+
             mock_addition_fact_service = Mock()
-            
+
             # Mock analysis with facts needing practice
             mock_analysis = {
                 "session_accuracy": 60.0,
@@ -1225,84 +1253,116 @@ class TestAdditionTablesModeEdgeCases:
                 "correct_attempts": 6,
                 "facts_practiced": 5,
                 "mastery_improvements": [],
-                "facts_needing_practice": ["7+8", "8+9"]
+                "facts_needing_practice": ["7+8", "8+9"],
             }
-            mock_addition_fact_service.analyze_session_performance.return_value = mock_analysis
-            
+            mock_addition_fact_service.analyze_session_performance.return_value = (
+                mock_analysis
+            )
+
             # Mock recommendations with weak facts
             mock_weak_fact = Mock()
             mock_weak_fact.fact_key = "7+8"
-            
+
             mock_recommendations = {
                 "recommendation": "Keep practicing!",
                 "weak_facts": [mock_weak_fact],
                 "mastered_facts_count": 3,
-                "total_possible_facts": 9
+                "total_possible_facts": 9,
             }
-            mock_addition_fact_service.get_practice_recommendations.return_value = mock_recommendations
-            
-            session_attempts = [(7, 8, False, 4000), (8, 9, False, 3500)]
-            
-            show_results_with_fact_insights(
-                6, 10, 150.0, mock_generator, 0, session_attempts, 
-                mock_addition_fact_service, "test_user"
+            mock_addition_fact_service.get_practice_recommendations.return_value = (
+                mock_recommendations
             )
-            
+
+            session_attempts = [(7, 8, False, 4000), (8, 9, False, 3500)]
+
+            show_results_with_fact_insights(
+                6,
+                10,
+                150.0,
+                mock_generator,
+                0,
+                session_attempts,
+                mock_addition_fact_service,
+                "test_user",
+            )
+
             # Verify facts needing practice message (covers line 296)
             mock_print.assert_any_call("\n💪 NEED PRACTICE: 7+8, 8+9")
-            
+
             # Verify weak facts focus message (covers lines 319-320)
             mock_print.assert_any_call("🎯 FOCUS ON: 7+8")
 
     def test_show_results_with_fact_insights_exception_handling(self):
         """Test show_results_with_fact_insights with exception during analysis."""
-        from src.presentation.controllers.addition_tables import show_results_with_fact_insights
-        
-        with patch("builtins.print") as mock_print, \
-             patch("src.presentation.controllers.addition_tables.show_results") as mock_show_results:
-            
+        from src.presentation.controllers.addition_tables import (
+            show_results_with_fact_insights,
+        )
+
+        with patch("builtins.print") as mock_print, patch(
+            "src.presentation.controllers.addition_tables.show_results"
+        ) as mock_show_results:
+
             mock_generator = Mock()
             mock_generator.low = 3
             mock_generator.high = 5
-            
+
             mock_addition_fact_service = Mock()
-            
+
             # Mock exception during analysis
-            mock_addition_fact_service.analyze_session_performance.side_effect = Exception("Database error")
-            
-            session_attempts = [(3, 4, True, 2000)]
-            
-            show_results_with_fact_insights(
-                1, 1, 30.0, mock_generator, 0, session_attempts, 
-                mock_addition_fact_service, "test_user"
+            mock_addition_fact_service.analyze_session_performance.side_effect = (
+                Exception("Database error")
             )
-            
+
+            session_attempts = [(3, 4, True, 2000)]
+
+            show_results_with_fact_insights(
+                1,
+                1,
+                30.0,
+                mock_generator,
+                0,
+                session_attempts,
+                mock_addition_fact_service,
+                "test_user",
+            )
+
             # Verify exception handling message (covers line 323)
-            mock_print.assert_any_call("\n⚠️  Could not load fact insights: Database error")
+            mock_print.assert_any_call(
+                "\n⚠️  Could not load fact insights: Database error"
+            )
 
     def test_show_results_with_fact_insights_no_fact_service(self):
         """Test show_results_with_fact_insights without fact service."""
-        from src.presentation.controllers.addition_tables import show_results_with_fact_insights
-        
-        with patch("builtins.print") as mock_print, \
-             patch("src.presentation.controllers.addition_tables.show_results") as mock_show_results:
-            
+        from src.presentation.controllers.addition_tables import (
+            show_results_with_fact_insights,
+        )
+
+        with patch("builtins.print") as mock_print, patch(
+            "src.presentation.controllers.addition_tables.show_results"
+        ) as mock_show_results:
+
             mock_generator = Mock()
             session_attempts = [(3, 4, True, 2000)]
-            
+
             show_results_with_fact_insights(
-                1, 1, 30.0, mock_generator, 0, session_attempts, 
-                None, None  # No fact service or user_id
+                1,
+                1,
+                30.0,
+                mock_generator,
+                0,
+                session_attempts,
+                None,
+                None,  # No fact service or user_id
             )
-            
+
             # Verify sign-in message (covers lines 325-334)
             mock_print.assert_any_call("\n" + "=" * 60)
             mock_print.assert_any_call("🔐 SIGN IN FOR PERSONALIZED INSIGHTS")
             mock_print.assert_any_call("=" * 60)
-            mock_print.assert_any_call("Sign in to track your progress on individual addition facts!")
+            mock_print.assert_any_call(
+                "Sign in to track your progress on individual addition facts!"
+            )
             mock_print.assert_any_call("• See which facts you've mastered")
             mock_print.assert_any_call("• Get personalized practice recommendations")
             mock_print.assert_any_call("• Track improvement over time")
             mock_print.assert_any_call("• Identify facts that need more work")
-
-

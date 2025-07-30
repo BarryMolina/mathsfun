@@ -436,12 +436,14 @@ class TestAdditionFactRepositoryIndividualMethods:
             "fastest_response_ms": 2000,
             "mastery_level": "practicing",
             "created_at": "2023-01-01T10:00:00Z",
-            "last_attempted": "2023-01-01T12:00:00Z"
+            "last_attempted": "2023-01-01T12:00:00Z",
         }
-        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [mock_response_data]
-        
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
+            mock_response_data
+        ]
+
         result = repository.get_user_fact_performance("test_user", "3+5")
-        
+
         assert result is not None
         assert result.user_id == "test_user"
         assert result.fact_key == "3+5"
@@ -451,19 +453,23 @@ class TestAdditionFactRepositoryIndividualMethods:
     def test_get_user_fact_performance_not_found(self, repository, mock_client):
         """Test retrieval when fact performance doesn't exist."""
         # Mock empty response
-        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-        
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = (
+            []
+        )
+
         result = repository.get_user_fact_performance("test_user", "3+5")
-        
+
         assert result is None
 
     def test_get_user_fact_performance_exception(self, repository, mock_client):
         """Test retrieval with database exception."""
         # Mock exception
-        mock_client.table.return_value.select.return_value.eq.return_value.eq.side_effect = Exception("Database error")
-        
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.side_effect = Exception(
+            "Database error"
+        )
+
         result = repository.get_user_fact_performance("test_user", "3+5")
-        
+
         assert result is None
 
     def test_get_user_fact_performances_success(self, repository, mock_client):
@@ -480,7 +486,7 @@ class TestAdditionFactRepositoryIndividualMethods:
                 "fastest_response_ms": 2000,
                 "mastery_level": "practicing",
                 "created_at": "2023-01-01T10:00:00Z",
-                "last_attempted": "2023-01-01T12:00:00Z"
+                "last_attempted": "2023-01-01T12:00:00Z",
             },
             {
                 "id": 2,
@@ -492,25 +498,33 @@ class TestAdditionFactRepositoryIndividualMethods:
                 "fastest_response_ms": 2800,
                 "mastery_level": "learning",
                 "created_at": "2023-01-01T10:00:00Z",
-                "last_attempted": "2023-01-01T12:00:00Z"
-            }
+                "last_attempted": "2023-01-01T12:00:00Z",
+            },
         ]
-        mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = mock_response_data
-        
+        mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = (
+            mock_response_data
+        )
+
         result = repository.get_user_fact_performances("test_user")
-        
+
         assert len(result) == 2
         assert result[0].fact_key == "3+5"
         assert result[1].fact_key == "7+8"
 
-    def test_get_user_fact_performances_with_mastery_filter(self, repository, mock_client):
+    def test_get_user_fact_performances_with_mastery_filter(
+        self, repository, mock_client
+    ):
         """Test retrieval with mastery level filter."""
         mock_response_data = []
         mock_query = mock_client.table.return_value.select.return_value.eq.return_value
-        mock_query.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = mock_response_data
-        
-        result = repository.get_user_fact_performances("test_user", mastery_level=MasteryLevel.PRACTICING)
-        
+        mock_query.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = (
+            mock_response_data
+        )
+
+        result = repository.get_user_fact_performances(
+            "test_user", mastery_level=MasteryLevel.PRACTICING
+        )
+
         # Verify mastery level filter was applied
         mock_query.eq.assert_called_with("mastery_level", "practicing")
         assert len(result) == 0
@@ -518,27 +532,30 @@ class TestAdditionFactRepositoryIndividualMethods:
     def test_get_user_fact_performances_exception(self, repository, mock_client):
         """Test retrieval with database exception."""
         # Mock exception
-        mock_client.table.return_value.select.return_value.eq.side_effect = Exception("Database error")
-        
+        mock_client.table.return_value.select.return_value.eq.side_effect = Exception(
+            "Database error"
+        )
+
         result = repository.get_user_fact_performances("test_user")
-        
+
         assert result == []
 
     def test_create_fact_performance_success(self, repository, mock_client):
         """Test successful creation of fact performance."""
         # Create test performance
         performance = AdditionFactPerformance.create_new(
-            user_id="test_user",
-            fact_key="3+5"
+            user_id="test_user", fact_key="3+5"
         )
-        
+
         # Mock successful response
         mock_response_data = performance.to_dict()
         mock_response_data["id"] = 1
-        mock_client.table.return_value.insert.return_value.execute.return_value.data = [mock_response_data]
-        
+        mock_client.table.return_value.insert.return_value.execute.return_value.data = [
+            mock_response_data
+        ]
+
         result = repository.create_fact_performance(performance)
-        
+
         assert result is not None
         assert result.id == 1
         assert result.user_id == "test_user"
@@ -547,113 +564,113 @@ class TestAdditionFactRepositoryIndividualMethods:
     def test_create_fact_performance_exception(self, repository, mock_client):
         """Test creation with database exception."""
         performance = AdditionFactPerformance.create_new(
-            user_id="test_user",
-            fact_key="3+5"
+            user_id="test_user", fact_key="3+5"
         )
-        
+
         # Mock exception
         mock_client.table.return_value.insert.side_effect = Exception("Database error")
-        
+
         result = repository.create_fact_performance(performance)
-        
+
         assert result is None
 
     def test_update_fact_performance_success(self, repository, mock_client):
         """Test successful update of fact performance."""
         # Create test performance with ID
         performance = AdditionFactPerformance.create_new(
-            user_id="test_user",
-            fact_key="3+5"
+            user_id="test_user", fact_key="3+5"
         )
         performance.id = 1
         performance.correct_attempts = 10
-        
+
         # Mock successful response
         mock_response_data = performance.to_dict()
-        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [mock_response_data]
-        
+        mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
+            mock_response_data
+        ]
+
         result = repository.update_fact_performance(performance)
-        
+
         assert result is not None
         assert result.correct_attempts == 10
 
     def test_update_fact_performance_no_id(self, repository):
         """Test update with performance that has no ID."""
         performance = AdditionFactPerformance.create_new(
-            user_id="test_user",
-            fact_key="3+5"
+            user_id="test_user", fact_key="3+5"
         )
         # No ID set
-        
+
         result = repository.update_fact_performance(performance)
-        
+
         assert result is None
 
     def test_update_fact_performance_exception(self, repository, mock_client):
         """Test update with database exception."""
         performance = AdditionFactPerformance.create_new(
-            user_id="test_user",
-            fact_key="3+5"
+            user_id="test_user", fact_key="3+5"
         )
         performance.id = 1
-        
+
         # Mock exception
         mock_client.table.return_value.update.side_effect = Exception("Database error")
-        
-        result = repository.update_fact_performance(performance)
-        
-        assert result is None
 
+        result = repository.update_fact_performance(performance)
+
+        assert result is None
 
     def test_upsert_fact_performance_exception(self, repository, mock_client):
-        """Test upsert with database exception."""        
+        """Test upsert with database exception."""
         # Mock exception
         mock_client.table.return_value.upsert.side_effect = Exception("Database error")
-        
-        result = repository.upsert_fact_performance("test_user", "3+5", True, 2500)
-        
-        assert result is None
 
+        result = repository.upsert_fact_performance("test_user", "3+5", True, 2500)
+
+        assert result is None
 
     def test_get_weak_facts_with_custom_params(self, repository, mock_client):
         """Test retrieval of weak facts with custom parameters."""
         mock_response_data = []
         mock_query = mock_client.table.return_value.select.return_value.eq.return_value
-        mock_query.lte.return_value.order.return_value.limit.return_value.execute.return_value.data = mock_response_data
-        
+        mock_query.lte.return_value.order.return_value.limit.return_value.execute.return_value.data = (
+            mock_response_data
+        )
+
         result = repository.get_weak_facts("test_user", max_accuracy=50.0, limit=5)
-        
+
         assert result == []
 
     def test_get_weak_facts_exception(self, repository, mock_client):
         """Test get weak facts with database exception."""
-        mock_client.table.return_value.select.return_value.eq.side_effect = Exception("Database error")
-        
-        result = repository.get_weak_facts("test_user")
-        
-        assert result == []
+        mock_client.table.return_value.select.return_value.eq.side_effect = Exception(
+            "Database error"
+        )
 
+        result = repository.get_weak_facts("test_user")
+
+        assert result == []
 
     def test_get_mastered_facts_exception(self, repository, mock_client):
         """Test get mastered facts with database exception."""
-        mock_client.table.return_value.select.return_value.eq.side_effect = Exception("Database error")
-        
-        result = repository.get_mastered_facts("test_user")
-        
-        assert result == []
+        mock_client.table.return_value.select.return_value.eq.side_effect = Exception(
+            "Database error"
+        )
 
+        result = repository.get_mastered_facts("test_user")
+
+        assert result == []
 
     def test_get_performance_summary_exception(self, repository, mock_client):
         """Test get performance summary with database exception."""
         mock_client.table.return_value.select.side_effect = Exception("Database error")
-        
+
         result = repository.get_performance_summary("test_user")
-        
+
         assert result == {
             "total_facts": 0,
             "learning": 0,
             "practicing": 0,
             "mastered": 0,
             "overall_accuracy": 0.0,
-            "total_attempts": 0
+            "total_attempts": 0,
         }
