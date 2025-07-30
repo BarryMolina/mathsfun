@@ -5,3 +5,4 @@ __pycache__/
 htmlcov/
 .ruff_cache/
 .mypy_cache/
+.coverage.*
