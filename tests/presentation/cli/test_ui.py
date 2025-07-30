@@ -11,6 +11,8 @@ from src.presentation.cli.ui import (
     get_password_input,
     get_password_confirmation,
     print_authentication_menu,
+    print_authentication_status,
+    print_user_welcome,
 )
 
 
@@ -592,3 +594,103 @@ class TestEmailPasswordUIIntegration:
         assert password == "mypassword"
         mock_input.assert_called_once()
         mock_getpass.assert_called_once()
+
+
+class TestPrintAuthenticationStatus:
+    """Test the print_authentication_status function."""
+
+    def test_print_authentication_status_success(self, capsys):
+        """Test print_authentication_status with success=True."""
+        print_authentication_status("Login successful", success=True)
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert "✅ Login successful" in output
+
+    def test_print_authentication_status_failure(self, capsys):
+        """Test print_authentication_status with success=False."""
+        print_authentication_status("Login failed", success=False)
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert "❌ Login failed" in output
+
+    def test_print_authentication_status_default_success(self, capsys):
+        """Test print_authentication_status with default success=True."""
+        print_authentication_status("Operation completed")
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert "✅ Operation completed" in output
+
+
+class TestPrintUserWelcome:
+    """Test the print_user_welcome function."""
+
+    def test_print_user_welcome_full_data(self, capsys):
+        """Test print_user_welcome with all user data fields."""
+        user_data = {
+            "name": "John Doe",
+            "email": "john@example.com",
+            "avatar_url": "https://example.com/avatar.jpg"
+        }
+
+        print_user_welcome(user_data)
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert "🎉 Welcome back, John Doe!" in output
+        assert "📧 Signed in as: john@example.com" in output
+        assert "🖼️  Profile picture: https://example.com/avatar.jpg" in output
+        assert "-" * 50 in output
+
+    def test_print_user_welcome_minimal_data(self, capsys):
+        """Test print_user_welcome with minimal user data."""
+        user_data = {
+            "email": "test@example.com"
+        }
+
+        print_user_welcome(user_data)
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert "🎉 Welcome back, User!" in output
+        assert "📧 Signed in as: test@example.com" in output
+        assert "🖼️  Profile picture:" not in output
+        assert "-" * 50 in output
+
+    def test_print_user_welcome_empty_data(self, capsys):
+        """Test print_user_welcome with empty user data."""
+        user_data = {}
+
+        print_user_welcome(user_data)
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert "🎉 Welcome back, User!" in output
+        assert "📧 Signed in as: " in output
+        assert "🖼️  Profile picture:" not in output
+        assert "-" * 50 in output
+
+    def test_print_user_welcome_no_avatar(self, capsys):
+        """Test print_user_welcome with name and email but no avatar."""
+        user_data = {
+            "name": "Jane Smith",
+            "email": "jane@example.com"
+        }
+
+        print_user_welcome(user_data)
+
+        captured = capsys.readouterr()
+        output = captured.out
+
+        assert "🎉 Welcome back, Jane Smith!" in output
+        assert "📧 Signed in as: jane@example.com" in output
+        assert "🖼️  Profile picture:" not in output
+        assert "-" * 50 in output
