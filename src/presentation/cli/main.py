@@ -13,15 +13,15 @@ from .ui import (
 from ..controllers.addition import addition_mode
 from ..controllers.addition_tables import addition_tables_mode
 from src.infrastructure.database.supabase_manager import (
-    supabase_manager,
+    create_supabase_manager,
     validate_environment,
 )
 from src.config.container import Container
 
 
-def authentication_flow(container):
+def authentication_flow(container, supabase_manager):
     """Handle user authentication"""
-    valid, message = validate_environment()
+    valid, message = validate_environment(use_local=supabase_manager.config.is_local)
     if not valid:
         print_authentication_status(message, False)
         return False, None
@@ -145,11 +145,10 @@ def authentication_flow(container):
 
 def main(use_local: bool = False):
     """Main application loop"""
-    # Set environment based on command-line flag before any environment detection
-    if use_local:
-        os.environ["ENVIRONMENT"] = "local"
-
     print_welcome()
+
+    # Create supabase manager with the appropriate configuration
+    supabase_manager = create_supabase_manager(use_local=use_local)
 
     while True:  # Outer loop for authentication flow
         # Initialize the container with Supabase manager early
@@ -170,7 +169,7 @@ def main(use_local: bool = False):
 
         # If auto-login failed, go through normal authentication flow
         if not auto_login_success:
-            auth_success, user = authentication_flow(container)
+            auth_success, user = authentication_flow(container, supabase_manager)
             if not auth_success:
                 print("\n👋 Thanks for visiting MathsFun!")
                 return

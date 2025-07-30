@@ -94,17 +94,24 @@ class EnvironmentConfig:
     is_local: bool
 
     @classmethod
-    def from_environment(cls) -> "EnvironmentConfig":
-        """Create configuration from environment variables."""
-        # Load environment variables at runtime for dynamic configuration
-        dotenv.load_dotenv()
+    def from_environment(cls, use_local: bool = False) -> "EnvironmentConfig":
+        """Create configuration from environment variables.
 
-        environment = (os.getenv("ENVIRONMENT") or "production").lower()
-        is_local = environment == "local"
-
-        # If local environment is requested, load from .env.local (override=True to replace existing values)
-        if is_local:
-            dotenv.load_dotenv(".env.local", override=True)
+        Args:
+            use_local: If True, load .env.local for local development.
+                      If False, load .env for production.
+        """
+        # Load the appropriate environment file based on use_local flag
+        if use_local:
+            # Load .env.local for local development
+            dotenv.load_dotenv(".env.local")
+            environment = "local"
+            is_local = True
+        else:
+            # Load .env for production (default behavior)
+            dotenv.load_dotenv()
+            environment = "production"
+            is_local = False
 
         url = os.getenv("SUPABASE_URL") or ""
         anon_key = os.getenv("SUPABASE_ANON_KEY") or ""

@@ -1119,33 +1119,31 @@ class TestSupabaseManagerEnvironmentSwitching:
     """Test SupabaseManager runtime environment switching capabilities."""
 
     def test_runtime_environment_detection(self):
-        """Test that SupabaseManager instances can have different environments at runtime."""
+        """Test that SupabaseManager instances can have different environments using use_local parameter."""
         # Create manager with production environment
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://prod.supabase.co",
                 "SUPABASE_ANON_KEY": "prod-key",
             },
             clear=False,
         ):
-            prod_manager = SupabaseManager()
+            prod_manager = SupabaseManager(use_local=False)
             assert prod_manager.config.environment == "production"
             assert prod_manager.config.is_local is False
             assert prod_manager.config.url == "https://prod.supabase.co"
 
-        # Create manager with local environment (simulating runtime switch)
+        # Create manager with local environment
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
                 "SUPABASE_ANON_KEY": "local-key",
             },
             clear=False,
         ):
-            local_manager = SupabaseManager()
+            local_manager = SupabaseManager(use_local=True)
             assert local_manager.config.environment == "local"
             assert local_manager.config.is_local is True
             assert local_manager.config.url == "http://127.0.0.1:54321"
@@ -1159,18 +1157,17 @@ class TestSupabaseManagerEnvironmentSwitching:
 
     @patch("requests.get")
     def test_environment_validation_changes_with_environment(self, mock_get):
-        """Test that validate_environment reflects current environment variables."""
+        """Test that validate_environment reflects different use_local parameter values."""
         # Test production validation
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "production",
                 "SUPABASE_URL": "https://prod.supabase.co",
                 "SUPABASE_ANON_KEY": "prod-key",
             },
             clear=False,
         ):
-            is_valid, message = validate_environment()
+            is_valid, message = validate_environment(use_local=False)
             assert is_valid is True
             assert "production" in message
 
@@ -1181,14 +1178,13 @@ class TestSupabaseManagerEnvironmentSwitching:
         with patch.dict(
             os.environ,
             {
-                "ENVIRONMENT": "local",
                 "SUPABASE_URL": "http://127.0.0.1:54321",
                 "SUPABASE_ANON_KEY": "local-key",
             },
             clear=False,
         ):
             # This will fail because local Supabase isn't actually running
-            is_valid, message = validate_environment()
+            is_valid, message = validate_environment(use_local=True)
             assert is_valid is False
             assert "Local Supabase appears to be offline" in message
 
