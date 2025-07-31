@@ -544,7 +544,9 @@ class TestRunAdditionTableQuiz:
         assert total == 4  # 4 attempts (including the wrong one)
         assert skipped == 1
         assert duration == 15
-        assert len(session_attempts) == 3  # Only final attempts per fact: 1+1 (correct), 1+2 (correct after error), 2+2 (correct), skip not recorded
+        assert (
+            len(session_attempts) == 3
+        )  # Only final attempts per fact: 1+1 (correct), 1+2 (correct after error), 2+2 (correct), skip not recorded
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -601,7 +603,9 @@ class TestRunAdditionTableQuiz:
         # Should have 0 skipped (no 'next' commands)
         assert skipped == 0
         assert duration == 15
-        assert len(session_attempts) == 1  # Only final attempt recorded: 1+1 correct after 3 errors
+        assert (
+            len(session_attempts) == 1
+        )  # Only final attempt recorded: 1+1 correct after 3 errors
 
         # Verify error messages were printed for wrong answers
         mock_print.assert_any_call("❌ Not quite right. Try again!")
@@ -639,7 +643,9 @@ class TestRunAdditionTableQuiz:
         # Should have 1 skipped
         assert skipped == 1
         assert duration == 20
-        assert len(session_attempts) == 3  # Only final attempts: 1+1 (correct after error), 2+1 (correct after error), 2+2 (correct), skip not recorded
+        assert (
+            len(session_attempts) == 3
+        )  # Only final attempts: 1+1 (correct after error), 2+1 (correct after error), 2+2 (correct), skip not recorded
 
         # Verify skip message was printed
         mock_print.assert_any_call("⏭️  Skipped! The answer was 3")
@@ -670,7 +676,7 @@ class TestAdditionTablesMode:
         """Test successful execution of addition tables mode."""
         # Mock submenu choice (1 = practice specific range)
         mock_get_user_input.return_value = "1"
-        
+
         # Mock user inputs for practice workflow
         mock_get_range.return_value = (2, 3)
         mock_get_order.return_value = True  # Random order
@@ -686,7 +692,7 @@ class TestAdditionTablesMode:
 
         # Verify submenu choice was called
         mock_get_user_input.assert_called()
-        
+
         # Verify function calls after submenu selection
         mock_get_range.assert_called_once()
         mock_get_order.assert_called_once()
@@ -720,7 +726,7 @@ class TestAdditionTablesMode:
         """Test addition tables mode with single number."""
         # Mock submenu choice (1 = practice specific range)
         mock_get_user_input.return_value = "1"
-        
+
         mock_get_range.return_value = (5, 5)
         mock_get_order.return_value = False  # Sequential order
         mock_run_quiz.return_value = (
@@ -741,7 +747,9 @@ class TestAdditionTablesMode:
     @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
     @patch("builtins.print")
-    def test_addition_tables_mode_exception_handling(self, mock_print, mock_get_range, mock_get_user_input):
+    def test_addition_tables_mode_exception_handling(
+        self, mock_print, mock_get_range, mock_get_user_input
+    ):
         """Test exception handling in addition tables mode."""
         # Mock submenu choice (1 = practice specific range)
         mock_get_user_input.return_value = "1"
@@ -771,7 +779,7 @@ class TestAdditionTablesMode:
         """Test that AdditionTableGenerator is created with correct parameters."""
         # Mock submenu choice (1 = practice specific range)
         mock_get_user_input.return_value = "1"
-        
+
         mock_get_range.return_value = (3, 7)
         mock_get_order.return_value = True
         mock_run_quiz.return_value = (
@@ -964,10 +972,22 @@ class TestFactTrackingIntegration:
             # This simulates the real behavior where analyze_session_performance
             # calls track_attempt for each session attempt
             # New session format: (operand1, operand2, final_correct, final_response_time_ms, incorrect_attempts_count)
-            for operand1, operand2, final_correct, final_response_time_ms, incorrect_attempts_count in session_attempts:
+            for (
+                operand1,
+                operand2,
+                final_correct,
+                final_response_time_ms,
+                incorrect_attempts_count,
+            ) in session_attempts:
                 mock_fact_service.track_attempt(
-                    user_id, operand1, operand2, None, operand1 + operand2, final_correct, 
-                    final_response_time_ms, incorrect_attempts_count
+                    user_id,
+                    operand1,
+                    operand2,
+                    None,
+                    operand1 + operand2,
+                    final_correct,
+                    final_response_time_ms,
+                    incorrect_attempts_count,
                 )
 
             return {
@@ -1066,10 +1086,22 @@ class TestFactTrackingIntegration:
             # This simulates the real behavior where analyze_session_performance
             # calls track_attempt for each session attempt
             # New session format: (operand1, operand2, final_correct, final_response_time_ms, incorrect_attempts_count)
-            for operand1, operand2, final_correct, final_response_time_ms, incorrect_attempts_count in session_attempts:
+            for (
+                operand1,
+                operand2,
+                final_correct,
+                final_response_time_ms,
+                incorrect_attempts_count,
+            ) in session_attempts:
                 mock_fact_service.track_attempt(
-                    user_id, operand1, operand2, None, operand1 + operand2, final_correct, 
-                    final_response_time_ms, incorrect_attempts_count
+                    user_id,
+                    operand1,
+                    operand2,
+                    None,
+                    operand1 + operand2,
+                    final_correct,
+                    final_response_time_ms,
+                    incorrect_attempts_count,
                 )
 
             return {
@@ -1166,7 +1198,7 @@ class TestAdditionTablesModeEdgeCases:
 
             # Mock submenu choice (1 = practice specific range)
             mock_get_choice.return_value = 1
-            
+
             # Mock container and user
             mock_container = Mock()
             mock_math_fact_service = Mock()
@@ -1206,7 +1238,9 @@ class TestAdditionTablesModeEdgeCases:
                 "total_attempts": 2,
                 "correct_attempts": 2,
             }
-            mock_math_fact_service.analyze_session_performance.return_value = mock_analysis
+            mock_math_fact_service.analyze_session_performance.return_value = (
+                mock_analysis
+            )
 
             # Mock weak facts
             mock_weak_facts = [Mock(fact_key="6+7"), Mock(fact_key="8+9")]
@@ -1216,7 +1250,7 @@ class TestAdditionTablesModeEdgeCases:
             mock_summary = {
                 "total_facts": 5,
                 "average_ease_factor": 2.8,
-                "facts_by_interval": {1: 2, 6: 3}
+                "facts_by_interval": {1: 2, 6: 3},
             }
             mock_math_fact_service.get_performance_summary.return_value = mock_summary
 
@@ -1263,17 +1297,23 @@ class TestAdditionTablesModeEdgeCases:
                 "total_attempts": 2,
                 "correct_attempts": 0,
             }
-            mock_math_fact_service.analyze_session_performance.return_value = mock_analysis
+            mock_math_fact_service.analyze_session_performance.return_value = (
+                mock_analysis
+            )
 
             # Mock weak facts to be displayed
-            mock_weak_facts = [Mock(fact_key="7+8"), Mock(fact_key="8+9"), Mock(fact_key="9+7")]
+            mock_weak_facts = [
+                Mock(fact_key="7+8"),
+                Mock(fact_key="8+9"),
+                Mock(fact_key="9+7"),
+            ]
             mock_math_fact_service.get_weak_facts.return_value = mock_weak_facts
 
             # Mock performance summary
             mock_summary = {
                 "total_facts": 5,
                 "average_ease_factor": 1.8,
-                "facts_by_interval": {1: 3, 6: 2}
+                "facts_by_interval": {1: 3, 6: 2},
             }
             mock_math_fact_service.get_performance_summary.return_value = mock_summary
 

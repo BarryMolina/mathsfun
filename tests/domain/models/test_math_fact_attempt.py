@@ -20,9 +20,9 @@ class TestMathFactAttempt:
             is_correct=True,
             response_time_ms=2500,
             incorrect_attempts_in_session=0,
-            sm2_grade=4
+            sm2_grade=4,
         )
-        
+
         assert attempt.user_id == "user123"
         assert attempt.fact_key == "7+8"
         assert attempt.operand1 == 7
@@ -47,9 +47,9 @@ class TestMathFactAttempt:
             is_correct=False,
             response_time_ms=5000,
             incorrect_attempts_in_session=2,
-            sm2_grade=1
+            sm2_grade=1,
         )
-        
+
         assert attempt.user_answer == 14
         assert attempt.correct_answer == 15
         assert attempt.is_correct is False
@@ -68,9 +68,9 @@ class TestMathFactAttempt:
             is_correct=False,
             response_time_ms=1000,
             incorrect_attempts_in_session=1,
-            sm2_grade=0
+            sm2_grade=0,
         )
-        
+
         assert attempt.user_answer is None
         assert attempt.correct_answer == 15
         assert attempt.is_correct is False
@@ -79,7 +79,7 @@ class TestMathFactAttempt:
     def test_create_new_attempt_with_current_timestamp(self):
         """Test creating an attempt uses current timestamp."""
         before_time = datetime.now()
-        
+
         attempt = MathFactAttempt.create_new(
             user_id="user123",
             fact_key="5+5",
@@ -88,11 +88,11 @@ class TestMathFactAttempt:
             user_answer=10,
             correct_answer=10,
             is_correct=True,
-            response_time_ms=1500
+            response_time_ms=1500,
         )
-        
+
         after_time = datetime.now()
-        
+
         # Verify timestamp is between before and after
         assert before_time <= attempt.attempted_at <= after_time
 
@@ -108,13 +108,13 @@ class TestMathFactAttempt:
             is_correct=True,
             response_time_ms=3000,
             incorrect_attempts_in_session=1,
-            sm2_grade=3
+            sm2_grade=3,
         )
-        
+
         # Convert to dict and back
         data = original.to_dict()
         restored = MathFactAttempt.from_dict(data)
-        
+
         assert restored.user_id == original.user_id
         assert restored.fact_key == original.fact_key
         assert restored.operand1 == original.operand1
@@ -123,7 +123,10 @@ class TestMathFactAttempt:
         assert restored.correct_answer == original.correct_answer
         assert restored.is_correct == original.is_correct
         assert restored.response_time_ms == original.response_time_ms
-        assert restored.incorrect_attempts_in_session == original.incorrect_attempts_in_session
+        assert (
+            restored.incorrect_attempts_in_session
+            == original.incorrect_attempts_in_session
+        )
         assert restored.sm2_grade == original.sm2_grade
         assert restored.attempted_at == original.attempted_at
 
@@ -139,23 +142,26 @@ class TestMathFactAttempt:
             is_correct=False,
             response_time_ms=2000,
             incorrect_attempts_in_session=0,
-            sm2_grade=0
+            sm2_grade=0,
         )
-        
+
         # Convert to dict and back
         data = original.to_dict()
         restored = MathFactAttempt.from_dict(data)
-        
+
         assert restored.user_answer is None
         assert restored.is_correct is False
         assert restored.sm2_grade == 0
 
-    @pytest.mark.parametrize("user_answer,correct_answer,expected_correct", [
-        (15, 15, True),   # Correct answer
-        (14, 15, False),  # Wrong answer
-        (16, 15, False),  # Wrong answer
-        (None, 15, False), # Skipped
-    ])
+    @pytest.mark.parametrize(
+        "user_answer,correct_answer,expected_correct",
+        [
+            (15, 15, True),  # Correct answer
+            (14, 15, False),  # Wrong answer
+            (16, 15, False),  # Wrong answer
+            (None, 15, False),  # Skipped
+        ],
+    )
     def test_correctness_scenarios(self, user_answer, correct_answer, expected_correct):
         """Test various correctness scenarios."""
         attempt = MathFactAttempt.create_new(
@@ -166,9 +172,9 @@ class TestMathFactAttempt:
             user_answer=user_answer,
             correct_answer=correct_answer,
             is_correct=expected_correct,
-            response_time_ms=2000
+            response_time_ms=2000,
         )
-        
+
         assert attempt.is_correct == expected_correct
 
     def test_response_time_scenarios(self):
@@ -182,11 +188,11 @@ class TestMathFactAttempt:
             user_answer=4,
             correct_answer=4,
             is_correct=True,
-            response_time_ms=800
+            response_time_ms=800,
         )
-        
+
         assert fast_attempt.response_time_ms == 800
-        
+
         # Very slow response
         slow_attempt = MathFactAttempt.create_new(
             user_id="user123",
@@ -196,15 +202,15 @@ class TestMathFactAttempt:
             user_answer=18,
             correct_answer=18,
             is_correct=True,
-            response_time_ms=15000
+            response_time_ms=15000,
         )
-        
+
         assert slow_attempt.response_time_ms == 15000
 
     def test_sm2_grade_scenarios(self):
         """Test various SM-2 grade scenarios."""
         grades = [0, 1, 2, 3, 4, 5]
-        
+
         for grade in grades:
             attempt = MathFactAttempt.create_new(
                 user_id="user123",
@@ -215,15 +221,15 @@ class TestMathFactAttempt:
                 correct_answer=12,
                 is_correct=True,
                 response_time_ms=2000,
-                sm2_grade=grade
+                sm2_grade=grade,
             )
-            
+
             assert attempt.sm2_grade == grade
 
     def test_incorrect_attempts_scenarios(self):
         """Test various incorrect attempts in session scenarios."""
         scenarios = [0, 1, 2, 3, 5, 10]
-        
+
         for incorrect_count in scenarios:
             attempt = MathFactAttempt.create_new(
                 user_id="user123",
@@ -234,7 +240,7 @@ class TestMathFactAttempt:
                 correct_answer=12,
                 is_correct=True,
                 response_time_ms=3000,
-                incorrect_attempts_in_session=incorrect_count
+                incorrect_attempts_in_session=incorrect_count,
             )
-            
+
             assert attempt.incorrect_attempts_in_session == incorrect_count

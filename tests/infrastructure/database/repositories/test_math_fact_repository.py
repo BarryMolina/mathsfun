@@ -4,7 +4,9 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime, timedelta
 from decimal import Decimal
-from src.infrastructure.database.repositories.math_fact_repository import MathFactRepository
+from src.infrastructure.database.repositories.math_fact_repository import (
+    MathFactRepository,
+)
 from src.domain.models.math_fact_performance import MathFactPerformance
 from src.domain.models.math_fact_attempt import MathFactAttempt
 
@@ -48,12 +50,12 @@ class TestMathFactRepository:
         # Mock Supabase response
         mock_response = Mock()
         mock_response.data = [mock_data]
-        
+
         mock_table = Mock()
         mock_table.select.return_value = mock_table
         mock_table.eq.return_value = mock_table
         mock_table.execute.return_value = mock_response
-        
+
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.get_user_fact_performance("user123", "7+8")
@@ -64,17 +66,19 @@ class TestMathFactRepository:
         assert result.total_attempts == 5
         assert result.easiness_factor == Decimal("2.60")
 
-    def test_get_user_fact_performance_not_found(self, repository, mock_supabase_manager):
+    def test_get_user_fact_performance_not_found(
+        self, repository, mock_supabase_manager
+    ):
         """Test getting user fact performance when record doesn't exist."""
         # Mock empty response
         mock_response = Mock()
         mock_response.data = []
-        
+
         mock_table = Mock()
         mock_table.select.return_value = mock_table
         mock_table.eq.return_value = mock_table
         mock_table.execute.return_value = mock_response
-        
+
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.get_user_fact_performance("user123", "7+8")
@@ -114,19 +118,19 @@ class TestMathFactRepository:
                 "last_attempted": datetime.now().isoformat(),
                 "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat(),
-            }
+            },
         ]
 
         # Mock Supabase response
         mock_response = Mock()
         mock_response.data = mock_data
-        
+
         mock_table = Mock()
         mock_table.select.return_value = mock_table
         mock_table.eq.return_value = mock_table
         mock_table.order.return_value = mock_table
         mock_table.execute.return_value = mock_response
-        
+
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.get_all_user_performances("user123")
@@ -160,7 +164,7 @@ class TestMathFactRepository:
         # Mock Supabase response
         mock_response = Mock()
         mock_response.data = mock_data
-        
+
         mock_table = Mock()
         mock_table.select.return_value = mock_table
         mock_table.eq.return_value = mock_table
@@ -168,7 +172,7 @@ class TestMathFactRepository:
         mock_table.order.return_value = mock_table
         mock_table.limit.return_value = mock_table
         mock_table.execute.return_value = mock_response
-        
+
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.get_facts_due_for_review("user123", limit=10)
@@ -202,14 +206,14 @@ class TestMathFactRepository:
         # Mock Supabase response
         mock_response = Mock()
         mock_response.data = mock_data
-        
+
         mock_table = Mock()
         mock_table.select.return_value = mock_table
         mock_table.eq.return_value = mock_table
         mock_table.order.return_value = mock_table
         mock_table.limit.return_value = mock_table
         mock_table.execute.return_value = mock_response
-        
+
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.get_weak_facts("user123", (1, 10), 5)
@@ -229,11 +233,11 @@ class TestMathFactRepository:
         # Mock response
         mock_response = Mock()
         mock_response.data = [performance.to_dict()]
-        
+
         mock_table = Mock()
         mock_table.upsert.return_value = mock_table
         mock_table.execute.return_value = mock_response
-        
+
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.upsert_fact_performance(performance)
@@ -255,17 +259,17 @@ class TestMathFactRepository:
             correct_answer=15,
             is_correct=True,
             response_time_ms=2500,
-            sm2_grade=4
+            sm2_grade=4,
         )
 
         # Mock response
         mock_response = Mock()
         mock_response.data = [attempt.to_dict()]
-        
+
         mock_table = Mock()
         mock_table.insert.return_value = mock_table
         mock_table.execute.return_value = mock_response
-        
+
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.create_fact_attempt(attempt)
@@ -275,12 +279,14 @@ class TestMathFactRepository:
         assert result.fact_key == "7+8"
         mock_table.insert.assert_called_once()
 
-    def test_upsert_fact_performance_with_attempt(self, repository, mock_supabase_manager):
+    def test_upsert_fact_performance_with_attempt(
+        self, repository, mock_supabase_manager
+    ):
         """Test atomic upsert of performance with attempt."""
         # Create performance and attempt
         performance = MathFactPerformance.create_new("user123", "7+8")
         performance.update_performance(True, 2500)
-        
+
         attempt = MathFactAttempt.create_new(
             user_id="user123",
             fact_key="7+8",
@@ -290,13 +296,13 @@ class TestMathFactRepository:
             correct_answer=15,
             is_correct=True,
             response_time_ms=2500,
-            sm2_grade=4
+            sm2_grade=4,
         )
 
         # Mock responses
         mock_performance_response = Mock()
         mock_performance_response.data = [performance.to_dict()]
-        
+
         mock_attempt_response = Mock()
         mock_attempt_response.data = [attempt.to_dict()]
 
@@ -304,20 +310,20 @@ class TestMathFactRepository:
         mock_client = Mock()
         mock_performance_table = Mock()
         mock_attempt_table = Mock()
-        
+
         mock_performance_table.upsert.return_value = mock_performance_table
         mock_performance_table.execute.return_value = mock_performance_response
-        
+
         mock_attempt_table.insert.return_value = mock_attempt_table
         mock_attempt_table.execute.return_value = mock_attempt_response
-        
+
         def table_selector(table_name):
             if table_name == "math_fact_performances":
                 return mock_performance_table
             elif table_name == "math_fact_attempts":
                 return mock_attempt_table
             return Mock()
-        
+
         mock_client.table.side_effect = table_selector
         mock_supabase_manager.get_client.return_value = mock_client
 
@@ -350,14 +356,14 @@ class TestMathFactRepository:
         # Mock Supabase response
         mock_response = Mock()
         mock_response.data = mock_data
-        
+
         mock_table = Mock()
         mock_table.select.return_value = mock_table
         mock_table.eq.return_value = mock_table
         mock_table.order.return_value = mock_table
         mock_table.limit.return_value = mock_table
         mock_table.execute.return_value = mock_response
-        
+
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.get_user_fact_attempts("user123", fact_key="7+8", limit=10)
@@ -370,15 +376,15 @@ class TestMathFactRepository:
     def test_batch_upsert_fact_performances(self, repository, mock_supabase_manager):
         """Test batch upserting fact performances."""
         session_attempts = [
-            (7, 8, True, 2500, 0),   # 7+8 correct
+            (7, 8, True, 2500, 0),  # 7+8 correct
             (9, 6, False, 5000, 2),  # 9+6 incorrect after 2 tries
-            (7, 8, True, 2000, 1),   # 7+8 correct again after 1 mistake
+            (7, 8, True, 2000, 1),  # 7+8 correct again after 1 mistake
         ]
 
         # Mock responses for batch operations
         mock_upsert_response = Mock()
         mock_upsert_response.data = []
-        
+
         mock_insert_response = Mock()
         mock_insert_response.data = []
 
@@ -386,31 +392,31 @@ class TestMathFactRepository:
         mock_client = Mock()
         mock_performance_table = Mock()
         mock_attempt_table = Mock()
-        
+
         mock_performance_table.upsert.return_value = mock_performance_table
         mock_performance_table.execute.return_value = mock_upsert_response
-        
+
         mock_attempt_table.insert.return_value = mock_attempt_table
         mock_attempt_table.execute.return_value = mock_insert_response
-        
+
         def table_selector(table_name):
             if table_name == "math_fact_performances":
                 return mock_performance_table
             elif table_name == "math_fact_attempts":
                 return mock_attempt_table
             return Mock()
-        
+
         mock_client.table.side_effect = table_selector
         mock_supabase_manager.get_client.return_value = mock_client
 
         # Mock get_user_fact_performance calls:
-        # First calls during processing return None (new facts)  
+        # First calls during processing return None (new facts)
         # Final calls return updated performances
         updated_performances = [
             MathFactPerformance.create_new("user123", "7+8"),
             MathFactPerformance.create_new("user123", "9+6"),
         ]
-        
+
         # Mock sequence: None for initial checks, then return updated performances for final results
         get_calls = [None, None, updated_performances[0], updated_performances[1]]
         repository.get_user_fact_performance = Mock(side_effect=get_calls)
@@ -425,9 +431,9 @@ class TestMathFactRepository:
         """Test that authentication is required for repository operations."""
         # Mock unauthenticated state
         mock_supabase_manager.is_authenticated.return_value = False
-        
+
         repository = MathFactRepository(mock_supabase_manager)
-        
+
         # Should return None for unauthenticated calls (decorator behavior)
         result = repository.get_user_fact_performance("user123", "7+8")
         assert result is None
@@ -440,6 +446,6 @@ class TestMathFactRepository:
         mock_supabase_manager.get_client.return_value.table.return_value = mock_table
 
         result = repository.get_user_fact_performance("user123", "7+8")
-        
+
         # Should return None on error
         assert result is None

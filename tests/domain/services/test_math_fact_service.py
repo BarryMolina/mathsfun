@@ -36,11 +36,13 @@ class TestMathFactService:
             correct_answer=15,
             is_correct=True,
             response_time_ms=2500,
-            incorrect_attempts_in_session=0
+            incorrect_attempts_in_session=0,
         )
 
         # Verify repository calls
-        mock_repository.get_user_fact_performance.assert_called_once_with("user123", "7+8")
+        mock_repository.get_user_fact_performance.assert_called_once_with(
+            "user123", "7+8"
+        )
         mock_repository.upsert_fact_performance_with_attempt.assert_called_once()
         assert result is not None
 
@@ -51,12 +53,16 @@ class TestMathFactService:
         # Simulate existing performance by updating internal state
         existing_performance.total_attempts = 3
         existing_performance.correct_attempts = 2
-        existing_performance.total_response_time_ms = 6000  # Set total time instead of average
+        existing_performance.total_response_time_ms = (
+            6000  # Set total time instead of average
+        )
         existing_performance.repetition_number = 1
         existing_performance.easiness_factor = Decimal("2.60")
 
         mock_repository.get_user_fact_performance.return_value = existing_performance
-        mock_repository.upsert_fact_performance_with_attempt.return_value = existing_performance
+        mock_repository.upsert_fact_performance_with_attempt.return_value = (
+            existing_performance
+        )
 
         result = service.track_attempt(
             user_id="user123",
@@ -66,11 +72,13 @@ class TestMathFactService:
             correct_answer=15,
             is_correct=True,
             response_time_ms=2000,
-            incorrect_attempts_in_session=1
+            incorrect_attempts_in_session=1,
         )
 
         # Verify repository calls
-        mock_repository.get_user_fact_performance.assert_called_once_with("user123", "7+8")
+        mock_repository.get_user_fact_performance.assert_called_once_with(
+            "user123", "7+8"
+        )
         mock_repository.upsert_fact_performance_with_attempt.assert_called_once()
         assert result is not None
 
@@ -87,7 +95,7 @@ class TestMathFactService:
             correct_answer=15,
             is_correct=False,
             response_time_ms=5000,
-            incorrect_attempts_in_session=2
+            incorrect_attempts_in_session=2,
         )
 
         # Verify the attempt was processed
@@ -113,7 +121,7 @@ class TestMathFactService:
             correct_answer=15,
             is_correct=False,
             response_time_ms=1000,
-            incorrect_attempts_in_session=0
+            incorrect_attempts_in_session=0,
         )
 
         # Verify the attempt was processed as skipped
@@ -161,7 +169,7 @@ class TestMathFactService:
             MathFactPerformance.create_new("user123", "5+5"),  # Due for review
         ]
         mock_repository.get_facts_due_for_review.return_value = due_facts
-        
+
         # Mock additional weak facts
         weak_facts = [
             MathFactPerformance.create_new("user123", "9+8"),  # Might be difficult
@@ -173,7 +181,9 @@ class TestMathFactService:
 
         # Should get facts due for review first, then additional weak facts
         mock_repository.get_facts_due_for_review.assert_called_once_with("user123", 5)
-        mock_repository.get_weak_facts.assert_called_once_with("user123", (1, 10), 4)  # 5 - 1 due fact
+        mock_repository.get_weak_facts.assert_called_once_with(
+            "user123", (1, 10), 4
+        )  # 5 - 1 due fact
         assert len(result) == 3  # 1 due fact + 2 weak facts (only 2 available)
         assert result[0].fact_key == "5+5"  # Due fact comes first
         assert result[1].fact_key == "9+8"  # Weak facts follow
@@ -193,24 +203,28 @@ class TestMathFactService:
     def test_analyze_session_performance_with_attempts(self, service, mock_repository):
         """Test analyzing session performance with attempts."""
         session_attempts = [
-            (7, 8, True, 2500, 0),   # Correct on first try
+            (7, 8, True, 2500, 0),  # Correct on first try
             (9, 6, False, 5000, 2),  # Incorrect after 2 attempts
-            (5, 5, True, 1500, 1),   # Correct after 1 mistake
+            (5, 5, True, 1500, 1),  # Correct after 1 mistake
         ]
 
         # Mock that no existing performances exist (all new facts)
         mock_repository.get_user_fact_performance.return_value = None
-        
+
         # Mock successful track_attempt calls
         mock_performances = [
             MathFactPerformance.create_new("user123", "7+8"),
             MathFactPerformance.create_new("user123", "9+6"),
             MathFactPerformance.create_new("user123", "5+5"),
         ]
-        mock_repository.upsert_fact_performance_with_attempt.side_effect = mock_performances
-        
+        mock_repository.upsert_fact_performance_with_attempt.side_effect = (
+            mock_performances
+        )
+
         # Mock facts due for review
-        mock_repository.get_facts_due_for_review.return_value = [mock_performances[1]]  # Only 9+6 still due
+        mock_repository.get_facts_due_for_review.return_value = [
+            mock_performances[1]
+        ]  # Only 9+6 still due
 
         result = service.analyze_session_performance("user123", session_attempts)
 
@@ -268,7 +282,9 @@ class TestMathFactService:
     def test_track_attempt_repository_failure(self, service, mock_repository):
         """Test handling repository failure when tracking attempt."""
         mock_repository.get_user_fact_performance.return_value = None
-        mock_repository.upsert_fact_performance_with_attempt.return_value = None  # Failure
+        mock_repository.upsert_fact_performance_with_attempt.return_value = (
+            None  # Failure
+        )
 
         result = service.track_attempt(
             user_id="user123",
@@ -277,7 +293,7 @@ class TestMathFactService:
             user_answer=15,
             correct_answer=15,
             is_correct=True,
-            response_time_ms=2500
+            response_time_ms=2500,
         )
 
         assert result is None
@@ -285,17 +301,17 @@ class TestMathFactService:
     def test_sm2_grade_calculation_in_service(self, service, mock_repository):
         """Test that SM-2 grade calculation works correctly in service context."""
         mock_repository.get_user_fact_performance.return_value = None
-        
+
         # Mock to capture what gets passed to the repository
         captured_performance = None
         captured_attempt = None
-        
+
         def capture_args(performance, attempt):
             nonlocal captured_performance, captured_attempt
             captured_performance = performance
             captured_attempt = attempt
             return performance
-        
+
         mock_repository.upsert_fact_performance_with_attempt.side_effect = capture_args
 
         # Track a fast, correct attempt
@@ -307,7 +323,7 @@ class TestMathFactService:
             correct_answer=15,
             is_correct=True,
             response_time_ms=1500,  # Fast response
-            incorrect_attempts_in_session=0
+            incorrect_attempts_in_session=0,
         )
 
         # Verify SM-2 grade was calculated correctly
@@ -315,25 +331,38 @@ class TestMathFactService:
         assert captured_performance.repetition_number == 1
         assert captured_performance.interval_days == 1
 
-    @pytest.mark.parametrize("response_time,incorrect_attempts,expected_grade", [
-        (1000, 0, 5),   # Perfect (< 2000ms, no errors)
-        (2500, 0, 4),   # Good (2000-3000ms, no errors)
-        (4000, 0, 3),   # Satisfactory (>= 3000ms, no errors)
-        (2500, 1, 2),   # Easy to remember after error (< 3000ms, 1 error)
-        (4000, 1, 1),   # Familiar but slow after error (>= 3000ms, 1 error)
-        (10000, 5, 0),  # Blackout (2+ errors)
-    ])
-    def test_grade_calculation_scenarios(self, service, mock_repository, response_time, incorrect_attempts, expected_grade):
+    @pytest.mark.parametrize(
+        "response_time,incorrect_attempts,expected_grade",
+        [
+            (1000, 0, 5),  # Perfect (< 2000ms, no errors)
+            (2500, 0, 4),  # Good (2000-3000ms, no errors)
+            (4000, 0, 3),  # Satisfactory (>= 3000ms, no errors)
+            (2500, 1, 2),  # Easy to remember after error (< 3000ms, 1 error)
+            (4000, 1, 1),  # Familiar but slow after error (>= 3000ms, 1 error)
+            (10000, 5, 0),  # Blackout (2+ errors)
+        ],
+    )
+    def test_grade_calculation_scenarios(
+        self,
+        service,
+        mock_repository,
+        response_time,
+        incorrect_attempts,
+        expected_grade,
+    ):
         """Test various grade calculation scenarios in service."""
         mock_repository.get_user_fact_performance.return_value = None
-        
+
         captured_attempt = None
+
         def capture_attempt(performance, attempt):
             nonlocal captured_attempt
             captured_attempt = attempt
             return performance
-        
-        mock_repository.upsert_fact_performance_with_attempt.side_effect = capture_attempt
+
+        mock_repository.upsert_fact_performance_with_attempt.side_effect = (
+            capture_attempt
+        )
 
         service.track_attempt(
             user_id="user123",
@@ -343,7 +372,7 @@ class TestMathFactService:
             correct_answer=15,
             is_correct=True,
             response_time_ms=response_time,
-            incorrect_attempts_in_session=incorrect_attempts
+            incorrect_attempts_in_session=incorrect_attempts,
         )
 
         assert captured_attempt.sm2_grade == expected_grade
