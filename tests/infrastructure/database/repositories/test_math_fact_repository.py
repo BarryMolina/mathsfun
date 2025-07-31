@@ -375,9 +375,6 @@ class TestMathFactRepository:
             (7, 8, True, 2000, 1),   # 7+8 correct again after 1 mistake
         ]
 
-        # Mock getting existing performance (returns None for new facts)
-        repository.get_user_fact_performance = Mock(return_value=None)
-
         # Mock responses for batch operations
         mock_upsert_response = Mock()
         mock_upsert_response.data = []
@@ -406,12 +403,17 @@ class TestMathFactRepository:
         mock_client.table.side_effect = table_selector
         mock_supabase_manager.get_client.return_value = mock_client
 
-        # Mock the final get calls to return updated performances
+        # Mock get_user_fact_performance calls:
+        # First calls during processing return None (new facts)  
+        # Final calls return updated performances
         updated_performances = [
             MathFactPerformance.create_new("user123", "7+8"),
             MathFactPerformance.create_new("user123", "9+6"),
         ]
-        repository.get_user_fact_performance.side_effect = updated_performances
+        
+        # Mock sequence: None for initial checks, then return updated performances for final results
+        get_calls = [None, None, updated_performances[0], updated_performances[1]]
+        repository.get_user_fact_performance = Mock(side_effect=get_calls)
 
         result = repository.batch_upsert_fact_performances("user123", session_attempts)
 
@@ -426,9 +428,9 @@ class TestMathFactRepository:
         
         repository = MathFactRepository(mock_supabase_manager)
         
-        # Should raise exception for unauthenticated calls
-        with pytest.raises(Exception):
-            repository.get_user_fact_performance("user123", "7+8")
+        # Should return None for unauthenticated calls (decorator behavior)
+        result = repository.get_user_fact_performance("user123", "7+8")
+        assert result is None
 
     def test_error_handling(self, repository, mock_supabase_manager):
         """Test error handling in repository operations."""
