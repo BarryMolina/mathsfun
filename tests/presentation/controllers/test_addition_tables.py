@@ -648,6 +648,7 @@ class TestRunAdditionTableQuiz:
 class TestAdditionTablesMode:
     """Test addition_tables_mode function."""
 
+    @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch(
         "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
     )
@@ -662,9 +663,13 @@ class TestAdditionTablesMode:
         mock_get_order,
         mock_run_quiz,
         mock_show_results_with_fact_insights,
+        mock_get_user_input,
     ):
         """Test successful execution of addition tables mode."""
-        # Mock user inputs
+        # Mock submenu choice (1 = practice specific range)
+        mock_get_user_input.return_value = "1"
+        
+        # Mock user inputs for practice workflow
         mock_get_range.return_value = (2, 3)
         mock_get_order.return_value = True  # Random order
         mock_run_quiz.return_value = (
@@ -677,7 +682,10 @@ class TestAdditionTablesMode:
 
         addition_tables_mode()
 
-        # Verify function calls
+        # Verify submenu choice was called
+        mock_get_user_input.assert_called()
+        
+        # Verify function calls after submenu selection
         mock_get_range.assert_called_once()
         mock_get_order.assert_called_once()
         mock_run_quiz.assert_called_once()

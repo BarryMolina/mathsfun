@@ -30,6 +30,7 @@ class TestMathFactRepository:
         """Test getting user fact performance when record exists."""
         # Mock response data
         mock_data = {
+            "id": "mock-uuid-123",
             "user_id": "user123",
             "fact_key": "7+8",
             "total_attempts": 5,
@@ -85,6 +86,7 @@ class TestMathFactRepository:
         # Mock response data
         mock_data = [
             {
+                "id": "mock-uuid-1",
                 "user_id": "user123",
                 "fact_key": "7+8",
                 "total_attempts": 5,
@@ -99,6 +101,7 @@ class TestMathFactRepository:
                 "updated_at": datetime.now().isoformat(),
             },
             {
+                "id": "mock-uuid-2",
                 "user_id": "user123",
                 "fact_key": "9+6",
                 "total_attempts": 3,
@@ -138,6 +141,7 @@ class TestMathFactRepository:
         yesterday = datetime.now() - timedelta(days=1)
         mock_data = [
             {
+                "id": "mock-uuid-due",
                 "user_id": "user123",
                 "fact_key": "7+8",
                 "total_attempts": 5,
@@ -179,6 +183,7 @@ class TestMathFactRepository:
         # Mock response data for weak facts
         mock_data = [
             {
+                "id": "mock-uuid-weak",
                 "user_id": "user123",
                 "fact_key": "9+8",
                 "total_attempts": 10,

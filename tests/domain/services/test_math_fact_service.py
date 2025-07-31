@@ -156,6 +156,13 @@ class TestMathFactService:
 
     def test_get_weak_facts(self, service, mock_repository):
         """Test getting weak facts."""
+        # Mock facts due for review (this is called first in the service method)
+        due_facts = [
+            MathFactPerformance.create_new("user123", "5+5"),  # Due for review
+        ]
+        mock_repository.get_facts_due_for_review.return_value = due_facts
+        
+        # Mock additional weak facts
         weak_facts = [
             MathFactPerformance.create_new("user123", "9+8"),  # Might be difficult
             MathFactPerformance.create_new("user123", "7+9"),
@@ -164,10 +171,13 @@ class TestMathFactService:
 
         result = service.get_weak_facts("user123", (1, 10), 5)
 
-        mock_repository.get_weak_facts.assert_called_once_with("user123", (1, 10), 5)
-        assert len(result) == 2  # Check length instead of direct equality
-        assert result[0].fact_key == "9+8"
-        assert result[1].fact_key == "7+9"
+        # Should get facts due for review first, then additional weak facts
+        mock_repository.get_facts_due_for_review.assert_called_once_with("user123", 5)
+        mock_repository.get_weak_facts.assert_called_once_with("user123", (1, 10), 4)  # 5 - 1 due fact
+        assert len(result) == 3  # 1 due fact + 2 weak facts (only 2 available)
+        assert result[0].fact_key == "5+5"  # Due fact comes first
+        assert result[1].fact_key == "9+8"  # Weak facts follow
+        assert result[2].fact_key == "7+9"
 
     def test_analyze_session_performance_empty(self, service, mock_repository):
         """Test analyzing empty session performance."""
