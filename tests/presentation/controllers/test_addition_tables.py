@@ -403,7 +403,9 @@ class TestRunAdditionTableQuiz:
         assert total == 2  # Two attempts
         assert skipped == 0
         assert duration == 10
-        assert len(session_attempts) == 2
+        assert len(session_attempts) == 1  # Only final attempt per fact recorded
+        # Verify session attempt format: (operand1, operand2, final_correct, final_time_ms, incorrect_attempts)
+        assert session_attempts[0] == (1, 1, True, 2000, 1)  # Correct after 1 mistake
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -542,7 +544,7 @@ class TestRunAdditionTableQuiz:
         assert total == 4  # 4 attempts (including the wrong one)
         assert skipped == 1
         assert duration == 15
-        assert len(session_attempts) == 4
+        assert len(session_attempts) == 3  # Only final attempts per fact: 1+1 (correct), 1+2 (correct after error), 2+2 (correct), skip not recorded
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -599,7 +601,7 @@ class TestRunAdditionTableQuiz:
         # Should have 0 skipped (no 'next' commands)
         assert skipped == 0
         assert duration == 15
-        assert len(session_attempts) == 4
+        assert len(session_attempts) == 1  # Only final attempt recorded: 1+1 correct after 3 errors
 
         # Verify error messages were printed for wrong answers
         mock_print.assert_any_call("❌ Not quite right. Try again!")
@@ -637,7 +639,7 @@ class TestRunAdditionTableQuiz:
         # Should have 1 skipped
         assert skipped == 1
         assert duration == 20
-        assert len(session_attempts) == 6
+        assert len(session_attempts) == 3  # Only final attempts: 1+1 (correct after error), 2+1 (correct after error), 2+2 (correct), skip not recorded
 
         # Verify skip message was printed
         mock_print.assert_any_call("⏭️  Skipped! The answer was 3")
@@ -698,6 +700,7 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("   Order: Random")
         mock_print.assert_any_call("   Total problems: 4")  # (3-2+1)^2
 
+    @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch(
         "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
     )
@@ -712,8 +715,12 @@ class TestAdditionTablesMode:
         mock_get_order,
         mock_run_quiz,
         mock_show_results_with_fact_insights,
+        mock_get_user_input,
     ):
         """Test addition tables mode with single number."""
+        # Mock submenu choice (1 = practice specific range)
+        mock_get_user_input.return_value = "1"
+        
         mock_get_range.return_value = (5, 5)
         mock_get_order.return_value = False  # Sequential order
         mock_run_quiz.return_value = (
@@ -731,10 +738,13 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("   Order: Sequential")
         mock_print.assert_any_call("   Total problems: 1")  # (5-5+1)^2
 
+    @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
     @patch("builtins.print")
-    def test_addition_tables_mode_exception_handling(self, mock_print, mock_get_range):
+    def test_addition_tables_mode_exception_handling(self, mock_print, mock_get_range, mock_get_user_input):
         """Test exception handling in addition tables mode."""
+        # Mock submenu choice (1 = practice specific range)
+        mock_get_user_input.return_value = "1"
         mock_get_range.side_effect = Exception("Test error")
 
         addition_tables_mode()
@@ -743,6 +753,7 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("❌ Error: Test error")
         mock_print.assert_any_call("Returning to main menu...")
 
+    @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch(
         "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
     )
@@ -755,8 +766,12 @@ class TestAdditionTablesMode:
         mock_get_order,
         mock_run_quiz,
         mock_show_results_with_fact_insights,
+        mock_get_user_input,
     ):
         """Test that AdditionTableGenerator is created with correct parameters."""
+        # Mock submenu choice (1 = practice specific range)
+        mock_get_user_input.return_value = "1"
+        
         mock_get_range.return_value = (3, 7)
         mock_get_order.return_value = True
         mock_run_quiz.return_value = (
