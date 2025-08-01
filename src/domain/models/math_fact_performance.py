@@ -180,7 +180,9 @@ class MathFactPerformance:
         self.easiness_factor = Decimal(str(round(new_ef, 2)))
 
         # Set next review date
-        self.next_review_date = datetime.now(timezone.utc) + timedelta(days=self.interval_days)
+        self.next_review_date = datetime.now(timezone.utc) + timedelta(
+            days=self.interval_days
+        )
 
     @classmethod
     def create_new(

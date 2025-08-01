@@ -314,7 +314,8 @@ def review_due_facts(container=None, user=None):
         if all_facts:
             # Find the next fact due for review
             next_due = min(
-                all_facts, key=lambda f: f.next_review_date or datetime.now(timezone.utc)
+                all_facts,
+                key=lambda f: f.next_review_date or datetime.now(timezone.utc),
             )
             if next_due.next_review_date:
                 time_until = next_due.next_review_date - datetime.now(timezone.utc)
