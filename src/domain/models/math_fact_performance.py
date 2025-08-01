@@ -1,7 +1,7 @@
 """Domain model for math fact performance tracking with SM-2 spaced repetition."""
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -75,7 +75,7 @@ class MathFactPerformance:
         """
         if self.next_review_date is None:
             return True
-        return datetime.now() >= self.next_review_date
+        return datetime.now(timezone.utc) >= self.next_review_date
 
     def update_performance(
         self,
@@ -91,7 +91,7 @@ class MathFactPerformance:
             timestamp: When the attempt was made (defaults to now)
         """
         self.total_attempts += 1
-        self.last_attempted = timestamp or datetime.now()
+        self.last_attempted = timestamp or datetime.now(timezone.utc)
 
         if is_correct:
             self.correct_attempts += 1
@@ -180,7 +180,7 @@ class MathFactPerformance:
         self.easiness_factor = Decimal(str(round(new_ef, 2)))
 
         # Set next review date
-        self.next_review_date = datetime.now() + timedelta(days=self.interval_days)
+        self.next_review_date = datetime.now(timezone.utc) + timedelta(days=self.interval_days)
 
     @classmethod
     def create_new(
@@ -198,7 +198,7 @@ class MathFactPerformance:
         """
         import uuid
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         return cls(
             id=id or str(uuid.uuid4()),
             user_id=user_id,

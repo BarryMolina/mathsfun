@@ -1,7 +1,7 @@
 """Math fact performance repository with SM-2 spaced repetition support."""
 
 from typing import List, Optional, Tuple, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from .base import BaseRepository, requires_authentication
 from src.domain.models.math_fact_performance import MathFactPerformance
 from src.domain.models.math_fact_attempt import MathFactAttempt
@@ -82,7 +82,7 @@ class MathFactRepository(BaseRepository):
                 .table("math_fact_performances")
                 .select("*")
                 .eq("user_id", user_id)
-                .lte("next_review_date", datetime.now().isoformat())
+                .lte("next_review_date", datetime.now(timezone.utc).isoformat())
                 .order("next_review_date", desc=False)
             )
 
@@ -144,7 +144,7 @@ class MathFactRepository(BaseRepository):
         """
         try:
             performance_data = performance.to_dict()
-            performance_data["updated_at"] = datetime.now().isoformat()
+            performance_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
             response = (
                 self.supabase_manager.get_client()
@@ -207,7 +207,7 @@ class MathFactRepository(BaseRepository):
 
             # Update performance record
             performance_data = performance.to_dict()
-            performance_data["updated_at"] = datetime.now().isoformat()
+            performance_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
             performance_response = (
                 client.table("math_fact_performances")
@@ -348,7 +348,7 @@ class MathFactRepository(BaseRepository):
             # Batch update performances
             if performances_to_update:
                 for perf_data in performances_to_update:
-                    perf_data["updated_at"] = datetime.now().isoformat()
+                    perf_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
                 client.table("math_fact_performances").upsert(
                     performances_to_update

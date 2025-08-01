@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import random
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Tuple, Optional, TYPE_CHECKING
 from ..cli.ui import get_user_input
 from .session import show_results, prompt_start_session
@@ -314,10 +314,10 @@ def review_due_facts(container=None, user=None):
         if all_facts:
             # Find the next fact due for review
             next_due = min(
-                all_facts, key=lambda f: f.next_review_date or datetime.now()
+                all_facts, key=lambda f: f.next_review_date or datetime.now(timezone.utc)
             )
             if next_due.next_review_date:
-                time_until = next_due.next_review_date - datetime.now()
+                time_until = next_due.next_review_date - datetime.now(timezone.utc)
                 if time_until.days > 0:
                     print(f"⏰ Next review in {time_until.days} day(s)")
                 else:

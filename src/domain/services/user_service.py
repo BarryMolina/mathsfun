@@ -1,7 +1,7 @@
 """User service for MathsFun application."""
 
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from ..models.user import User
 
@@ -33,8 +33,8 @@ class UserService:
             id=user_id,
             email=email,
             display_name=display_name or email.split("@")[0],
-            created_at=datetime.now(),
-            last_active=datetime.now(),
+            created_at=datetime.now(timezone.utc),
+            last_active=datetime.now(timezone.utc),
         )
 
         created_user = self.user_repo.create_user_profile(new_user)

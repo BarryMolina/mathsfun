@@ -1,7 +1,7 @@
 """Math fact tracking service with SM-2 spaced repetition algorithm."""
 
 from typing import List, Optional, Dict, Tuple, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from src.domain.models.math_fact_performance import MathFactPerformance
 from src.domain.models.math_fact_attempt import MathFactAttempt
 from src.infrastructure.database.repositories.math_fact_repository import (
@@ -64,7 +64,7 @@ class MathFactService:
             Updated MathFactPerformance instance or None if failed
         """
         fact_key = self.create_fact_key(operand1, operand2)
-        attempt_timestamp = timestamp or datetime.now()
+        attempt_timestamp = timestamp or datetime.now(timezone.utc)
 
         try:
             # Get or create fact performance record

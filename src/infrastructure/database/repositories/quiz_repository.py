@@ -1,7 +1,7 @@
 """Quiz repository for MathsFun application."""
 
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from .base import BaseRepository, requires_authentication
 from src.domain.models.quiz_session import QuizSession, SessionStatus
 from src.domain.models.problem_attempt import ProblemAttempt
@@ -73,7 +73,7 @@ class QuizRepository(BaseRepository):
                 .update(
                     {
                         "status": SessionStatus.COMPLETED.value,
-                        "end_time": datetime.now().isoformat(),
+                        "end_time": datetime.now(timezone.utc).isoformat(),
                     }
                 )
                 .eq("id", session_id)

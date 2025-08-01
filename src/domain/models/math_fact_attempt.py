@@ -1,7 +1,7 @@
 """Domain model for individual math fact attempts."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
@@ -84,7 +84,7 @@ class MathFactAttempt:
             response_time_ms=response_time_ms,
             incorrect_attempts_in_session=incorrect_attempts_in_session,
             sm2_grade=sm2_grade,
-            attempted_at=datetime.now(),
+            attempted_at=datetime.now(timezone.utc),
         )
 
     @classmethod
