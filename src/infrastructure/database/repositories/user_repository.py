@@ -62,12 +62,12 @@ class UserRepository(BaseRepository):
     def update_last_active(self, user_id: str) -> bool:
         """Update user's last active timestamp."""
         try:
-            from datetime import datetime
+            from datetime import datetime, timezone
 
             response = (
                 self.supabase_manager.get_client()
                 .table("user_profiles")
-                .update({"last_active": datetime.now().isoformat()})
+                .update({"last_active": datetime.now(timezone.utc).isoformat()})
                 .eq("id", user_id)
                 .execute()
             )

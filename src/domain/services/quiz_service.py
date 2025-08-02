@@ -1,7 +1,7 @@
 """Quiz service for MathsFun application."""
 
 from typing import List, Optional, NamedTuple
-from datetime import datetime
+from datetime import datetime, timezone
 from src.infrastructure.database.repositories.quiz_repository import QuizRepository
 from ..models.quiz_session import QuizSession, QuizType, SessionStatus
 from ..models.problem_attempt import ProblemAttempt
@@ -45,7 +45,7 @@ class QuizService:
             user_id=user_id,
             quiz_type=QuizType(quiz_type),
             difficulty_level=difficulty_level,
-            start_time=datetime.now(),
+            start_time=datetime.now(timezone.utc),
             total_problems=0,
             correct_answers=0,
             status=SessionStatus.ACTIVE,
@@ -73,7 +73,7 @@ class QuizService:
             correct_answer=correct_answer,
             is_correct=is_correct,
             response_time_ms=response_time_ms,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
 
         # Save attempt
@@ -125,7 +125,7 @@ class QuizService:
             return False
 
         session.status = SessionStatus.ABANDONED
-        session.end_time = datetime.now()
+        session.end_time = datetime.now(timezone.utc)
 
         updated_session = self.quiz_repo.update_session(session)
         return updated_session is not None

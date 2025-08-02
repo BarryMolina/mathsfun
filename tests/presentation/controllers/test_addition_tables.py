@@ -403,7 +403,9 @@ class TestRunAdditionTableQuiz:
         assert total == 2  # Two attempts
         assert skipped == 0
         assert duration == 10
-        assert len(session_attempts) == 2
+        assert len(session_attempts) == 1  # Only final attempt per fact recorded
+        # Verify session attempt format: (operand1, operand2, final_correct, final_time_ms, incorrect_attempts)
+        assert session_attempts[0] == (1, 1, True, 2000, 1)  # Correct after 1 mistake
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -542,7 +544,9 @@ class TestRunAdditionTableQuiz:
         assert total == 4  # 4 attempts (including the wrong one)
         assert skipped == 1
         assert duration == 15
-        assert len(session_attempts) == 4
+        assert (
+            len(session_attempts) == 3
+        )  # Only final attempts per fact: 1+1 (correct), 1+2 (correct after error), 2+2 (correct), skip not recorded
 
     @patch("builtins.input")
     @patch("builtins.print")
@@ -599,7 +603,9 @@ class TestRunAdditionTableQuiz:
         # Should have 0 skipped (no 'next' commands)
         assert skipped == 0
         assert duration == 15
-        assert len(session_attempts) == 4
+        assert (
+            len(session_attempts) == 1
+        )  # Only final attempt recorded: 1+1 correct after 3 errors
 
         # Verify error messages were printed for wrong answers
         mock_print.assert_any_call("❌ Not quite right. Try again!")
@@ -637,7 +643,9 @@ class TestRunAdditionTableQuiz:
         # Should have 1 skipped
         assert skipped == 1
         assert duration == 20
-        assert len(session_attempts) == 6
+        assert (
+            len(session_attempts) == 3
+        )  # Only final attempts: 1+1 (correct after error), 2+1 (correct after error), 2+2 (correct), skip not recorded
 
         # Verify skip message was printed
         mock_print.assert_any_call("⏭️  Skipped! The answer was 3")
@@ -648,6 +656,7 @@ class TestRunAdditionTableQuiz:
 class TestAdditionTablesMode:
     """Test addition_tables_mode function."""
 
+    @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch(
         "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
     )
@@ -662,9 +671,13 @@ class TestAdditionTablesMode:
         mock_get_order,
         mock_run_quiz,
         mock_show_results_with_fact_insights,
+        mock_get_user_input,
     ):
         """Test successful execution of addition tables mode."""
-        # Mock user inputs
+        # Mock submenu choice (1 = practice specific range)
+        mock_get_user_input.return_value = "1"
+
+        # Mock user inputs for practice workflow
         mock_get_range.return_value = (2, 3)
         mock_get_order.return_value = True  # Random order
         mock_run_quiz.return_value = (
@@ -677,7 +690,10 @@ class TestAdditionTablesMode:
 
         addition_tables_mode()
 
-        # Verify function calls
+        # Verify submenu choice was called
+        mock_get_user_input.assert_called()
+
+        # Verify function calls after submenu selection
         mock_get_range.assert_called_once()
         mock_get_order.assert_called_once()
         mock_run_quiz.assert_called_once()
@@ -690,6 +706,7 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("   Order: Random")
         mock_print.assert_any_call("   Total problems: 4")  # (3-2+1)^2
 
+    @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch(
         "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
     )
@@ -704,8 +721,12 @@ class TestAdditionTablesMode:
         mock_get_order,
         mock_run_quiz,
         mock_show_results_with_fact_insights,
+        mock_get_user_input,
     ):
         """Test addition tables mode with single number."""
+        # Mock submenu choice (1 = practice specific range)
+        mock_get_user_input.return_value = "1"
+
         mock_get_range.return_value = (5, 5)
         mock_get_order.return_value = False  # Sequential order
         mock_run_quiz.return_value = (
@@ -723,10 +744,15 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("   Order: Sequential")
         mock_print.assert_any_call("   Total problems: 1")  # (5-5+1)^2
 
+    @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch("src.presentation.controllers.addition_tables.get_table_range")
     @patch("builtins.print")
-    def test_addition_tables_mode_exception_handling(self, mock_print, mock_get_range):
+    def test_addition_tables_mode_exception_handling(
+        self, mock_print, mock_get_range, mock_get_user_input
+    ):
         """Test exception handling in addition tables mode."""
+        # Mock submenu choice (1 = practice specific range)
+        mock_get_user_input.return_value = "1"
         mock_get_range.side_effect = Exception("Test error")
 
         addition_tables_mode()
@@ -735,6 +761,7 @@ class TestAdditionTablesMode:
         mock_print.assert_any_call("❌ Error: Test error")
         mock_print.assert_any_call("Returning to main menu...")
 
+    @patch("src.presentation.controllers.addition_tables.get_user_input")
     @patch(
         "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
     )
@@ -747,8 +774,12 @@ class TestAdditionTablesMode:
         mock_get_order,
         mock_run_quiz,
         mock_show_results_with_fact_insights,
+        mock_get_user_input,
     ):
         """Test that AdditionTableGenerator is created with correct parameters."""
+        # Mock submenu choice (1 = practice specific range)
+        mock_get_user_input.return_value = "1"
+
         mock_get_range.return_value = (3, 7)
         mock_get_order.return_value = True
         mock_run_quiz.return_value = (
@@ -910,7 +941,7 @@ class TestFactTrackingIntegration:
         assert correct == 1
         assert total == 2  # Two attempts
         assert skipped == 0
-        assert len(session_attempts) == 2
+        assert len(session_attempts) == 1  # Only final attempt recorded
 
         # AFTER FIX: track_attempt should NOT be called during the quiz
         # All tracking should happen only in analyze_session_performance
@@ -940,20 +971,34 @@ class TestFactTrackingIntegration:
         def mock_analyze_session_performance(user_id, session_attempts):
             # This simulates the real behavior where analyze_session_performance
             # calls track_attempt for each session attempt
-            for operand1, operand2, is_correct, response_time_ms in session_attempts:
+            # New session format: (operand1, operand2, final_correct, final_response_time_ms, incorrect_attempts_count)
+            for (
+                operand1,
+                operand2,
+                final_correct,
+                final_response_time_ms,
+                incorrect_attempts_count,
+            ) in session_attempts:
                 mock_fact_service.track_attempt(
-                    user_id, operand1, operand2, is_correct, response_time_ms
+                    user_id,
+                    operand1,
+                    operand2,
+                    None,
+                    operand1 + operand2,
+                    final_correct,
+                    final_response_time_ms,
+                    incorrect_attempts_count,
                 )
 
             return {
                 "session_accuracy": 100.0,
                 "total_attempts": len(session_attempts),
                 "correct_attempts": sum(
-                    1 for _, _, is_correct, _ in session_attempts if is_correct
+                    1 for _, _, final_correct, _, _ in session_attempts if final_correct
                 ),
-                "facts_practiced": 1,
-                "mastery_improvements": [],
-                "facts_needing_practice": [],
+                "facts_practiced": len(session_attempts),
+                "new_facts_learned": [],
+                "facts_due_for_review": 0,
             }
 
         mock_fact_service.analyze_session_performance.side_effect = (
@@ -1040,20 +1085,34 @@ class TestFactTrackingIntegration:
         def mock_analyze_session_performance(user_id, session_attempts):
             # This simulates the real behavior where analyze_session_performance
             # calls track_attempt for each session attempt
-            for operand1, operand2, is_correct, response_time_ms in session_attempts:
+            # New session format: (operand1, operand2, final_correct, final_response_time_ms, incorrect_attempts_count)
+            for (
+                operand1,
+                operand2,
+                final_correct,
+                final_response_time_ms,
+                incorrect_attempts_count,
+            ) in session_attempts:
                 mock_fact_service.track_attempt(
-                    user_id, operand1, operand2, is_correct, response_time_ms
+                    user_id,
+                    operand1,
+                    operand2,
+                    None,
+                    operand1 + operand2,
+                    final_correct,
+                    final_response_time_ms,
+                    incorrect_attempts_count,
                 )
 
             return {
                 "session_accuracy": 100.0,
                 "total_attempts": len(session_attempts),
                 "correct_attempts": sum(
-                    1 for _, _, is_correct, _ in session_attempts if is_correct
+                    1 for _, _, final_correct, _, _ in session_attempts if final_correct
                 ),
-                "facts_practiced": 1,
-                "mastery_improvements": [],
-                "facts_needing_practice": [],
+                "facts_practiced": len(session_attempts),
+                "new_facts_learned": [],
+                "facts_due_for_review": 0,
             }
 
         mock_fact_service.analyze_session_performance.side_effect = (
@@ -1128,27 +1187,22 @@ class TestAdditionTablesModeEdgeCases:
         from src.presentation.controllers.addition_tables import addition_tables_mode
         from src.domain.models.user import User
 
-        # Mock dependencies
+        # Mock dependencies - only mock high-level functions to avoid conflicts
         with patch(
-            "src.presentation.controllers.addition_tables.get_table_range"
-        ) as mock_get_range, patch(
-            "src.presentation.controllers.addition_tables.get_order_preference"
-        ) as mock_get_order, patch(
-            "src.presentation.controllers.addition_tables.run_addition_table_quiz"
-        ) as mock_run_quiz, patch(
-            "src.presentation.controllers.addition_tables.show_results_with_fact_insights"
-        ) as mock_show_results, patch(
+            "src.presentation.controllers.addition_tables.get_addition_tables_choice"
+        ) as mock_get_choice, patch(
+            "src.presentation.controllers.addition_tables.practice_specific_range"
+        ) as mock_practice_range, patch(
             "builtins.print"
         ) as mock_print:
 
-            mock_get_range.return_value = (3, 5)
-            mock_get_order.return_value = True
-            mock_run_quiz.return_value = (8, 10, 2, 120.0, [(3, 4, True, 2000)])
+            # Mock submenu choice (1 = practice specific range)
+            mock_get_choice.return_value = 1
 
             # Mock container and user
             mock_container = Mock()
-            mock_addition_fact_service = Mock()
-            mock_container.addition_fact_svc = mock_addition_fact_service
+            mock_math_fact_service = Mock()
+            mock_container.math_fact_svc = mock_math_fact_service
 
             mock_user = User(
                 id="test_user", email="test@example.com", display_name="Test User"
@@ -1156,26 +1210,11 @@ class TestAdditionTablesModeEdgeCases:
 
             addition_tables_mode(mock_container, mock_user)
 
-            # Verify that container and user were used (covers lines 232-233)
-            mock_run_quiz.assert_called_once()
-            run_quiz_args = mock_run_quiz.call_args[0]
-            assert len(run_quiz_args) == 3
-            assert (
-                run_quiz_args[1] == mock_addition_fact_service
-            )  # addition_fact_service
-            assert run_quiz_args[2] == "test_user"  # user_id
-
-            # Verify show_results was called with fact service and user_id
-            mock_show_results.assert_called_once()
-            show_results_args = mock_show_results.call_args[0]
-            assert len(show_results_args) == 8
-            assert (
-                show_results_args[6] == mock_addition_fact_service
-            )  # addition_fact_service
-            assert show_results_args[7] == "test_user"  # user_id
+            # Verify that practice_specific_range was called with container and user
+            mock_practice_range.assert_called_once_with(mock_container, mock_user)
 
     def test_show_results_with_fact_insights_mastery_improvements(self):
-        """Test show_results_with_fact_insights with mastery improvements."""
+        """Test show_results_with_fact_insights with SM-2 insights."""
         from src.presentation.controllers.addition_tables import (
             show_results_with_fact_insights,
         )
@@ -1188,50 +1227,53 @@ class TestAdditionTablesModeEdgeCases:
             mock_generator.low = 3
             mock_generator.high = 5
 
-            mock_addition_fact_service = Mock()
+            mock_math_fact_service = Mock()
 
-            # Mock analysis with mastery improvements
+            # Mock SM-2 analysis
             mock_analysis = {
+                "facts_practiced": ["3+4", "4+5"],
+                "new_facts_learned": ["3+4"],
+                "facts_due_for_review": 2,
                 "session_accuracy": 85.0,
-                "total_attempts": 10,
-                "correct_attempts": 8,
-                "facts_practiced": 5,
-                "mastery_improvements": ["3+4", "4+5"],
-                "facts_needing_practice": [],
+                "total_attempts": 2,
+                "correct_attempts": 2,
             }
-            mock_addition_fact_service.analyze_session_performance.return_value = (
+            mock_math_fact_service.analyze_session_performance.return_value = (
                 mock_analysis
             )
 
-            # Mock recommendations
-            mock_recommendations = {
-                "recommendation": "Great job!",
-                "weak_facts": [],
-                "mastered_facts_count": 8,
-                "total_possible_facts": 9,
-            }
-            mock_addition_fact_service.get_practice_recommendations.return_value = (
-                mock_recommendations
-            )
+            # Mock weak facts
+            mock_weak_facts = [Mock(fact_key="6+7"), Mock(fact_key="8+9")]
+            mock_math_fact_service.get_weak_facts.return_value = mock_weak_facts
 
-            session_attempts = [(3, 4, True, 2000), (4, 5, True, 1800)]
+            # Mock performance summary
+            mock_summary = {
+                "total_facts": 5,
+                "average_ease_factor": 2.8,
+                "facts_by_interval": {1: 2, 6: 3},
+            }
+            mock_math_fact_service.get_performance_summary.return_value = mock_summary
+
+            # Use correct SM-2 session format: (operand1, operand2, final_correct, final_response_time_ms, incorrect_attempts_count)
+            session_attempts = [(3, 4, True, 2000, 0), (4, 5, True, 1800, 0)]
 
             show_results_with_fact_insights(
-                8,
-                10,
+                2,
+                2,
                 120.0,
                 mock_generator,
-                2,
+                0,
                 session_attempts,
-                mock_addition_fact_service,
+                mock_math_fact_service,
                 "test_user",
             )
 
-            # Verify mastery improvements message (covers line 291)
-            mock_print.assert_any_call("\n🎉 MASTERED: 3+4, 4+5")
+            # Verify SM-2 insights were shown
+            mock_print.assert_any_call("📊 SM-2 SPACED REPETITION INSIGHTS")
+            mock_print.assert_any_call("📝 Facts practiced this session: 2")
 
     def test_show_results_with_fact_insights_facts_needing_practice(self):
-        """Test show_results_with_fact_insights with facts needing practice."""
+        """Test show_results_with_fact_insights with weak facts shown."""
         from src.presentation.controllers.addition_tables import (
             show_results_with_fact_insights,
         )
@@ -1244,53 +1286,53 @@ class TestAdditionTablesModeEdgeCases:
             mock_generator.low = 3
             mock_generator.high = 5
 
-            mock_addition_fact_service = Mock()
+            mock_math_fact_service = Mock()
 
-            # Mock analysis with facts needing practice
+            # Mock SM-2 analysis
             mock_analysis = {
+                "facts_practiced": ["7+8", "8+9"],
+                "new_facts_learned": [],
+                "facts_due_for_review": 3,
                 "session_accuracy": 60.0,
-                "total_attempts": 10,
-                "correct_attempts": 6,
-                "facts_practiced": 5,
-                "mastery_improvements": [],
-                "facts_needing_practice": ["7+8", "8+9"],
+                "total_attempts": 2,
+                "correct_attempts": 0,
             }
-            mock_addition_fact_service.analyze_session_performance.return_value = (
+            mock_math_fact_service.analyze_session_performance.return_value = (
                 mock_analysis
             )
 
-            # Mock recommendations with weak facts
-            mock_weak_fact = Mock()
-            mock_weak_fact.fact_key = "7+8"
+            # Mock weak facts to be displayed
+            mock_weak_facts = [
+                Mock(fact_key="7+8"),
+                Mock(fact_key="8+9"),
+                Mock(fact_key="9+7"),
+            ]
+            mock_math_fact_service.get_weak_facts.return_value = mock_weak_facts
 
-            mock_recommendations = {
-                "recommendation": "Keep practicing!",
-                "weak_facts": [mock_weak_fact],
-                "mastered_facts_count": 3,
-                "total_possible_facts": 9,
+            # Mock performance summary
+            mock_summary = {
+                "total_facts": 5,
+                "average_ease_factor": 1.8,
+                "facts_by_interval": {1: 3, 6: 2},
             }
-            mock_addition_fact_service.get_practice_recommendations.return_value = (
-                mock_recommendations
-            )
+            mock_math_fact_service.get_performance_summary.return_value = mock_summary
 
-            session_attempts = [(7, 8, False, 4000), (8, 9, False, 3500)]
+            # Use correct SM-2 session format: (operand1, operand2, final_correct, final_response_time_ms, incorrect_attempts_count)
+            session_attempts = [(7, 8, False, 4000, 2), (8, 9, False, 3500, 1)]
 
             show_results_with_fact_insights(
-                6,
-                10,
+                0,
+                2,
                 150.0,
                 mock_generator,
                 0,
                 session_attempts,
-                mock_addition_fact_service,
+                mock_math_fact_service,
                 "test_user",
             )
 
-            # Verify facts needing practice message (covers line 296)
-            mock_print.assert_any_call("\n💪 NEED PRACTICE: 7+8, 8+9")
-
-            # Verify weak facts focus message (covers lines 319-320)
-            mock_print.assert_any_call("🎯 FOCUS ON: 7+8")
+            # Verify weak facts focus message is shown (only first 3 are displayed)
+            mock_print.assert_any_call("\n🎯 FOCUS ON: 7+8, 8+9, 9+7")
 
     def test_show_results_with_fact_insights_exception_handling(self):
         """Test show_results_with_fact_insights with exception during analysis."""
@@ -1313,7 +1355,7 @@ class TestAdditionTablesModeEdgeCases:
                 Exception("Database error")
             )
 
-            session_attempts = [(3, 4, True, 2000)]
+            session_attempts = [(3, 4, True, 2000, 0)]
 
             show_results_with_fact_insights(
                 1,
@@ -1326,9 +1368,9 @@ class TestAdditionTablesModeEdgeCases:
                 "test_user",
             )
 
-            # Verify exception handling message (covers line 323)
+            # Verify exception handling message (covers line 617)
             mock_print.assert_any_call(
-                "\n⚠️  Could not load fact insights: Database error"
+                "\n⚠️  Could not load SM-2 insights: Database error"
             )
 
     def test_show_results_with_fact_insights_no_fact_service(self):
@@ -1342,7 +1384,7 @@ class TestAdditionTablesModeEdgeCases:
         ) as mock_show_results:
 
             mock_generator = Mock()
-            session_attempts = [(3, 4, True, 2000)]
+            session_attempts = [(3, 4, True, 2000, 0)]
 
             show_results_with_fact_insights(
                 1,
@@ -1355,14 +1397,13 @@ class TestAdditionTablesModeEdgeCases:
                 None,  # No fact service or user_id
             )
 
-            # Verify sign-in message (covers lines 325-334)
+            # Verify SM-2 sign-in message
             mock_print.assert_any_call("\n" + "=" * 60)
             mock_print.assert_any_call("🔐 SIGN IN FOR PERSONALIZED INSIGHTS")
             mock_print.assert_any_call("=" * 60)
             mock_print.assert_any_call(
-                "Sign in to track your progress on individual addition facts!"
+                "Sign in to track your progress with SM-2 spaced repetition!"
             )
-            mock_print.assert_any_call("• See which facts you've mastered")
-            mock_print.assert_any_call("• Get personalized practice recommendations")
-            mock_print.assert_any_call("• Track improvement over time")
-            mock_print.assert_any_call("• Identify facts that need more work")
+            mock_print.assert_any_call(
+                "• Adaptive review scheduling based on your performance"
+            )
