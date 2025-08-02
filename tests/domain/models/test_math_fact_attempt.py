@@ -1,7 +1,7 @@
 """Tests for MathFactAttempt model."""
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 from src.domain.models.math_fact_attempt import MathFactAttempt
 
 
@@ -78,7 +78,7 @@ class TestMathFactAttempt:
 
     def test_create_new_attempt_with_current_timestamp(self):
         """Test creating an attempt uses current timestamp."""
-        before_time = datetime.now()
+        before_time = datetime.now(timezone.utc)
 
         attempt = MathFactAttempt.create_new(
             user_id="user123",
@@ -91,7 +91,7 @@ class TestMathFactAttempt:
             response_time_ms=1500,
         )
 
-        after_time = datetime.now()
+        after_time = datetime.now(timezone.utc)
 
         # Verify timestamp is between before and after
         assert before_time <= attempt.attempted_at <= after_time
