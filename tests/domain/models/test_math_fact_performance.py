@@ -125,6 +125,7 @@ class TestMathFactPerformance:
         # EF calculation: 2.5 + (0.1 - (5-4) * (0.08 + (5-4) * 0.02)) = 2.5 + (0.1 - 0.1) = 2.5
         assert performance.easiness_factor == Decimal("2.50")
         assert performance.next_review_date is not None
+        assert performance.last_sm2_grade == 4
 
     def test_apply_sm2_algorithm_second_repetition_good(self):
         """Test SM-2 algorithm for second repetition with good performance."""
@@ -188,6 +189,23 @@ class TestMathFactPerformance:
         performance.apply_sm2_algorithm(grade=5)
         assert performance.easiness_factor <= Decimal("4.00")
 
+    def test_last_sm2_grade_tracking(self):
+        """Test that last SM2 grade is properly tracked."""
+        performance = MathFactPerformance.create_new("user123", "7+8")
+
+        # Initially should be None
+        assert performance.last_sm2_grade is None
+
+        # Apply different grades and verify they're stored
+        performance.apply_sm2_algorithm(grade=3)
+        assert performance.last_sm2_grade == 3
+
+        performance.apply_sm2_algorithm(grade=5)
+        assert performance.last_sm2_grade == 5
+
+        performance.apply_sm2_algorithm(grade=1)
+        assert performance.last_sm2_grade == 1
+
     def test_to_dict_and_from_dict(self):
         """Test serialization and deserialization."""
         original = MathFactPerformance.create_new("user123", "7+8")
@@ -206,6 +224,7 @@ class TestMathFactPerformance:
         assert restored.repetition_number == original.repetition_number
         assert restored.easiness_factor == original.easiness_factor
         assert restored.interval_days == original.interval_days
+        assert restored.last_sm2_grade == original.last_sm2_grade
 
     @pytest.mark.parametrize(
         "response_time,incorrect_attempts,expected_grade",

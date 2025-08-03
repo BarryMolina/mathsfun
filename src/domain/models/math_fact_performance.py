@@ -31,6 +31,7 @@ class MathFactPerformance:
     next_review_date: Optional[datetime] = (
         None  # When this fact should be reviewed next
     )
+    last_sm2_grade: Optional[int] = None  # Most recent SM2 grade (0-5)
 
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -153,6 +154,9 @@ class MathFactPerformance:
         if grade < 0 or grade > 5:
             raise ValueError(f"Grade must be between 0 and 5, got {grade}")
 
+        # Store the most recent grade
+        self.last_sm2_grade = grade
+
         if grade < 3:
             # Incorrect response - reset repetition number but keep ease factor
             self.repetition_number = 0
@@ -254,6 +258,7 @@ class MathFactPerformance:
             easiness_factor=Decimal(str(data.get("easiness_factor", "2.50"))),
             interval_days=data.get("interval_days", 1),
             next_review_date=next_review_date,
+            last_sm2_grade=data.get("last_sm2_grade"),
             created_at=created_at,
             updated_at=updated_at,
         )
@@ -282,6 +287,7 @@ class MathFactPerformance:
             "next_review_date": (
                 self.next_review_date.isoformat() if self.next_review_date else None
             ),
+            "last_sm2_grade": self.last_sm2_grade,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
