@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Tuple, Optional, TYPE_CHECKING
 from ..cli.ui import get_user_input
 from .session import show_results, prompt_start_session
+from .analytics import view_analytics_mode
 
 if TYPE_CHECKING:
     from src.domain.services.math_fact_service import MathFactService
@@ -241,15 +242,21 @@ def get_addition_tables_choice(math_fact_service=None, user_id=None) -> int:
     else:
         print("2. Review Due Facts (sign in required)")
 
-    print("3. Return to main menu")
+    # Show analytics option
+    if math_fact_service and user_id:
+        print("3. View Performance Analytics")
+    else:
+        print("3. View Performance Analytics (sign in required)")
+
+    print("4. Return to main menu")
 
     while True:
         try:
             choice = int(get_user_input("Select option", "1"))
-            if choice in [1, 2, 3]:
+            if choice in [1, 2, 3, 4]:
                 return choice
             else:
-                print("❌ Please enter 1, 2, or 3")
+                print("❌ Please enter 1, 2, 3, or 4")
         except ValueError:
             print("❌ Please enter a valid number")
 
@@ -535,6 +542,9 @@ def addition_tables_mode(container=None, user=None):
                 review_due_facts(container, user)
                 break
             elif choice == 3:
+                view_analytics_mode(container, user)
+                break
+            elif choice == 4:
                 return  # Return to main menu
 
     except Exception as e:
