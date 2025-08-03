@@ -156,3 +156,7 @@ The application supports 5 difficulty levels with specific mathematical constrai
 
 - After writing or editing a python file, run the `mypy` command for static type checking
 - Always run `black src/` after writing or editing a file to ensure consistent formatting
+
+## Development Tricks and Notes
+
+- You can use the tmux mcp to run the cli app and test the UI. Don't forget to use the `--local` flag to use the local Supabase instance
