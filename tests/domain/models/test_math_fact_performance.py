@@ -192,17 +192,17 @@ class TestMathFactPerformance:
     def test_last_sm2_grade_tracking(self):
         """Test that last SM2 grade is properly tracked."""
         performance = MathFactPerformance.create_new("user123", "7+8")
-        
+
         # Initially should be None
         assert performance.last_sm2_grade is None
-        
+
         # Apply different grades and verify they're stored
         performance.apply_sm2_algorithm(grade=3)
         assert performance.last_sm2_grade == 3
-        
+
         performance.apply_sm2_algorithm(grade=5)
         assert performance.last_sm2_grade == 5
-        
+
         performance.apply_sm2_algorithm(grade=1)
         assert performance.last_sm2_grade == 1
 
