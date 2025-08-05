@@ -6,3 +6,4 @@ htmlcov/
 .ruff_cache/
 .mypy_cache/
 .coverage.*
+.DS_Store
