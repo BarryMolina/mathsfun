@@ -149,6 +149,14 @@ class AnalyticsState:
                 self.filtered_performances.sort(
                     key=lambda p: p.last_sm2_grade or -1, reverse=descending
                 )
+            elif field == "review":
+                # Sort by next review date, handling None values
+                far_future = datetime.max.replace(tzinfo=timezone.utc)
+                far_past = datetime.min.replace(tzinfo=timezone.utc)
+                default_date = far_future if descending else far_past
+                self.filtered_performances.sort(
+                    key=lambda p: p.next_review_date or default_date, reverse=descending
+                )
             elif field == "fastest":
                 self.filtered_performances.sort(
                     key=lambda p: p.fastest_response_ms or 99999, reverse=descending
@@ -220,7 +228,7 @@ class AnalyticsState:
                 if result[0] is None or result[1] is None:
                     print(f"❌ Unknown filter condition: {condition}")
                     return False
-                
+
                 filtered, filter_desc = result[0], result[1]
                 assert filtered is not None and filter_desc is not None
 
@@ -417,9 +425,11 @@ def show_analytics_help() -> None:
     print("\n🔍 Sorting:")
     print("  sort <field> [asc/desc]")
     print(
-        "  Fields: fact, attempts, accuracy, time, ease, interval, repetitions, grade, fastest, slowest"
+        "  Fields: fact, attempts, accuracy, time, ease, interval, repetitions, grade, review, fastest, slowest"
     )
-    print("  Examples: 'sort accuracy desc', 'sort grade desc', 'sort time asc'")
+    print(
+        "  Examples: 'sort accuracy desc', 'sort review asc', 'sort grade desc', 'sort time asc'"
+    )
 
     print("\n🎯 Filtering:")
     print("  Basic filters:")
