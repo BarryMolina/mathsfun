@@ -12,6 +12,10 @@ from src.presentation.controllers.addition_tables import (
     AdditionTableGenerator,
     run_addition_table_quiz,
     addition_tables_mode,
+    get_sm2_grade_from_attempt,
+    get_facts_needing_remedial_review,
+    conduct_remedial_review,
+    show_review_results,
 )
 
 
@@ -1407,3 +1411,212 @@ class TestAdditionTablesModeEdgeCases:
             mock_print.assert_any_call(
                 "• Adaptive review scheduling based on your performance"
             )
+
+
+class TestRemedialReviewHelpers:
+    """Test helper functions for remedial review feature."""
+
+    def test_get_sm2_grade_from_attempt_perfect_recall(self):
+        """Test grade calculation for perfect recall (grade 5)."""
+        grade = get_sm2_grade_from_attempt(1500, 0)  # Fast, no errors
+        assert grade == 5
+
+    def test_get_sm2_grade_from_attempt_some_hesitation(self):
+        """Test grade calculation for some hesitation (grade 4)."""
+        grade = get_sm2_grade_from_attempt(2500, 0)  # Medium speed, no errors
+        assert grade == 4
+
+    def test_get_sm2_grade_from_attempt_significant_effort(self):
+        """Test grade calculation for significant effort (grade 3)."""
+        grade = get_sm2_grade_from_attempt(4000, 0)  # Slow, no errors
+        assert grade == 3
+
+    def test_get_sm2_grade_from_attempt_easy_after_error(self):
+        """Test grade calculation for easy after error (grade 2)."""
+        grade = get_sm2_grade_from_attempt(2000, 1)  # Fast with 1 error
+        assert grade == 2
+
+    def test_get_sm2_grade_from_attempt_slow_after_error(self):
+        """Test grade calculation for slow after error (grade 1)."""
+        grade = get_sm2_grade_from_attempt(4000, 1)  # Slow with 1 error
+        assert grade == 1
+
+    def test_get_sm2_grade_from_attempt_blackout(self):
+        """Test grade calculation for blackout (grade 0)."""
+        grade = get_sm2_grade_from_attempt(5000, 2)  # 2+ errors
+        assert grade == 0
+
+    def test_get_facts_needing_remedial_review_empty_list(self):
+        """Test with empty session attempts list."""
+        facts = get_facts_needing_remedial_review([])
+        assert facts == []
+
+    def test_get_facts_needing_remedial_review_no_poor_facts(self):
+        """Test with no facts needing remedial review."""
+        session_attempts = [
+            (5, 6, True, 1500, 0),  # Grade 5 - perfect
+            (7, 8, True, 2500, 0),  # Grade 4 - good
+        ]
+        facts = get_facts_needing_remedial_review(session_attempts)
+        assert facts == []
+
+    def test_get_facts_needing_remedial_review_with_poor_facts(self):
+        """Test with facts needing remedial review."""
+        session_attempts = [
+            (5, 6, True, 1500, 0),  # Grade 5 - perfect, no remedial needed
+            (7, 8, True, 4000, 0),  # Grade 3 - needs remedial review
+            (3, 4, True, 2000, 1),  # Grade 2 - needs remedial review
+            (9, 2, True, 5000, 2),  # Grade 0 - needs remedial review
+        ]
+        facts = get_facts_needing_remedial_review(session_attempts)
+        # Should only include facts with grades <= 3
+        expected = [(7, 8), (3, 4), (9, 2)]
+        assert facts == expected
+
+    def test_get_facts_needing_remedial_review_only_correct_attempts(self):
+        """Test that only correct attempts are considered for remedial review."""
+        session_attempts = [
+            (5, 6, True, 4000, 0),   # Grade 3 - correct, needs remedial
+            (7, 8, False, 4000, 2),  # Incorrect attempt - should be ignored
+        ]
+        facts = get_facts_needing_remedial_review(session_attempts)
+        assert facts == [(5, 6)]  # Only the correct attempt
+
+    def test_get_facts_needing_remedial_review_duplicates(self):
+        """Test that duplicate facts are included if both need remedial review."""
+        session_attempts = [
+            (5, 6, True, 4000, 0),  # Grade 3 - needs remedial
+            (5, 6, True, 5000, 1),  # Grade 1 - also needs remedial (same fact)
+        ]
+        facts = get_facts_needing_remedial_review(session_attempts)
+        # Both instances should be included
+        assert facts == [(5, 6), (5, 6)]
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.random.shuffle")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_conduct_remedial_review_empty_facts(
+        self, mock_time, mock_shuffle, mock_print, mock_input
+    ):
+        """Test conduct_remedial_review with empty facts list."""
+        result = conduct_remedial_review([], None, "user123", 1)
+        assert result == []
+        # Should not call shuffle, print, or input if no facts
+        mock_shuffle.assert_not_called()
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.random.shuffle")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_conduct_remedial_review_user_exits_early(
+        self, mock_time, mock_shuffle, mock_print, mock_input
+    ):
+        """Test conduct_remedial_review when user exits early."""
+        mock_time.side_effect = [1000, 1005, 1010]  # Start, problem start, exit time
+        mock_input.side_effect = ["", "exit"]  # Press enter to start, then exit
+        
+        facts = [(3, 4), (5, 6)]
+        result = conduct_remedial_review(facts, None, "user123", 1)
+        
+        assert result == []
+        mock_print.assert_any_call("\n⏹️  Remedial review ended early.")
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print") 
+    @patch("src.presentation.controllers.addition_tables.random.shuffle")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_conduct_remedial_review_correct_answer(
+        self, mock_time, mock_shuffle, mock_print, mock_input
+    ):
+        """Test conduct_remedial_review with correct answer."""
+        # Mock time progression
+        mock_time.side_effect = [
+            1000,  # Session start
+            1005,  # Problem start
+            1007,  # Answer time
+            1010   # Session end
+        ]
+        
+        # User presses enter to start, then answers 7 correctly
+        mock_input.side_effect = ["", "7"]
+        
+        facts = [(3, 4)]  # 3 + 4 = 7
+        result = conduct_remedial_review(facts, None, "user123", 1)
+        
+        # Should record the correct attempt
+        expected = [(3, 4, True, 2000, 0)]  # 2000ms response time, 0 incorrect attempts
+        assert result == expected
+        
+        # Should show success messages
+        mock_print.assert_any_call("✅ Correct! Great job!")
+        mock_print.assert_any_call("\n📊 Remedial Session #1 Complete!")
+
+
+class TestRemedialReviewIntegration:
+    """Integration tests for the complete remedial review flow."""
+
+    @patch("src.presentation.controllers.addition_tables.input") 
+    @patch("builtins.print")
+    def test_show_review_results_no_remedial_needed(self, mock_print, mock_input):
+        """Test show_review_results when no facts need remedial review."""
+        # Create mock math fact service
+        mock_math_fact_service = Mock()
+        mock_math_fact_service.analyze_session_performance.return_value = {
+            "facts_due_for_review": 0,
+            "session_accuracy": 1.0
+        }
+        
+        # Session attempts with all high grades
+        session_attempts = [
+            (5, 6, True, 1500, 0),  # Grade 5 - perfect
+            (7, 8, True, 2500, 0),  # Grade 4 - good
+        ]
+        
+        # Call the function
+        show_review_results(
+            2, 2, 0, 15.0, session_attempts, mock_math_fact_service, "user123", 2
+        )
+        
+        # Verify main session was uploaded
+        mock_math_fact_service.analyze_session_performance.assert_called_once()
+        
+        # Verify success message for high performance
+        mock_print.assert_any_call("\n🌟 Great job! All your facts received grades ≥ 4!")
+        
+        # Should not prompt for remedial review
+        mock_input.assert_not_called()
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print") 
+    def test_show_review_results_user_declines_remedial(self, mock_print, mock_input):
+        """Test show_review_results when user declines remedial review."""
+        # Mock user declining remedial review
+        mock_input.return_value = "n"
+        
+        # Create mock math fact service
+        mock_math_fact_service = Mock()
+        mock_math_fact_service.analyze_session_performance.return_value = {
+            "facts_due_for_review": 3,
+            "session_accuracy": 0.6
+        }
+        
+        # Session attempts with facts needing remedial review
+        session_attempts = [
+            (7, 4, True, 4000, 0),  # Grade 3 - needs remedial review
+        ]
+        
+        # Call the function
+        show_review_results(
+            1, 1, 0, 10.0, session_attempts, mock_math_fact_service, "user123", 1
+        )
+        
+        # Verify main session was uploaded
+        mock_math_fact_service.analyze_session_performance.assert_called_once()
+        
+        # Verify remedial review was offered
+        mock_print.assert_any_call("\n⚠️  SuperMemo Alert: 1 facts received grades ≤ 3")
+        mock_input.assert_called_once_with("\n🔄 Would you like to practice these 1 facts again? (y/n): ")
+        
+        # Verify encouragement message when declined
+        mock_print.assert_any_call("📚 Remember: Regular practice of challenging facts improves long-term retention!")

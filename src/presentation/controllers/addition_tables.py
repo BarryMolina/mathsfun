@@ -477,7 +477,7 @@ def show_review_results(
     user_id: str,
     total_facts: int,
 ):
-    """Show results for review due facts session."""
+    """Show results for review due facts session and handle remedial reviews."""
     print("\n" + "=" * 60)
     print("📊 REVIEW SESSION RESULTS")
     print("=" * 60)
@@ -502,6 +502,7 @@ def show_review_results(
     # Process session with SM-2 if we have attempts
     if session_attempts and math_fact_service:
         try:
+            # Upload main session results first
             analysis = math_fact_service.analyze_session_performance(
                 user_id, session_attempts
             )
@@ -516,8 +517,266 @@ def show_review_results(
                     f"💪 Progress made! {total_facts - facts_due_count} facts updated"
                 )
 
+            # Check for facts needing remedial review (grades <= 3)
+            facts_needing_remedial = get_facts_needing_remedial_review(session_attempts)
+
+            if facts_needing_remedial:
+                print(
+                    f"\n⚠️  SuperMemo Alert: {len(facts_needing_remedial)} facts received grades ≤ 3"
+                )
+                print(
+                    "According to SuperMemo principles, these facts need additional practice."
+                )
+
+                remedial_session_count = 1
+                current_remedial_facts = facts_needing_remedial[:]  # Copy the list
+
+                while current_remedial_facts:
+                    # Prompt user for remedial review
+                    choice = (
+                        input(
+                            f"\n🔄 Would you like to practice these {len(current_remedial_facts)} facts again? (y/n): "
+                        )
+                        .strip()
+                        .lower()
+                    )
+
+                    if choice not in ["y", "yes"]:
+                        print(
+                            "📚 Remember: Regular practice of challenging facts improves long-term retention!"
+                        )
+                        break
+
+                    # Conduct remedial review session
+                    remedial_attempts = conduct_remedial_review(
+                        current_remedial_facts,
+                        math_fact_service,
+                        user_id,
+                        remedial_session_count,
+                    )
+
+                    if not remedial_attempts:
+                        # User stopped or exited early
+                        break
+
+                    # Upload remedial session results
+                    print(
+                        f"\n💾 Uploading remedial session #{remedial_session_count} results..."
+                    )
+                    try:
+                        remedial_analysis = (
+                            math_fact_service.analyze_session_performance(
+                                user_id, remedial_attempts
+                            )
+                        )
+                        print("✅ Results uploaded successfully!")
+                    except Exception as e:
+                        print(f"⚠️  Could not upload remedial session results: {e}")
+
+                    # Check which facts still need remedial review
+                    current_remedial_facts = get_facts_needing_remedial_review(
+                        remedial_attempts
+                    )
+
+                    if current_remedial_facts:
+                        print(
+                            f"\n📊 {len(current_remedial_facts)} facts still need more practice (grades ≤ 3)"
+                        )
+                        remedial_session_count += 1
+                    else:
+                        print("\n🎉 Excellent! All facts now have grades ≥ 4!")
+                        print("You've successfully mastered the challenging material!")
+                        break
+            else:
+                print("\n🌟 Great job! All your facts received grades ≥ 4!")
+
         except Exception as e:
             print(f"\n⚠️  Could not process SM-2 updates: {e}")
+
+
+def get_sm2_grade_from_attempt(response_time_ms: int, incorrect_attempts: int) -> int:
+    """Calculate SM-2 grade from attempt data using the same logic as MathFactPerformance.
+
+    Args:
+        response_time_ms: Time taken to respond in milliseconds
+        incorrect_attempts: Number of incorrect attempts before getting it right
+
+    Returns:
+        Grade from 0-5 for SM-2 algorithm
+    """
+    if incorrect_attempts >= 2:
+        return 0  # Total blackout
+    elif incorrect_attempts == 1:
+        # Got it wrong once, then correct
+        if response_time_ms < 3000:
+            return 2  # Easy to remember after seeing answer
+        else:
+            return 1  # Familiar but slow after seeing answer
+    else:
+        # Got it right on first try
+        if response_time_ms < 2000:
+            return 5  # Perfect recall
+        elif response_time_ms < 3000:
+            return 4  # Some hesitation
+        else:
+            return 3  # Significant effort
+
+
+def get_facts_needing_remedial_review(
+    session_attempts: List[Tuple[int, int, bool, int, int]],
+) -> List[Tuple[int, int]]:
+    """Identify facts that need remedial review (SM-2 grades <= 3).
+
+    Args:
+        session_attempts: List of (operand1, operand2, is_correct, response_time_ms, incorrect_attempts)
+
+    Returns:
+        List of (operand1, operand2) tuples for facts that need remedial review
+    """
+    facts_needing_review = []
+
+    for (
+        operand1,
+        operand2,
+        is_correct,
+        response_time_ms,
+        incorrect_attempts,
+    ) in session_attempts:
+        # Only consider facts that were eventually answered correctly
+        if is_correct:
+            grade = get_sm2_grade_from_attempt(response_time_ms, incorrect_attempts)
+            if grade <= 3:
+                facts_needing_review.append((operand1, operand2))
+
+    return facts_needing_review
+
+
+def conduct_remedial_review(
+    facts_to_review: List[Tuple[int, int]],
+    math_fact_service,
+    user_id: str,
+    session_number: int = 1,
+) -> List[Tuple[int, int, bool, int, int]]:
+    """Conduct a remedial review session for facts with poor performance.
+
+    Args:
+        facts_to_review: List of (operand1, operand2) tuples to review
+        math_fact_service: Service for SM-2 processing
+        user_id: User identifier
+        session_number: Which remedial session this is
+
+    Returns:
+        List of session attempts for this remedial review
+    """
+    if not facts_to_review:
+        return []
+
+    # Convert facts to problems and randomize
+    problems = []
+    for operand1, operand2 in facts_to_review:
+        problem = f"{operand1} + {operand2}"
+        answer = operand1 + operand2
+        problems.append((problem, answer))
+
+    random.shuffle(problems)
+
+    print(f"\n🔄 Remedial Review Session #{session_number}")
+    print(f"🎯 Reviewing {len(problems)} facts that need more practice")
+    print("Focus on these facts - you previously scored grades ≤ 3 on them.")
+    print("Commands: 'next' (skip), 'stop' (end session), 'exit' (quit app)")
+    print("=" * 60)
+
+    input("Press Enter when ready to start...")
+
+    start_time = time.time()
+    correct_count = 0
+    total_attempted = 0
+    skipped_count = 0
+    session_attempts: List[Tuple[int, int, bool, int, int]] = []
+
+    for i, (problem, correct_answer) in enumerate(problems):
+        print(f"\n📝 Problem {i+1}/{len(problems)}: {problem}")
+
+        # Parse operands for fact tracking
+        operands = problem.split(" + ")
+        operand1, operand2 = int(operands[0]), int(operands[1])
+
+        problem_start_time = time.time()
+        problem_answered = False
+        incorrect_attempts_on_problem = 0
+
+        while True:
+            user_input = input("Your answer: ").strip().lower()
+
+            if user_input == "exit":
+                end_time = time.time()
+                duration = end_time - start_time
+                print(f"\n⏹️  Remedial review ended early.")
+                return session_attempts
+            elif user_input == "stop":
+                end_time = time.time()
+                duration = end_time - start_time
+                print(f"\n⏸️  Remedial review session stopped.")
+                return session_attempts
+            elif user_input == "next":
+                print(f"⏭️  Skipped! The answer was {correct_answer}")
+                skipped_count += 1
+
+                # If they had incorrect attempts before skipping, record the final failed attempt
+                if incorrect_attempts_on_problem > 0:
+                    response_time_ms = int((time.time() - problem_start_time) * 1000)
+                    session_attempts.append(
+                        (
+                            operand1,
+                            operand2,
+                            False,
+                            response_time_ms,
+                            incorrect_attempts_on_problem,
+                        )
+                    )
+                break
+
+            try:
+                user_answer = int(user_input)
+                response_time_ms = int((time.time() - problem_start_time) * 1000)
+                total_attempted += 1
+                is_correct = user_answer == correct_answer
+
+                if is_correct:
+                    print("✅ Correct! Great job!")
+                    correct_count += 1
+                    problem_answered = True
+
+                    # Track the final correct attempt with count of previous incorrect attempts
+                    session_attempts.append(
+                        (
+                            operand1,
+                            operand2,
+                            True,
+                            response_time_ms,
+                            incorrect_attempts_on_problem,
+                        )
+                    )
+
+                    break
+                else:
+                    print(f"❌ Not quite right. Try again!")
+                    print("You can type 'next' to move on to the next problem.")
+                    incorrect_attempts_on_problem += 1
+
+            except ValueError:
+                print("❌ Please enter a number, 'next', 'stop', or 'exit'")
+
+    # Show quick summary
+    end_time = time.time()
+    duration = end_time - start_time
+    print(f"\n📊 Remedial Session #{session_number} Complete!")
+    if total_attempted > 0:
+        accuracy = (correct_count / total_attempted) * 100
+        print(f"✅ Accuracy: {correct_count}/{total_attempted} ({accuracy:.1f}%)")
+    print(f"⏱️  Time: {duration:.1f} seconds")
+
+    return session_attempts
 
 
 def addition_tables_mode(container=None, user=None):
