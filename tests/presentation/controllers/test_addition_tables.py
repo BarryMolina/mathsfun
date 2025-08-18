@@ -1476,7 +1476,7 @@ class TestRemedialReviewHelpers:
     def test_get_facts_needing_remedial_review_only_correct_attempts(self):
         """Test that only correct attempts are considered for remedial review."""
         session_attempts = [
-            (5, 6, True, 4000, 0),   # Grade 3 - correct, needs remedial
+            (5, 6, True, 4000, 0),  # Grade 3 - correct, needs remedial
             (7, 8, False, 4000, 2),  # Incorrect attempt - should be ignored
         ]
         facts = get_facts_needing_remedial_review(session_attempts)
@@ -1515,15 +1515,15 @@ class TestRemedialReviewHelpers:
         """Test conduct_remedial_review when user exits early."""
         mock_time.side_effect = [1000, 1005, 1010]  # Start, problem start, exit time
         mock_input.side_effect = ["", "exit"]  # Press enter to start, then exit
-        
+
         facts = [(3, 4), (5, 6)]
         result = conduct_remedial_review(facts, None, "user123", 1)
-        
+
         assert result == []
         mock_print.assert_any_call("\n⏹️  Remedial review ended early.")
 
     @patch("src.presentation.controllers.addition_tables.input")
-    @patch("builtins.print") 
+    @patch("builtins.print")
     @patch("src.presentation.controllers.addition_tables.random.shuffle")
     @patch("src.presentation.controllers.addition_tables.time.time")
     def test_conduct_remedial_review_correct_answer(
@@ -1535,19 +1535,19 @@ class TestRemedialReviewHelpers:
             1000,  # Session start
             1005,  # Problem start
             1007,  # Answer time
-            1010   # Session end
+            1010,  # Session end
         ]
-        
+
         # User presses enter to start, then answers 7 correctly
         mock_input.side_effect = ["", "7"]
-        
+
         facts = [(3, 4)]  # 3 + 4 = 7
         result = conduct_remedial_review(facts, None, "user123", 1)
-        
+
         # Should record the correct attempt
         expected = [(3, 4, True, 2000, 0)]  # 2000ms response time, 0 incorrect attempts
         assert result == expected
-        
+
         # Should show success messages
         mock_print.assert_any_call("✅ Correct! Great job!")
         mock_print.assert_any_call("\n📊 Remedial Session #1 Complete!")
@@ -1556,7 +1556,7 @@ class TestRemedialReviewHelpers:
 class TestRemedialReviewIntegration:
     """Integration tests for the complete remedial review flow."""
 
-    @patch("src.presentation.controllers.addition_tables.input") 
+    @patch("src.presentation.controllers.addition_tables.input")
     @patch("builtins.print")
     def test_show_review_results_no_remedial_needed(self, mock_print, mock_input):
         """Test show_review_results when no facts need remedial review."""
@@ -1564,59 +1564,65 @@ class TestRemedialReviewIntegration:
         mock_math_fact_service = Mock()
         mock_math_fact_service.analyze_session_performance.return_value = {
             "facts_due_for_review": 0,
-            "session_accuracy": 1.0
+            "session_accuracy": 1.0,
         }
-        
+
         # Session attempts with all high grades
         session_attempts = [
             (5, 6, True, 1500, 0),  # Grade 5 - perfect
             (7, 8, True, 2500, 0),  # Grade 4 - good
         ]
-        
+
         # Call the function
         show_review_results(
             2, 2, 0, 15.0, session_attempts, mock_math_fact_service, "user123", 2
         )
-        
+
         # Verify main session was uploaded
         mock_math_fact_service.analyze_session_performance.assert_called_once()
-        
+
         # Verify success message for high performance
-        mock_print.assert_any_call("\n🌟 Great job! All your facts received grades ≥ 4!")
-        
+        mock_print.assert_any_call(
+            "\n🌟 Great job! All your facts received grades ≥ 4!"
+        )
+
         # Should not prompt for remedial review
         mock_input.assert_not_called()
 
     @patch("src.presentation.controllers.addition_tables.input")
-    @patch("builtins.print") 
+    @patch("builtins.print")
     def test_show_review_results_user_declines_remedial(self, mock_print, mock_input):
         """Test show_review_results when user declines remedial review."""
         # Mock user declining remedial review
         mock_input.return_value = "n"
-        
+
         # Create mock math fact service
         mock_math_fact_service = Mock()
         mock_math_fact_service.analyze_session_performance.return_value = {
             "facts_due_for_review": 3,
-            "session_accuracy": 0.6
+            "session_accuracy": 0.6,
         }
-        
+
         # Session attempts with facts needing remedial review
         session_attempts = [
             (7, 4, True, 4000, 0),  # Grade 3 - needs remedial review
         ]
-        
+
         # Call the function
         show_review_results(
             1, 1, 0, 10.0, session_attempts, mock_math_fact_service, "user123", 1
         )
-        
+
         # Verify main session was uploaded
         mock_math_fact_service.analyze_session_performance.assert_called_once()
-        
+
         # Verify remedial review was offered
         mock_print.assert_any_call("\n⚠️  SuperMemo Alert: 1 facts received grades ≤ 3")
-        mock_input.assert_called_once_with("\n🔄 Would you like to practice these 1 facts again? (y/n): ")
-        
+        mock_input.assert_called_once_with(
+            "\n🔄 Would you like to practice these 1 facts again? (y/n): "
+        )
+
         # Verify encouragement message when declined
-        mock_print.assert_any_call("📚 Remember: Regular practice of challenging facts improves long-term retention!")
+        mock_print.assert_any_call(
+            "📚 Remember: Regular practice of challenging facts improves long-term retention!"
+        )
