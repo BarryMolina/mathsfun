@@ -12,13 +12,13 @@ from src.presentation.controllers.addition_tables import (
     AdditionTableGenerator,
     run_addition_table_quiz,
     addition_tables_mode,
-    get_sm2_grade_from_attempt,
     get_facts_needing_remedial_review,
     conduct_remedial_review,
     show_review_results,
     QuizSessionConfig,
     _run_quiz_session,
 )
+from src.domain.models.math_fact_performance import calculate_sm2_grade
 
 
 class TestGetTableRange:
@@ -1420,32 +1420,32 @@ class TestRemedialReviewHelpers:
 
     def test_get_sm2_grade_from_attempt_perfect_recall(self):
         """Test grade calculation for perfect recall (grade 5)."""
-        grade = get_sm2_grade_from_attempt(1500, 0)  # Fast, no errors
+        grade = calculate_sm2_grade(1500, 0)  # Fast, no errors
         assert grade == 5
 
     def test_get_sm2_grade_from_attempt_some_hesitation(self):
         """Test grade calculation for some hesitation (grade 4)."""
-        grade = get_sm2_grade_from_attempt(2500, 0)  # Medium speed, no errors
+        grade = calculate_sm2_grade(2500, 0)  # Medium speed, no errors
         assert grade == 4
 
     def test_get_sm2_grade_from_attempt_significant_effort(self):
         """Test grade calculation for significant effort (grade 3)."""
-        grade = get_sm2_grade_from_attempt(4000, 0)  # Slow, no errors
+        grade = calculate_sm2_grade(4000, 0)  # Slow, no errors
         assert grade == 3
 
     def test_get_sm2_grade_from_attempt_easy_after_error(self):
         """Test grade calculation for easy after error (grade 2)."""
-        grade = get_sm2_grade_from_attempt(2000, 1)  # Fast with 1 error
+        grade = calculate_sm2_grade(2000, 1)  # Fast with 1 error
         assert grade == 2
 
     def test_get_sm2_grade_from_attempt_slow_after_error(self):
         """Test grade calculation for slow after error (grade 1)."""
-        grade = get_sm2_grade_from_attempt(4000, 1)  # Slow with 1 error
+        grade = calculate_sm2_grade(4000, 1)  # Slow with 1 error
         assert grade == 1
 
     def test_get_sm2_grade_from_attempt_blackout(self):
         """Test grade calculation for blackout (grade 0)."""
-        grade = get_sm2_grade_from_attempt(5000, 2)  # 2+ errors
+        grade = calculate_sm2_grade(5000, 2)  # 2+ errors
         assert grade == 0
 
     def test_get_facts_needing_remedial_review_empty_list(self):

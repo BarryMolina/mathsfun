@@ -7,6 +7,7 @@ from typing import List, Tuple, Optional, TYPE_CHECKING
 from ..cli.ui import get_user_input
 from .session import show_results, prompt_start_session
 from .analytics import view_analytics_mode
+from src.domain.models.math_fact_performance import calculate_sm2_grade
 
 if TYPE_CHECKING:
     from src.domain.services.math_fact_service import MathFactService
@@ -601,34 +602,6 @@ def show_review_results(
             print(f"\n⚠️  Could not process SM-2 updates: {e}")
 
 
-def get_sm2_grade_from_attempt(response_time_ms: int, incorrect_attempts: int) -> int:
-    """Calculate SM-2 grade from attempt data using the same logic as MathFactPerformance.
-
-    Args:
-        response_time_ms: Time taken to respond in milliseconds
-        incorrect_attempts: Number of incorrect attempts before getting it right
-
-    Returns:
-        Grade from 0-5 for SM-2 algorithm
-    """
-    if incorrect_attempts >= 2:
-        return 0  # Total blackout
-    elif incorrect_attempts == 1:
-        # Got it wrong once, then correct
-        if response_time_ms < 3000:
-            return 2  # Easy to remember after seeing answer
-        else:
-            return 1  # Familiar but slow after seeing answer
-    else:
-        # Got it right on first try
-        if response_time_ms < 2000:
-            return 5  # Perfect recall
-        elif response_time_ms < 3000:
-            return 4  # Some hesitation
-        else:
-            return 3  # Significant effort
-
-
 def get_facts_needing_remedial_review(
     session_attempts: List[Tuple[int, int, bool, int, int]],
 ) -> List[Tuple[int, int]]:
@@ -651,7 +624,7 @@ def get_facts_needing_remedial_review(
     ) in session_attempts:
         # Only consider facts that were eventually answered correctly
         if is_correct:
-            grade = get_sm2_grade_from_attempt(response_time_ms, incorrect_attempts)
+            grade = calculate_sm2_grade(response_time_ms, incorrect_attempts)
             if grade <= 3:
                 facts_needing_review.append((operand1, operand2))
 
