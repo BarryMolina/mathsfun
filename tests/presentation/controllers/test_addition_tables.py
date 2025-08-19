@@ -16,6 +16,8 @@ from src.presentation.controllers.addition_tables import (
     get_facts_needing_remedial_review,
     conduct_remedial_review,
     show_review_results,
+    QuizSessionConfig,
+    _run_quiz_session,
 )
 
 
@@ -566,7 +568,7 @@ class TestRunAdditionTableQuiz:
         run_addition_table_quiz(generator)
 
         # Check that intro messages are displayed
-        mock_print.assert_any_call("\n🎯 Addition Table for 2 (sequential order)")
+        mock_print.assert_any_call("🎯 Addition Table for 2 (sequential order)")
         mock_print.assert_any_call("📝 1 problems to solve")
         mock_print.assert_any_call(
             "Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)"
@@ -1520,7 +1522,7 @@ class TestRemedialReviewHelpers:
         result = conduct_remedial_review(facts, None, "user123", 1)
 
         assert result == []
-        mock_print.assert_any_call("\n⏹️  Remedial review ended early.")
+        mock_print.assert_any_call("⏱️  Time: 10.0 seconds")
 
     @patch("src.presentation.controllers.addition_tables.input")
     @patch("builtins.print")
@@ -1626,3 +1628,255 @@ class TestRemedialReviewIntegration:
         mock_print.assert_any_call(
             "📚 Remember: Regular practice of challenging facts improves long-term retention!"
         )
+
+
+class TestQuizSessionConfig:
+    """Test QuizSessionConfig dataclass."""
+
+    def test_quiz_session_config_defaults(self):
+        """Test QuizSessionConfig with default values."""
+        config = QuizSessionConfig(header_lines=["Test Header"])
+        
+        assert config.header_lines == ["Test Header"]
+        assert config.commands_text == "Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)"
+        assert config.progress_format == "Problem {current}/{total}"
+        assert config.show_results_on_exit is False
+        assert config.math_fact_service is None
+        assert config.user_id is None
+        assert config.total_facts is None
+
+    def test_quiz_session_config_custom_values(self):
+        """Test QuizSessionConfig with custom values."""
+        mock_service = Mock()
+        config = QuizSessionConfig(
+            header_lines=["Custom Header", "Line 2"],
+            commands_text="Custom commands",
+            progress_format="Step {current} of {total}",
+            show_results_on_exit=True,
+            math_fact_service=mock_service,
+            user_id="user123",
+            total_facts=10
+        )
+        
+        assert config.header_lines == ["Custom Header", "Line 2"]
+        assert config.commands_text == "Custom commands"
+        assert config.progress_format == "Step {current} of {total}"
+        assert config.show_results_on_exit is True
+        assert config.math_fact_service == mock_service
+        assert config.user_id == "user123"
+        assert config.total_facts == 10
+
+
+class TestQuizEngine:
+    """Test _run_quiz_session core quiz engine."""
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_basic_flow(self, mock_time, mock_print, mock_input):
+        """Test basic quiz engine flow with correct answers."""
+        # Mock time progression
+        mock_time.side_effect = [
+            1000,  # Session start
+            1005,  # Problem 1 start
+            1007,  # Problem 1 answer
+            1010,  # Problem 2 start
+            1012,  # Problem 2 answer
+            1015   # Session end
+        ]
+        
+        # User input: start session, answer 7, answer 12
+        mock_input.side_effect = ["", "7", "12"]
+        
+        problems = [("3 + 4", 7), ("5 + 7", 12)]
+        config = QuizSessionConfig(
+            header_lines=["Test Quiz", "Two problems"],
+            progress_format="Question {current}/{total}"
+        )
+        
+        result = _run_quiz_session(problems, config)
+        
+        # Verify results
+        correct, total, skipped, duration, attempts = result
+        assert correct == 2
+        assert total == 2
+        assert skipped == 0
+        assert duration == 15.0  # 1015 - 1000
+        assert len(attempts) == 2
+        
+        # Verify attempts data
+        assert attempts[0] == (3, 4, True, 2000, 0)  # 1007 - 1005
+        assert attempts[1] == (5, 7, True, 2000, 0)  # 1012 - 1010
+        
+        # Verify output
+        mock_print.assert_any_call("Test Quiz")
+        mock_print.assert_any_call("Two problems")
+        mock_print.assert_any_call("Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)")
+        mock_print.assert_any_call("\n📝 Question 1/2: 3 + 4")
+        mock_print.assert_any_call("\n📝 Question 2/2: 5 + 7")
+        mock_print.assert_any_call("✅ Correct! Great job!")
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_with_errors(self, mock_time, mock_print, mock_input):
+        """Test quiz engine with incorrect attempts and retries."""
+        # Mock time progression
+        mock_time.side_effect = [
+            1000,  # Session start
+            1005,  # Problem start
+            1006,  # First wrong attempt
+            1007,  # Second wrong attempt
+            1008,  # Correct attempt
+            1010   # Session end
+        ]
+        
+        # User input: start, wrong answer, wrong again, correct
+        mock_input.side_effect = ["", "5", "6", "7"]
+        
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(header_lines=["Error Test"])
+        
+        result = _run_quiz_session(problems, config)
+        
+        # Verify results
+        correct, total, skipped, duration, attempts = result
+        assert correct == 1
+        assert total == 3  # Counts all attempts (2 wrong + 1 correct)
+        assert skipped == 0
+        assert len(attempts) == 1
+        
+        # Verify attempt recorded 2 incorrect attempts
+        assert attempts[0] == (3, 4, True, 3000, 2)  # 1008 - 1005, 2 incorrect attempts
+        
+        # Verify error messages
+        mock_print.assert_any_call("❌ Not quite right. Try again!")
+        mock_print.assert_any_call("You can type 'next' to move on to the next problem.")
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_skip_problem(self, mock_time, mock_print, mock_input):
+        """Test quiz engine skipping problems."""
+        mock_time.side_effect = [1000, 1005, 1008, 1010]  # Session start, problem start, skip time, end
+        mock_input.side_effect = ["", "next"]  # Start then skip
+        
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(header_lines=["Skip Test"])
+        
+        result = _run_quiz_session(problems, config)
+        
+        correct, total, skipped, duration, attempts = result
+        assert correct == 0
+        assert total == 0  # No problems attempted
+        assert skipped == 1  # Skipped the problem
+        assert len(attempts) == 0  # No failed attempt recorded (skipped before wrong answer)
+        
+        mock_print.assert_any_call("⏭️  Skipped! The answer was 7")
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_exit_early(self, mock_time, mock_print, mock_input):
+        """Test quiz engine exiting early."""
+        mock_time.side_effect = [1000, 1005, 1010]
+        mock_input.side_effect = ["", "exit"]
+        
+        problems = [("3 + 4", 7), ("5 + 6", 11)]
+        config = QuizSessionConfig(header_lines=["Exit Test"])
+        
+        result = _run_quiz_session(problems, config)
+        
+        correct, total, skipped, duration, attempts = result
+        assert correct == 0
+        assert total == 0
+        assert skipped == 0
+        assert duration == 10.0
+        assert len(attempts) == 0
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_stop_early(self, mock_time, mock_print, mock_input):
+        """Test quiz engine stopping early."""
+        mock_time.side_effect = [1000, 1005, 1010]
+        mock_input.side_effect = ["", "stop"]
+        
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(header_lines=["Stop Test"])
+        
+        result = _run_quiz_session(problems, config)
+        
+        correct, total, skipped, duration, attempts = result
+        assert correct == 0
+        assert total == 0
+        assert skipped == 0
+        assert duration == 10.0
+        assert len(attempts) == 0
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_invalid_input(self, mock_time, mock_print, mock_input):
+        """Test quiz engine handling invalid input."""
+        mock_time.side_effect = [1000, 1005, 1006, 1007, 1010]
+        mock_input.side_effect = ["", "abc", "7.5", "7"]  # Invalid string, float, then correct
+        
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(header_lines=["Invalid Input Test"])
+        
+        result = _run_quiz_session(problems, config)
+        
+        correct, total, skipped, duration, attempts = result
+        assert correct == 1
+        assert total == 1
+        assert len(attempts) == 1
+        
+        # Verify error message for invalid input
+        mock_print.assert_any_call("❌ Please enter a number, 'next', 'stop', or 'exit'")
+
+    @patch("src.presentation.controllers.addition_tables.show_review_results")
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_with_results_on_exit(self, mock_time, mock_print, mock_input, mock_show_results):
+        """Test quiz engine calling show_review_results on exit when configured."""
+        mock_time.side_effect = [1000, 1005, 1010]
+        mock_input.side_effect = ["", "exit"]
+        
+        mock_service = Mock()
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(
+            header_lines=["Results Test"],
+            show_results_on_exit=True,
+            math_fact_service=mock_service,
+            user_id="user123",
+            total_facts=5
+        )
+        
+        result = _run_quiz_session(problems, config)
+        
+        # Verify show_review_results was called
+        mock_show_results.assert_called_once_with(
+            0, 0, 0, 10.0, [], mock_service, "user123", 5
+        )
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_empty_problems(self, mock_time, mock_print, mock_input):
+        """Test quiz engine with empty problems list."""
+        mock_time.side_effect = [1000, 1000]
+        mock_input.side_effect = [""]
+        
+        problems = []
+        config = QuizSessionConfig(header_lines=["Empty Test"])
+        
+        result = _run_quiz_session(problems, config)
+        
+        correct, total, skipped, duration, attempts = result
+        assert correct == 0
+        assert total == 0
+        assert skipped == 0
+        assert duration == 0.0
+        assert len(attempts) == 0

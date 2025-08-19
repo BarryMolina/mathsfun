@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import random
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Tuple, Optional, TYPE_CHECKING
 from ..cli.ui import get_user_input
@@ -9,6 +10,21 @@ from .analytics import view_analytics_mode
 
 if TYPE_CHECKING:
     from src.domain.services.math_fact_service import MathFactService
+
+
+@dataclass
+class QuizSessionConfig:
+    """Configuration for quiz session behavior and display."""
+
+    header_lines: List[str]
+    commands_text: str = (
+        "Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)"
+    )
+    progress_format: str = "Problem {current}/{total}"
+    show_results_on_exit: bool = False
+    math_fact_service: Optional["MathFactService"] = None
+    user_id: Optional[str] = None
+    total_facts: Optional[int] = None
 
 
 def get_table_range() -> Tuple[int, int]:
@@ -108,21 +124,22 @@ class AdditionTableGenerator:
         return f"{self.current_index}/{self.total_problems}"
 
 
-def run_addition_table_quiz(
-    generator: AdditionTableGenerator,
-    math_fact_service: Optional["MathFactService"] = None,
-    user_id: Optional[str] = None,
+def _run_quiz_session(
+    problems: List[Tuple[str, int]], config: QuizSessionConfig
 ) -> Tuple[int, int, int, float, List[Tuple[int, int, bool, int, int]]]:
-    """Run the addition table quiz with optional fact tracking"""
-    order_text = "random order" if generator.randomize else "sequential order"
-    range_text = (
-        f"{generator.low} to {generator.high}"
-        if generator.low != generator.high
-        else str(generator.low)
-    )
-    print(f"\n🎯 Addition Table for {range_text} ({order_text})")
-    print(f"📝 {generator.total_problems} problems to solve")
-    print("Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)")
+    """Core quiz engine that handles the common quiz loop logic.
+
+    Args:
+        problems: List of (question_string, correct_answer) tuples
+        config: QuizSessionConfig containing session behavior and display options
+
+    Returns:
+        Tuple of (correct_count, total_attempted, skipped_count, duration, session_attempts)
+    """
+    # Display session header
+    for line in config.header_lines:
+        print(line)
+    print(config.commands_text)
     print("=" * 60)
 
     input("Press Enter when ready to start...")
@@ -131,14 +148,14 @@ def run_addition_table_quiz(
     correct_count = 0
     total_attempted = 0
     skipped_count = 0
-    session_attempts: List[Tuple[int, int, bool, int, int]] = (
-        []
-    )  # Track attempts for SM-2 fact performance
+    session_attempts: List[Tuple[int, int, bool, int, int]] = []
 
-    while generator.has_more_problems():
-        problem, correct_answer = generator.get_next_problem()
-        progress = generator.get_progress_display()
-        print(f"\n📝 Problem {progress}: {problem}")
+    for i, (problem, correct_answer) in enumerate(problems):
+        # Display progress
+        progress_display = config.progress_format.format(
+            current=i + 1, total=len(problems)
+        )
+        print(f"\n📝 {progress_display}: {problem}")
 
         # Parse operands for fact tracking
         operands = problem.split(" + ")
@@ -154,6 +171,21 @@ def run_addition_table_quiz(
             if user_input == "exit":
                 end_time = time.time()
                 duration = end_time - start_time
+                if (
+                    config.show_results_on_exit
+                    and config.math_fact_service
+                    and config.user_id is not None
+                ):
+                    show_review_results(
+                        correct_count,
+                        total_attempted,
+                        skipped_count,
+                        duration,
+                        session_attempts,
+                        config.math_fact_service,
+                        config.user_id,
+                        config.total_facts or len(problems),
+                    )
                 return (
                     correct_count,
                     total_attempted,
@@ -164,6 +196,21 @@ def run_addition_table_quiz(
             elif user_input == "stop":
                 end_time = time.time()
                 duration = end_time - start_time
+                if (
+                    config.show_results_on_exit
+                    and config.math_fact_service
+                    and config.user_id is not None
+                ):
+                    show_review_results(
+                        correct_count,
+                        total_attempted,
+                        skipped_count,
+                        duration,
+                        session_attempts,
+                        config.math_fact_service,
+                        config.user_id,
+                        config.total_facts or len(problems),
+                    )
                 return (
                     correct_count,
                     total_attempted,
@@ -220,9 +267,61 @@ def run_addition_table_quiz(
             except ValueError:
                 print("❌ Please enter a number, 'next', 'stop', or 'exit'")
 
+    # Completed all problems
     end_time = time.time()
     duration = end_time - start_time
-    return correct_count, total_attempted, skipped_count, duration, session_attempts
+
+    if (
+        config.show_results_on_exit
+        and config.math_fact_service
+        and config.user_id is not None
+    ):
+        show_review_results(
+            correct_count,
+            total_attempted,
+            skipped_count,
+            duration,
+            session_attempts,
+            config.math_fact_service,
+            config.user_id,
+            config.total_facts or len(problems),
+        )
+
+    return (correct_count, total_attempted, skipped_count, duration, session_attempts)
+
+
+def run_addition_table_quiz(
+    generator: AdditionTableGenerator,
+    math_fact_service: Optional["MathFactService"] = None,
+    user_id: Optional[str] = None,
+) -> Tuple[int, int, int, float, List[Tuple[int, int, bool, int, int]]]:
+    """Run the addition table quiz with optional fact tracking"""
+    order_text = "random order" if generator.randomize else "sequential order"
+    range_text = (
+        f"{generator.low} to {generator.high}"
+        if generator.low != generator.high
+        else str(generator.low)
+    )
+
+    # Generate all problems for the quiz engine
+    problems = []
+    while generator.has_more_problems():
+        problem_str, correct_answer = generator.get_next_problem()
+        problems.append((problem_str, correct_answer))
+
+    # Create config for the quiz session
+    config = QuizSessionConfig(
+        header_lines=[
+            f"🎯 Addition Table for {range_text} ({order_text})",
+            f"📝 {len(problems)} problems to solve",
+        ],
+        math_fact_service=math_fact_service,
+        user_id=user_id,
+        total_facts=len(problems),
+        progress_format="Problem {current}/{total}",
+    )
+
+    return _run_quiz_session(problems, config)
 
 
 def get_addition_tables_choice(math_fact_service=None, user_id=None) -> int:
@@ -335,126 +434,34 @@ def review_due_facts(container=None, user=None):
 
     # Convert due facts to problems and randomize
     problems = []
-    fact_lookup = {}  # Map problem string to fact key
-
     for fact in facts_due:
         operand1, operand2 = map(int, fact.fact_key.split("+"))
         problem = f"{operand1} + {operand2}"
         answer = operand1 + operand2
         problems.append((problem, answer))
-        fact_lookup[problem] = fact.fact_key
 
     import random
 
     random.shuffle(problems)
 
-    print(f"\n🎯 Reviewing {len(problems)} facts due for practice")
-    print("These facts are scheduled for review based on your learning progress.")
-    print("Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)")
-    print("=" * 60)
+    # Create config for the quiz session
+    config = QuizSessionConfig(
+        header_lines=[
+            f"🎯 Reviewing {len(problems)} facts due for practice",
+            "These facts are scheduled for review based on your learning progress.",
+        ],
+        show_results_on_exit=True,
+        math_fact_service=math_fact_service,
+        user_id=user_id,
+        total_facts=len(problems),
+    )
 
-    input("Press Enter when ready to start...")
+    # Run the quiz using the core engine
+    correct_count, total_attempted, skipped_count, duration, session_attempts = (
+        _run_quiz_session(problems, config)
+    )
 
-    start_time = time.time()
-    correct_count = 0
-    total_attempted = 0
-    skipped_count = 0
-    session_attempts: List[Tuple[int, int, bool, int, int]] = []
-
-    for i, (problem, correct_answer) in enumerate(problems):
-        print(f"\n📝 Problem {i+1}/{len(problems)}: {problem}")
-
-        # Parse operands for fact tracking
-        operands = problem.split(" + ")
-        operand1, operand2 = int(operands[0]), int(operands[1])
-
-        problem_start_time = time.time()
-        problem_answered = False
-        incorrect_attempts_on_problem = 0
-
-        while True:
-            user_input = input("Your answer: ").strip().lower()
-
-            if user_input == "exit":
-                end_time = time.time()
-                duration = end_time - start_time
-                show_review_results(
-                    correct_count,
-                    total_attempted,
-                    skipped_count,
-                    duration,
-                    session_attempts,
-                    math_fact_service,
-                    user_id,
-                    len(problems),
-                )
-                return
-            elif user_input == "stop":
-                end_time = time.time()
-                duration = end_time - start_time
-                show_review_results(
-                    correct_count,
-                    total_attempted,
-                    skipped_count,
-                    duration,
-                    session_attempts,
-                    math_fact_service,
-                    user_id,
-                    len(problems),
-                )
-                return
-            elif user_input == "next":
-                print(f"⏭️  Skipped! The answer was {correct_answer}")
-                skipped_count += 1
-
-                # If they had incorrect attempts before skipping, record the final failed attempt
-                if incorrect_attempts_on_problem > 0:
-                    response_time_ms = int((time.time() - problem_start_time) * 1000)
-                    session_attempts.append(
-                        (
-                            operand1,
-                            operand2,
-                            False,
-                            response_time_ms,
-                            incorrect_attempts_on_problem,
-                        )
-                    )
-                break
-
-            try:
-                user_answer = int(user_input)
-                response_time_ms = int((time.time() - problem_start_time) * 1000)
-                total_attempted += 1
-                is_correct = user_answer == correct_answer
-
-                if is_correct:
-                    print("✅ Correct! Great job!")
-                    correct_count += 1
-                    problem_answered = True
-
-                    # Track the final correct attempt with count of previous incorrect attempts
-                    session_attempts.append(
-                        (
-                            operand1,
-                            operand2,
-                            True,
-                            response_time_ms,
-                            incorrect_attempts_on_problem,
-                        )
-                    )
-
-                    break
-                else:
-                    print(f"❌ Not quite right. Try again!")
-                    print("You can type 'next' to move on to the next problem.")
-                    incorrect_attempts_on_problem += 1
-
-            except ValueError:
-                print("❌ Please enter a number, 'next', 'stop', or 'exit'")
-
-    # Completed all problems
-    end_time = time.time()
-    duration = end_time - start_time
+    # Show enhanced results with remedial review handling
     show_review_results(
         correct_count,
         total_attempted,
@@ -680,96 +687,25 @@ def conduct_remedial_review(
 
     random.shuffle(problems)
 
-    print(f"\n🔄 Remedial Review Session #{session_number}")
-    print(f"🎯 Reviewing {len(problems)} facts that need more practice")
-    print("Focus on these facts - you previously scored grades ≤ 3 on them.")
-    print("Commands: 'next' (skip), 'stop' (end session), 'exit' (quit app)")
-    print("=" * 60)
+    # Create config for the remedial review session
+    config = QuizSessionConfig(
+        header_lines=[
+            f"🔄 Remedial Review Session #{session_number}",
+            f"🎯 Reviewing {len(problems)} facts that need more practice",
+            "Focus on these facts - you previously scored grades ≤ 3 on them.",
+        ],
+        commands_text="Commands: 'next' (skip), 'stop' (end session), 'exit' (quit app)",
+        math_fact_service=math_fact_service,
+        user_id=user_id,
+        total_facts=len(problems),
+    )
 
-    input("Press Enter when ready to start...")
-
-    start_time = time.time()
-    correct_count = 0
-    total_attempted = 0
-    skipped_count = 0
-    session_attempts: List[Tuple[int, int, bool, int, int]] = []
-
-    for i, (problem, correct_answer) in enumerate(problems):
-        print(f"\n📝 Problem {i+1}/{len(problems)}: {problem}")
-
-        # Parse operands for fact tracking
-        operands = problem.split(" + ")
-        operand1, operand2 = int(operands[0]), int(operands[1])
-
-        problem_start_time = time.time()
-        problem_answered = False
-        incorrect_attempts_on_problem = 0
-
-        while True:
-            user_input = input("Your answer: ").strip().lower()
-
-            if user_input == "exit":
-                end_time = time.time()
-                duration = end_time - start_time
-                print(f"\n⏹️  Remedial review ended early.")
-                return session_attempts
-            elif user_input == "stop":
-                end_time = time.time()
-                duration = end_time - start_time
-                print(f"\n⏸️  Remedial review session stopped.")
-                return session_attempts
-            elif user_input == "next":
-                print(f"⏭️  Skipped! The answer was {correct_answer}")
-                skipped_count += 1
-
-                # If they had incorrect attempts before skipping, record the final failed attempt
-                if incorrect_attempts_on_problem > 0:
-                    response_time_ms = int((time.time() - problem_start_time) * 1000)
-                    session_attempts.append(
-                        (
-                            operand1,
-                            operand2,
-                            False,
-                            response_time_ms,
-                            incorrect_attempts_on_problem,
-                        )
-                    )
-                break
-
-            try:
-                user_answer = int(user_input)
-                response_time_ms = int((time.time() - problem_start_time) * 1000)
-                total_attempted += 1
-                is_correct = user_answer == correct_answer
-
-                if is_correct:
-                    print("✅ Correct! Great job!")
-                    correct_count += 1
-                    problem_answered = True
-
-                    # Track the final correct attempt with count of previous incorrect attempts
-                    session_attempts.append(
-                        (
-                            operand1,
-                            operand2,
-                            True,
-                            response_time_ms,
-                            incorrect_attempts_on_problem,
-                        )
-                    )
-
-                    break
-                else:
-                    print(f"❌ Not quite right. Try again!")
-                    print("You can type 'next' to move on to the next problem.")
-                    incorrect_attempts_on_problem += 1
-
-            except ValueError:
-                print("❌ Please enter a number, 'next', 'stop', or 'exit'")
+    # Run the quiz using the core engine
+    correct_count, total_attempted, skipped_count, duration, session_attempts = (
+        _run_quiz_session(problems, config)
+    )
 
     # Show quick summary
-    end_time = time.time()
-    duration = end_time - start_time
     print(f"\n📊 Remedial Session #{session_number} Complete!")
     if total_attempted > 0:
         accuracy = (correct_count / total_attempted) * 100
