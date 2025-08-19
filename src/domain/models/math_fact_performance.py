@@ -6,6 +6,43 @@ from decimal import Decimal
 from typing import Optional
 
 
+def calculate_sm2_grade(response_time_ms: int, incorrect_attempts: int) -> int:
+    """Calculate SM-2 grade (0-5) from response metrics.
+
+    This is the shared implementation of SM-2 grade calculation used throughout
+    the application for consistent grading logic.
+
+    Args:
+        response_time_ms: Time taken to respond in milliseconds
+        incorrect_attempts: Number of incorrect attempts before getting it right
+
+    Returns:
+        Grade from 0-5 for SM-2 algorithm:
+        - 0: Total blackout (2+ incorrect attempts)
+        - 1: Familiar but slow after seeing answer
+        - 2: Easy to remember after seeing answer
+        - 3: Significant effort but got it right first try
+        - 4: Some hesitation but got it right first try
+        - 5: Perfect recall
+    """
+    if incorrect_attempts >= 2:
+        return 0  # Total blackout
+    elif incorrect_attempts == 1:
+        # Got it wrong once, then correct
+        if response_time_ms < 3000:
+            return 2  # Easy to remember after seeing answer
+        else:
+            return 1  # Familiar but slow after seeing answer
+    else:
+        # Got it right on first try
+        if response_time_ms < 2000:
+            return 5  # Perfect recall
+        elif response_time_ms < 3000:
+            return 4  # Some hesitation
+        else:
+            return 3  # Significant effort
+
+
 @dataclass
 class MathFactPerformance:
     """Represents performance tracking for a specific math fact using SM-2 spaced repetition algorithm.
@@ -120,30 +157,9 @@ class MathFactPerformance:
             incorrect_attempts: Number of incorrect attempts before getting it right
 
         Returns:
-            Grade from 0-5 for SM-2 algorithm:
-            - 0: Total blackout (2+ incorrect attempts)
-            - 1: Familiar but slow after seeing answer
-            - 2: Easy to remember after seeing answer
-            - 3: Significant effort but got it right first try
-            - 4: Some hesitation but got it right first try
-            - 5: Perfect recall
+            Grade from 0-5 for SM-2 algorithm
         """
-        if incorrect_attempts >= 2:
-            return 0  # Total blackout
-        elif incorrect_attempts == 1:
-            # Got it wrong once, then correct
-            if response_time_ms < 3000:
-                return 2  # Easy to remember after seeing answer
-            else:
-                return 1  # Familiar but slow after seeing answer
-        else:
-            # Got it right on first try
-            if response_time_ms < 2000:
-                return 5  # Perfect recall
-            elif response_time_ms < 3000:
-                return 4  # Some hesitation
-            else:
-                return 3  # Significant effort
+        return calculate_sm2_grade(response_time_ms, incorrect_attempts)
 
     def apply_sm2_algorithm(self, grade: int) -> None:
         """Apply SM-2 spaced repetition algorithm to update interval and ease factor.

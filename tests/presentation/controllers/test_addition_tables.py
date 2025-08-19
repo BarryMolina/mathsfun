@@ -12,7 +12,13 @@ from src.presentation.controllers.addition_tables import (
     AdditionTableGenerator,
     run_addition_table_quiz,
     addition_tables_mode,
+    get_facts_needing_remedial_review,
+    conduct_remedial_review,
+    show_review_results,
+    QuizSessionConfig,
+    _run_quiz_session,
 )
+from src.domain.models.math_fact_performance import calculate_sm2_grade
 
 
 class TestGetTableRange:
@@ -562,7 +568,7 @@ class TestRunAdditionTableQuiz:
         run_addition_table_quiz(generator)
 
         # Check that intro messages are displayed
-        mock_print.assert_any_call("\n🎯 Addition Table for 2 (sequential order)")
+        mock_print.assert_any_call("🎯 Addition Table for 2 (sequential order)")
         mock_print.assert_any_call("📝 1 problems to solve")
         mock_print.assert_any_call(
             "Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)"
@@ -1407,3 +1413,493 @@ class TestAdditionTablesModeEdgeCases:
             mock_print.assert_any_call(
                 "• Adaptive review scheduling based on your performance"
             )
+
+
+class TestRemedialReviewHelpers:
+    """Test helper functions for remedial review feature."""
+
+    def test_get_sm2_grade_from_attempt_perfect_recall(self):
+        """Test grade calculation for perfect recall (grade 5)."""
+        grade = calculate_sm2_grade(1500, 0)  # Fast, no errors
+        assert grade == 5
+
+    def test_get_sm2_grade_from_attempt_some_hesitation(self):
+        """Test grade calculation for some hesitation (grade 4)."""
+        grade = calculate_sm2_grade(2500, 0)  # Medium speed, no errors
+        assert grade == 4
+
+    def test_get_sm2_grade_from_attempt_significant_effort(self):
+        """Test grade calculation for significant effort (grade 3)."""
+        grade = calculate_sm2_grade(4000, 0)  # Slow, no errors
+        assert grade == 3
+
+    def test_get_sm2_grade_from_attempt_easy_after_error(self):
+        """Test grade calculation for easy after error (grade 2)."""
+        grade = calculate_sm2_grade(2000, 1)  # Fast with 1 error
+        assert grade == 2
+
+    def test_get_sm2_grade_from_attempt_slow_after_error(self):
+        """Test grade calculation for slow after error (grade 1)."""
+        grade = calculate_sm2_grade(4000, 1)  # Slow with 1 error
+        assert grade == 1
+
+    def test_get_sm2_grade_from_attempt_blackout(self):
+        """Test grade calculation for blackout (grade 0)."""
+        grade = calculate_sm2_grade(5000, 2)  # 2+ errors
+        assert grade == 0
+
+    def test_get_facts_needing_remedial_review_empty_list(self):
+        """Test with empty session attempts list."""
+        facts = get_facts_needing_remedial_review([])
+        assert facts == []
+
+    def test_get_facts_needing_remedial_review_no_poor_facts(self):
+        """Test with no facts needing remedial review."""
+        session_attempts = [
+            (5, 6, True, 1500, 0),  # Grade 5 - perfect
+            (7, 8, True, 2500, 0),  # Grade 4 - good
+        ]
+        facts = get_facts_needing_remedial_review(session_attempts)
+        assert facts == []
+
+    def test_get_facts_needing_remedial_review_with_poor_facts(self):
+        """Test with facts needing remedial review."""
+        session_attempts = [
+            (5, 6, True, 1500, 0),  # Grade 5 - perfect, no remedial needed
+            (7, 8, True, 4000, 0),  # Grade 3 - needs remedial review
+            (3, 4, True, 2000, 1),  # Grade 2 - needs remedial review
+            (9, 2, True, 5000, 2),  # Grade 0 - needs remedial review
+        ]
+        facts = get_facts_needing_remedial_review(session_attempts)
+        # Should only include facts with grades <= 3
+        expected = [(7, 8), (3, 4), (9, 2)]
+        assert facts == expected
+
+    def test_get_facts_needing_remedial_review_only_correct_attempts(self):
+        """Test that only correct attempts are considered for remedial review."""
+        session_attempts = [
+            (5, 6, True, 4000, 0),  # Grade 3 - correct, needs remedial
+            (7, 8, False, 4000, 2),  # Incorrect attempt - should be ignored
+        ]
+        facts = get_facts_needing_remedial_review(session_attempts)
+        assert facts == [(5, 6)]  # Only the correct attempt
+
+    def test_get_facts_needing_remedial_review_duplicates(self):
+        """Test that duplicate facts are included if both need remedial review."""
+        session_attempts = [
+            (5, 6, True, 4000, 0),  # Grade 3 - needs remedial
+            (5, 6, True, 5000, 1),  # Grade 1 - also needs remedial (same fact)
+        ]
+        facts = get_facts_needing_remedial_review(session_attempts)
+        # Both instances should be included
+        assert facts == [(5, 6), (5, 6)]
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.random.shuffle")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_conduct_remedial_review_empty_facts(
+        self, mock_time, mock_shuffle, mock_print, mock_input
+    ):
+        """Test conduct_remedial_review with empty facts list."""
+        result = conduct_remedial_review([], None, "user123", 1)
+        assert result == []
+        # Should not call shuffle, print, or input if no facts
+        mock_shuffle.assert_not_called()
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.random.shuffle")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_conduct_remedial_review_user_exits_early(
+        self, mock_time, mock_shuffle, mock_print, mock_input
+    ):
+        """Test conduct_remedial_review when user exits early."""
+        mock_time.side_effect = [1000, 1005, 1010]  # Start, problem start, exit time
+        mock_input.side_effect = ["", "exit"]  # Press enter to start, then exit
+
+        facts = [(3, 4), (5, 6)]
+        result = conduct_remedial_review(facts, None, "user123", 1)
+
+        assert result == []
+        mock_print.assert_any_call("⏱️  Time: 10.0 seconds")
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.random.shuffle")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_conduct_remedial_review_correct_answer(
+        self, mock_time, mock_shuffle, mock_print, mock_input
+    ):
+        """Test conduct_remedial_review with correct answer."""
+        # Mock time progression
+        mock_time.side_effect = [
+            1000,  # Session start
+            1005,  # Problem start
+            1007,  # Answer time
+            1010,  # Session end
+        ]
+
+        # User presses enter to start, then answers 7 correctly
+        mock_input.side_effect = ["", "7"]
+
+        facts = [(3, 4)]  # 3 + 4 = 7
+        result = conduct_remedial_review(facts, None, "user123", 1)
+
+        # Should record the correct attempt
+        expected = [(3, 4, True, 2000, 0)]  # 2000ms response time, 0 incorrect attempts
+        assert result == expected
+
+        # Should show success messages
+        mock_print.assert_any_call("✅ Correct! Great job!")
+        mock_print.assert_any_call("\n📊 Remedial Session #1 Complete!")
+
+
+class TestRemedialReviewIntegration:
+    """Integration tests for the complete remedial review flow."""
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    def test_show_review_results_no_remedial_needed(self, mock_print, mock_input):
+        """Test show_review_results when no facts need remedial review."""
+        # Create mock math fact service
+        mock_math_fact_service = Mock()
+        mock_math_fact_service.analyze_session_performance.return_value = {
+            "facts_due_for_review": 0,
+            "session_accuracy": 1.0,
+        }
+
+        # Session attempts with all high grades
+        session_attempts = [
+            (5, 6, True, 1500, 0),  # Grade 5 - perfect
+            (7, 8, True, 2500, 0),  # Grade 4 - good
+        ]
+
+        # Call the function
+        show_review_results(
+            2, 2, 0, 15.0, session_attempts, mock_math_fact_service, "user123", 2
+        )
+
+        # Verify main session was uploaded
+        mock_math_fact_service.analyze_session_performance.assert_called_once()
+
+        # Verify success message for high performance
+        mock_print.assert_any_call(
+            "\n🌟 Great job! All your facts received grades ≥ 4!"
+        )
+
+        # Should not prompt for remedial review
+        mock_input.assert_not_called()
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    def test_show_review_results_user_declines_remedial(self, mock_print, mock_input):
+        """Test show_review_results when user declines remedial review."""
+        # Mock user declining remedial review
+        mock_input.return_value = "n"
+
+        # Create mock math fact service
+        mock_math_fact_service = Mock()
+        mock_math_fact_service.analyze_session_performance.return_value = {
+            "facts_due_for_review": 3,
+            "session_accuracy": 0.6,
+        }
+
+        # Session attempts with facts needing remedial review
+        session_attempts = [
+            (7, 4, True, 4000, 0),  # Grade 3 - needs remedial review
+        ]
+
+        # Call the function
+        show_review_results(
+            1, 1, 0, 10.0, session_attempts, mock_math_fact_service, "user123", 1
+        )
+
+        # Verify main session was uploaded
+        mock_math_fact_service.analyze_session_performance.assert_called_once()
+
+        # Verify remedial review was offered
+        mock_print.assert_any_call("\n⚠️  SuperMemo Alert: 1 facts received grades ≤ 3")
+        mock_input.assert_called_once_with(
+            "\n🔄 Would you like to practice these 1 facts again? (y/n): "
+        )
+
+        # Verify encouragement message when declined
+        mock_print.assert_any_call(
+            "📚 Remember: Regular practice of challenging facts improves long-term retention!"
+        )
+
+
+class TestQuizSessionConfig:
+    """Test QuizSessionConfig dataclass."""
+
+    def test_quiz_session_config_defaults(self):
+        """Test QuizSessionConfig with default values."""
+        config = QuizSessionConfig(header_lines=["Test Header"])
+
+        assert config.header_lines == ["Test Header"]
+        assert (
+            config.commands_text
+            == "Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)"
+        )
+        assert config.progress_format == "Problem {current}/{total}"
+        assert config.show_results_on_exit is False
+        assert config.math_fact_service is None
+        assert config.user_id is None
+        assert config.total_facts is None
+
+    def test_quiz_session_config_custom_values(self):
+        """Test QuizSessionConfig with custom values."""
+        mock_service = Mock()
+        config = QuizSessionConfig(
+            header_lines=["Custom Header", "Line 2"],
+            commands_text="Custom commands",
+            progress_format="Step {current} of {total}",
+            show_results_on_exit=True,
+            math_fact_service=mock_service,
+            user_id="user123",
+            total_facts=10,
+        )
+
+        assert config.header_lines == ["Custom Header", "Line 2"]
+        assert config.commands_text == "Custom commands"
+        assert config.progress_format == "Step {current} of {total}"
+        assert config.show_results_on_exit is True
+        assert config.math_fact_service == mock_service
+        assert config.user_id == "user123"
+        assert config.total_facts == 10
+
+
+class TestQuizEngine:
+    """Test _run_quiz_session core quiz engine."""
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_basic_flow(self, mock_time, mock_print, mock_input):
+        """Test basic quiz engine flow with correct answers."""
+        # Mock time progression
+        mock_time.side_effect = [
+            1000,  # Session start
+            1005,  # Problem 1 start
+            1007,  # Problem 1 answer
+            1010,  # Problem 2 start
+            1012,  # Problem 2 answer
+            1015,  # Session end
+        ]
+
+        # User input: start session, answer 7, answer 12
+        mock_input.side_effect = ["", "7", "12"]
+
+        problems = [("3 + 4", 7), ("5 + 7", 12)]
+        config = QuizSessionConfig(
+            header_lines=["Test Quiz", "Two problems"],
+            progress_format="Question {current}/{total}",
+        )
+
+        result = _run_quiz_session(problems, config)
+
+        # Verify results
+        correct, total, skipped, duration, attempts = result
+        assert correct == 2
+        assert total == 2
+        assert skipped == 0
+        assert duration == 15.0  # 1015 - 1000
+        assert len(attempts) == 2
+
+        # Verify attempts data
+        assert attempts[0] == (3, 4, True, 2000, 0)  # 1007 - 1005
+        assert attempts[1] == (5, 7, True, 2000, 0)  # 1012 - 1010
+
+        # Verify output
+        mock_print.assert_any_call("Test Quiz")
+        mock_print.assert_any_call("Two problems")
+        mock_print.assert_any_call(
+            "Commands: 'next' (skip), 'stop' (return to menu), 'exit' (quit app)"
+        )
+        mock_print.assert_any_call("\n📝 Question 1/2: 3 + 4")
+        mock_print.assert_any_call("\n📝 Question 2/2: 5 + 7")
+        mock_print.assert_any_call("✅ Correct! Great job!")
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_with_errors(self, mock_time, mock_print, mock_input):
+        """Test quiz engine with incorrect attempts and retries."""
+        # Mock time progression
+        mock_time.side_effect = [
+            1000,  # Session start
+            1005,  # Problem start
+            1006,  # First wrong attempt
+            1007,  # Second wrong attempt
+            1008,  # Correct attempt
+            1010,  # Session end
+        ]
+
+        # User input: start, wrong answer, wrong again, correct
+        mock_input.side_effect = ["", "5", "6", "7"]
+
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(header_lines=["Error Test"])
+
+        result = _run_quiz_session(problems, config)
+
+        # Verify results
+        correct, total, skipped, duration, attempts = result
+        assert correct == 1
+        assert total == 3  # Counts all attempts (2 wrong + 1 correct)
+        assert skipped == 0
+        assert len(attempts) == 1
+
+        # Verify attempt recorded 2 incorrect attempts
+        assert attempts[0] == (3, 4, True, 3000, 2)  # 1008 - 1005, 2 incorrect attempts
+
+        # Verify error messages
+        mock_print.assert_any_call("❌ Not quite right. Try again!")
+        mock_print.assert_any_call(
+            "You can type 'next' to move on to the next problem."
+        )
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_skip_problem(self, mock_time, mock_print, mock_input):
+        """Test quiz engine skipping problems."""
+        mock_time.side_effect = [
+            1000,
+            1005,
+            1008,
+            1010,
+        ]  # Session start, problem start, skip time, end
+        mock_input.side_effect = ["", "next"]  # Start then skip
+
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(header_lines=["Skip Test"])
+
+        result = _run_quiz_session(problems, config)
+
+        correct, total, skipped, duration, attempts = result
+        assert correct == 0
+        assert total == 0  # No problems attempted
+        assert skipped == 1  # Skipped the problem
+        assert (
+            len(attempts) == 0
+        )  # No failed attempt recorded (skipped before wrong answer)
+
+        mock_print.assert_any_call("⏭️  Skipped! The answer was 7")
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_exit_early(self, mock_time, mock_print, mock_input):
+        """Test quiz engine exiting early."""
+        mock_time.side_effect = [1000, 1005, 1010]
+        mock_input.side_effect = ["", "exit"]
+
+        problems = [("3 + 4", 7), ("5 + 6", 11)]
+        config = QuizSessionConfig(header_lines=["Exit Test"])
+
+        result = _run_quiz_session(problems, config)
+
+        correct, total, skipped, duration, attempts = result
+        assert correct == 0
+        assert total == 0
+        assert skipped == 0
+        assert duration == 10.0
+        assert len(attempts) == 0
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_stop_early(self, mock_time, mock_print, mock_input):
+        """Test quiz engine stopping early."""
+        mock_time.side_effect = [1000, 1005, 1010]
+        mock_input.side_effect = ["", "stop"]
+
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(header_lines=["Stop Test"])
+
+        result = _run_quiz_session(problems, config)
+
+        correct, total, skipped, duration, attempts = result
+        assert correct == 0
+        assert total == 0
+        assert skipped == 0
+        assert duration == 10.0
+        assert len(attempts) == 0
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_invalid_input(self, mock_time, mock_print, mock_input):
+        """Test quiz engine handling invalid input."""
+        mock_time.side_effect = [1000, 1005, 1006, 1007, 1010]
+        mock_input.side_effect = [
+            "",
+            "abc",
+            "7.5",
+            "7",
+        ]  # Invalid string, float, then correct
+
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(header_lines=["Invalid Input Test"])
+
+        result = _run_quiz_session(problems, config)
+
+        correct, total, skipped, duration, attempts = result
+        assert correct == 1
+        assert total == 1
+        assert len(attempts) == 1
+
+        # Verify error message for invalid input
+        mock_print.assert_any_call(
+            "❌ Please enter a number, 'next', 'stop', or 'exit'"
+        )
+
+    @patch("src.presentation.controllers.addition_tables.show_review_results")
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_with_results_on_exit(
+        self, mock_time, mock_print, mock_input, mock_show_results
+    ):
+        """Test quiz engine calling show_review_results on exit when configured."""
+        mock_time.side_effect = [1000, 1005, 1010]
+        mock_input.side_effect = ["", "exit"]
+
+        mock_service = Mock()
+        problems = [("3 + 4", 7)]
+        config = QuizSessionConfig(
+            header_lines=["Results Test"],
+            show_results_on_exit=True,
+            math_fact_service=mock_service,
+            user_id="user123",
+            total_facts=5,
+        )
+
+        result = _run_quiz_session(problems, config)
+
+        # Verify show_review_results was called
+        mock_show_results.assert_called_once_with(
+            0, 0, 0, 10.0, [], mock_service, "user123", 5
+        )
+
+    @patch("src.presentation.controllers.addition_tables.input")
+    @patch("builtins.print")
+    @patch("src.presentation.controllers.addition_tables.time.time")
+    def test_quiz_engine_empty_problems(self, mock_time, mock_print, mock_input):
+        """Test quiz engine with empty problems list."""
+        mock_time.side_effect = [1000, 1000]
+        mock_input.side_effect = [""]
+
+        problems = []
+        config = QuizSessionConfig(header_lines=["Empty Test"])
+
+        result = _run_quiz_session(problems, config)
+
+        correct, total, skipped, duration, attempts = result
+        assert correct == 0
+        assert total == 0
+        assert skipped == 0
+        assert duration == 0.0
+        assert len(attempts) == 0
