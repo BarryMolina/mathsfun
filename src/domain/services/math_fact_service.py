@@ -116,14 +116,18 @@ class MathFactService:
     def get_facts_due_for_review(
         self, user_id: str, limit: Optional[int] = None
     ) -> List[MathFactPerformance]:
-        """Get facts that are due for review based on SM-2 scheduling.
+        """Get facts that are due for review based on SM-2 scheduling or remedial criteria.
+
+        This includes both:
+        1. Facts due based on SM-2 schedule (next_review_date <= now)
+        2. Facts needing remedial review (last_sm2_grade <= 3)
 
         Args:
             user_id: ID of the user
             limit: Maximum number of facts to return (None for all)
 
         Returns:
-            List of facts due for review, ordered by next_review_date
+            List of facts due for review, ordered by next_review_date, then by last_sm2_grade
         """
         result = self.fact_repository.get_facts_due_for_review(user_id, limit)
         return result if result is not None else []
