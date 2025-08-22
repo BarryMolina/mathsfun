@@ -332,11 +332,13 @@ def get_addition_tables_choice(math_fact_service=None, user_id=None) -> int:
 
     # Show review option if user is signed in
     if math_fact_service and user_id:
-        # Get count of facts due for review
+        # Get count of facts due for review (includes scheduled and remedial)
         facts_due = math_fact_service.get_facts_due_for_review(user_id, limit=100)
         due_count = len(facts_due)
         if due_count > 0:
-            print(f"2. Review Due Facts ({due_count} facts ready)")
+            print(
+                f"2. Review Due Facts ({due_count} facts ready - scheduled & remedial)"
+            )
         else:
             print("2. Review Due Facts (none due)")
     else:
@@ -449,7 +451,7 @@ def review_due_facts(container=None, user=None):
     config = QuizSessionConfig(
         header_lines=[
             f"🎯 Reviewing {len(problems)} facts due for practice",
-            "These facts are scheduled for review based on your learning progress.",
+            "These include scheduled reviews and facts needing remedial practice.",
         ],
         show_results_on_exit=True,
         math_fact_service=math_fact_service,

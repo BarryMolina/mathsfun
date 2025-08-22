@@ -67,14 +67,18 @@ class MathFactRepository(BaseRepository):
     def get_facts_due_for_review(
         self, user_id: str, limit: Optional[int] = None
     ) -> List[MathFactPerformance]:
-        """Get facts that are due for review based on SM-2 scheduling.
+        """Get facts that are due for review based on SM-2 scheduling or remedial criteria.
+
+        This includes both:
+        1. Facts due based on SM-2 schedule (next_review_date <= now)
+        2. Facts needing remedial review (last_sm2_grade <= 3)
 
         Args:
             user_id: ID of the user
             limit: Maximum number of facts to return
 
         Returns:
-            List of facts due for review, ordered by next_review_date
+            List of facts due for review, ordered by next_review_date, then by last_sm2_grade (ascending)
         """
         try:
             query = (
@@ -82,8 +86,11 @@ class MathFactRepository(BaseRepository):
                 .table("math_fact_performances")
                 .select("*")
                 .eq("user_id", user_id)
-                .lte("next_review_date", datetime.now(timezone.utc).isoformat())
-                .order("next_review_date", desc=False)
+                .or_(
+                    f"next_review_date.lte.{datetime.now(timezone.utc).isoformat()},last_sm2_grade.lte.3"
+                )
+                .order("next_review_date", desc=False, nullsfirst=False)
+                .order("last_sm2_grade", desc=False, nullsfirst=False)
             )
 
             if limit:

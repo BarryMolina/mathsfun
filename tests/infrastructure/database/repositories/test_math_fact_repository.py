@@ -168,7 +168,7 @@ class TestMathFactRepository:
         mock_table = Mock()
         mock_table.select.return_value = mock_table
         mock_table.eq.return_value = mock_table
-        mock_table.lte.return_value = mock_table
+        mock_table.or_.return_value = mock_table
         mock_table.order.return_value = mock_table
         mock_table.limit.return_value = mock_table
         mock_table.execute.return_value = mock_response
@@ -179,8 +179,73 @@ class TestMathFactRepository:
 
         assert len(result) == 1
         assert result[0].fact_key == "7+8"
-        # Verify the query used lte (less than or equal) with current time
-        mock_table.lte.assert_called_once()
+        # Verify the query used or_ to combine criteria
+        mock_table.or_.assert_called_once()
+
+    def test_get_facts_due_for_review_includes_remedial(
+        self, repository, mock_supabase_manager
+    ):
+        """Test that facts due for review includes both scheduled and remedial facts."""
+        # Mock response data for facts due (scheduled) and remedial (grade <= 3)
+        yesterday = datetime.now() - timedelta(days=1)
+        tomorrow = datetime.now() + timedelta(days=1)
+        mock_data = [
+            {
+                "id": "mock-uuid-scheduled",
+                "user_id": "user123",
+                "fact_key": "7+8",  # Scheduled fact (due yesterday)
+                "total_attempts": 5,
+                "correct_attempts": 4,
+                "average_response_time_ms": 2500,
+                "repetition_number": 2,
+                "easiness_factor": "2.60",
+                "interval_days": 6,
+                "next_review_date": yesterday.isoformat(),
+                "last_sm2_grade": 4,  # Good grade but due by date
+                "last_attempted": yesterday.isoformat(),
+                "created_at": yesterday.isoformat(),
+                "updated_at": yesterday.isoformat(),
+            },
+            {
+                "id": "mock-uuid-remedial",
+                "user_id": "user123",
+                "fact_key": "3+4",  # Remedial fact (not due by date but grade <= 3)
+                "total_attempts": 3,
+                "correct_attempts": 2,
+                "average_response_time_ms": 4500,
+                "repetition_number": 0,
+                "easiness_factor": "2.30",
+                "interval_days": 1,
+                "next_review_date": tomorrow.isoformat(),  # Not due yet
+                "last_sm2_grade": 3,  # Poor grade requiring remedial practice
+                "last_attempted": yesterday.isoformat(),
+                "created_at": yesterday.isoformat(),
+                "updated_at": yesterday.isoformat(),
+            },
+        ]
+
+        # Mock Supabase response
+        mock_response = Mock()
+        mock_response.data = mock_data
+
+        mock_table = Mock()
+        mock_table.select.return_value = mock_table
+        mock_table.eq.return_value = mock_table
+        mock_table.or_.return_value = mock_table
+        mock_table.order.return_value = mock_table
+        mock_table.limit.return_value = mock_table
+        mock_table.execute.return_value = mock_response
+
+        mock_supabase_manager.get_client.return_value.table.return_value = mock_table
+
+        result = repository.get_facts_due_for_review("user123", limit=10)
+
+        assert len(result) == 2
+        fact_keys = {fact.fact_key for fact in result}
+        assert "7+8" in fact_keys  # Scheduled fact
+        assert "3+4" in fact_keys  # Remedial fact
+        # Verify the query used or_ to combine both criteria
+        mock_table.or_.assert_called_once()
 
     def test_get_weak_facts(self, repository, mock_supabase_manager):
         """Test getting weak facts (low ease factor)."""
