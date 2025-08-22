@@ -89,8 +89,8 @@ class MathFactRepository(BaseRepository):
                 .or_(
                     f"next_review_date.lte.{datetime.now(timezone.utc).isoformat()},last_sm2_grade.lte.3"
                 )
-                .order("next_review_date", desc=False, nulls_first=False)
-                .order("last_sm2_grade", desc=False, nulls_first=False)
+                .order("next_review_date", desc=False, nullsfirst=False)
+                .order("last_sm2_grade", desc=False, nullsfirst=False)
             )
 
             if limit:
