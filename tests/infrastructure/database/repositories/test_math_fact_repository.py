@@ -182,7 +182,9 @@ class TestMathFactRepository:
         # Verify the query used or_ to combine criteria
         mock_table.or_.assert_called_once()
 
-    def test_get_facts_due_for_review_includes_remedial(self, repository, mock_supabase_manager):
+    def test_get_facts_due_for_review_includes_remedial(
+        self, repository, mock_supabase_manager
+    ):
         """Test that facts due for review includes both scheduled and remedial facts."""
         # Mock response data for facts due (scheduled) and remedial (grade <= 3)
         yesterday = datetime.now() - timedelta(days=1)
@@ -219,7 +221,7 @@ class TestMathFactRepository:
                 "last_attempted": yesterday.isoformat(),
                 "created_at": yesterday.isoformat(),
                 "updated_at": yesterday.isoformat(),
-            }
+            },
         ]
 
         # Mock Supabase response
