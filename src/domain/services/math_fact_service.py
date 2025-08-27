@@ -20,7 +20,32 @@ class MathFactService:
         """
         self.fact_repository = fact_repository
 
-    def create_fact_key(self, operand1: int, operand2: int) -> str:
+    def calculate_operation_result(
+        self, operand1: int, operand2: int, operation: str
+    ) -> int:
+        """Calculate the result of a mathematical operation.
+
+        Args:
+            operand1: First operand
+            operand2: Second operand
+            operation: Mathematical operation symbol
+
+        Returns:
+            Result of the operation
+
+        Raises:
+            ValueError: If operation is not supported
+        """
+        if operation == "+":
+            return operand1 + operand2
+        elif operation == "-":
+            return operand1 - operand2
+        else:
+            raise ValueError(f"Unsupported operation: {operation}")
+
+    def create_fact_key(
+        self, operand1: int, operand2: int, operation: str = "+"
+    ) -> str:
         """Create fact key preserving operand order.
 
         Records facts exactly as presented without normalization.
@@ -29,11 +54,12 @@ class MathFactService:
         Args:
             operand1: First operand
             operand2: Second operand
+            operation: Mathematical operation symbol (default: "+")
 
         Returns:
             Fact key string preserving operand order
         """
-        return f"{operand1}+{operand2}"
+        return f"{operand1}{operation}{operand2}"
 
     def track_attempt(
         self,
@@ -46,6 +72,7 @@ class MathFactService:
         response_time_ms: int,
         incorrect_attempts_in_session: int = 0,
         timestamp: Optional[datetime] = None,
+        operation: str = "+",
     ) -> Optional[MathFactPerformance]:
         """Track a math fact attempt and update SM-2 data.
 
@@ -59,11 +86,12 @@ class MathFactService:
             response_time_ms: Response time in milliseconds
             incorrect_attempts_in_session: Number of incorrect attempts before this one
             timestamp: When the attempt was made (defaults to now)
+            operation: Mathematical operation symbol (default: "+")
 
         Returns:
             Updated MathFactPerformance instance or None if failed
         """
-        fact_key = self.create_fact_key(operand1, operand2)
+        fact_key = self.create_fact_key(operand1, operand2, operation)
         attempt_timestamp = timestamp or datetime.now(timezone.utc)
 
         try:
@@ -133,7 +161,7 @@ class MathFactService:
         return result if result is not None else []
 
     def get_user_fact_performance(
-        self, user_id: str, operand1: int, operand2: int
+        self, user_id: str, operand1: int, operand2: int, operation: str = "+"
     ) -> Optional[MathFactPerformance]:
         """Get performance data for a specific fact.
 
@@ -141,11 +169,12 @@ class MathFactService:
             user_id: ID of the user
             operand1: First operand
             operand2: Second operand
+            operation: Mathematical operation symbol (default: "+")
 
         Returns:
             MathFactPerformance instance or None if not found
         """
-        fact_key = self.create_fact_key(operand1, operand2)
+        fact_key = self.create_fact_key(operand1, operand2, operation)
         return self.fact_repository.get_user_fact_performance(user_id, fact_key)
 
     def get_all_user_performances(self, user_id: str) -> List[MathFactPerformance]:
@@ -177,13 +206,17 @@ class MathFactService:
         return result if result is not None else []
 
     def analyze_session_performance(
-        self, user_id: str, session_attempts: List[Tuple[int, int, bool, int, int]]
+        self,
+        user_id: str,
+        session_attempts: List[Tuple[int, int, bool, int, int]],
+        operation: str = "+",
     ) -> Dict[str, Any]:
         """Analyze performance from a quiz session using SM-2 data.
 
         Args:
             user_id: ID of the user
             session_attempts: List of (operand1, operand2, is_correct, response_time_ms, incorrect_attempts)
+            operation: Mathematical operation symbol (default: "+")
 
         Returns:
             Dictionary containing session analysis with SM-2 metrics
@@ -208,7 +241,7 @@ class MathFactService:
             response_time_ms,
             incorrect_attempts,
         ) in session_attempts:
-            fact_key = self.create_fact_key(operand1, operand2)
+            fact_key = self.create_fact_key(operand1, operand2, operation)
 
             # Check if this was a new fact
             existing_performance = self.fact_repository.get_user_fact_performance(
@@ -218,16 +251,22 @@ class MathFactService:
                 existing_performance is None or existing_performance.total_attempts == 0
             )
 
+            # Calculate correct answer for this operation
+            correct_answer = self.calculate_operation_result(
+                operand1, operand2, operation
+            )
+
             # Track the attempt (this will update SM-2 data)
             performance = self.track_attempt(
                 user_id=user_id,
                 operand1=operand1,
                 operand2=operand2,
-                user_answer=operand1 + operand2 if is_correct else None,  # Simplified
-                correct_answer=operand1 + operand2,
+                user_answer=correct_answer if is_correct else None,  # Simplified
+                correct_answer=correct_answer,
                 is_correct=is_correct,
                 response_time_ms=response_time_ms,
                 incorrect_attempts_in_session=incorrect_attempts,
+                operation=operation,
             )
 
             if performance:

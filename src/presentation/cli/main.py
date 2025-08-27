@@ -12,6 +12,7 @@ from .ui import (
 )
 from ..controllers.addition import addition_mode
 from ..controllers.addition_tables import addition_tables_mode
+from ..controllers.subtraction_tables import subtraction_tables_mode
 from src.infrastructure.database.supabase_manager import (
     create_supabase_manager,
     validate_environment,
@@ -200,6 +201,8 @@ def main(use_local: bool = False):
             elif choice == "2":
                 addition_tables_mode(container, user)
             elif choice == "3":
+                subtraction_tables_mode(container, user)
+            elif choice == "4":
                 # Sign out
                 current_user = container.user_svc.get_current_user()
                 name = current_user.display_name if current_user else "User"
